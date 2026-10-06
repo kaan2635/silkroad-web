@@ -6,7 +6,8 @@ const PICKUP_RANGE = 2.4;
 const DROP_RATES = {         // [eşya, taş, iksir]
   wolf: [0.15, 0.12, 0.22],
   scorpion: [0.22, 0.18, 0.25],
-  bandit: [0.40, 0.30, 0.30]
+  bandit: [0.40, 0.30, 0.30],
+  golem: [0.45, 0.35, 0.30]
 };
 
 class LootManager {
@@ -81,7 +82,8 @@ class LootManager {
 
   // Canavar öldüğünde ganimet saç
   dropFrom(m) {
-    const lvl = m.level, rates = DROP_RATES[m.typeKey] || [0.15, 0.1, 0.2];
+    const lvl = m.level, rates = (DROP_RATES[m.typeKey] || [0.15, 0.1, 0.2]).slice();
+    if (this.quests && this.quests.wantsStones()) rates[1] = Math.min(0.6, rates[1] * 2.5);   // taş görevi varsa daha sık düşer
     const spot = () => { const a = Math.random() * 6.283, r = 0.6 + Math.random() * 1.4; return [m.x + Math.cos(a) * r, m.z + Math.sin(a) * r]; };
     const gold = Math.max(1, Math.round((4 + 5 * lvl) * (0.7 + Math.random() * 0.6)));
     this.spawn('gold', ...spot(), { amount: gold });
@@ -104,6 +106,7 @@ class LootManager {
       this.hud.log('+' + d.amount + ' altın', 'gold');
     } else if (d.kind === 'stone') {
       s.stones += d.amount;
+      if (this.quests) this.quests.onCollect('stone');
       this.hud.log('Yükseltme Taşı aldın.', 'sys', '#7fe3ff');
     } else if (d.kind === 'hp' || d.kind === 'mp') {
       s[d.kind === 'hp' ? 'hpPots' : 'mpPots'] += d.amount;

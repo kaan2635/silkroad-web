@@ -25,7 +25,12 @@
   hud.combat = combat; hud.mm = monsters; combat.hud = hud;
   const loot = new LootManager(world, player, hud);
   combat.loot = loot;
-  const ui = new UI(player, hud);
+  const quests = new QuestManager(player, hud, world);
+  quests.combat = combat; combat.quests = quests; loot.quests = quests; hud.quests = quests;
+  const wmap = new WorldMap(player, quests);
+  const ui = new UI(player, hud, quests, wmap);
+  quests.onChange = () => { npcs.refreshMarkers(quests); ui.refresh(); };
+  npcs.refreshMarkers(quests);
   let pendingNpc = null;
   input.bindJoystick(document.getElementById('joy-zone'), document.getElementById('joy-knob'));
 
@@ -56,7 +61,8 @@
       localStorage.setItem(CONFIG.saveKey, JSON.stringify({
         name: player.name, x: player.pos.x, z: player.pos.z,
         level: s.level, exp: s.exp, hpPots: s.hpPots, mpPots: s.mpPots,
-        gold: s.gold, stones: s.stones, inv: player.inv.serialize()
+        gold: s.gold, stones: s.stones, inv: player.inv.serialize(),
+        tod: world.timeOfDay, quests: quests.serialize()
       }));
     } catch (e) { /* özel pencere vb. */ }
   }
@@ -75,11 +81,14 @@
     if (sameChar) combat.applySave(saved); else player.inv.starter();
     player.setName(name);
     if (sameChar && isFinite(saved.x) && isFinite(saved.z)) player.teleport(saved.x, saved.z);
+    if (sameChar) { quests.load(saved.quests); if (isFinite(saved.tod)) world.timeOfDay = clamp(saved.tod, 0, 0.9999); }
+    npcs.refreshMarkers(quests);
     startScreen.classList.add('hidden');
     hud.show();
     started = true;
     nameInput.blur();
     hud.log('İpek Yolu\'na hoş geldin, ' + name + '!');
+    hud.log('Kaptan Lee\'nin başındaki ! işaretine bak: görevler seni bekliyor.');
     hud.log(CONFIG.isTouch ? 'Joystick ile yürü, canavara dokun = saldır.' : 'Canavara tıkla = saldır. Yürümek için yere tıkla.');
     save();
   }
@@ -123,7 +132,9 @@
       monsters.update(dt, player, combat);
       loot.update(dt);
       npcs.update(dt, player);
+      quests.update();
       ui.update();
+      if (wmap.open) wmap.draw();
       if (pendingNpc) {
         const d = Math.hypot(player.pos.x - pendingNpc.x, player.pos.z - pendingNpc.z);
         if (player.manualMove || player.dead) pendingNpc = null;

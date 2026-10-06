@@ -4,6 +4,7 @@ class HUD {
     this.player = player; this.world = world; this.rig = rig; this.camera = camera;
     this.combat = null;      // main.js bağlar
     this.mm = null;          // canavar yöneticisi, main.js bağlar
+    this.quests = null;      // görev yöneticisi, main.js bağlar
     const $ = id => document.getElementById(id);
     this.el = {
       name: $('pname'), lvl: $('plvl'),
@@ -12,7 +13,7 @@ class HUD {
       pgold: $('pgold'), coords: $('coords'), fps: $('fps'), log: $('log'), hotbar: $('hotbar'), root: $('hud'),
       tf: $('target-frame'), tfName: $('tf-name'), tfLvl: $('tf-lvl'), tfFill: $('tf-fill'), tfText: $('tf-text'),
       buffs: $('buffs'), cast: $('cast'), castFill: $('cast-fill'), castText: $('cast-text'),
-      death: $('death'), fx: $('fx')
+      death: $('death'), fx: $('fx'), clock: $('clock'), banner: $('banner'), tracker: $('tracker')
     };
     this.mmCanvas = $('minimap');
     this.ctx = this.mmCanvas.getContext('2d');
@@ -48,6 +49,17 @@ class HUD {
   }
 
   showDeath(v) { this.el.death.classList.toggle('hidden', !v); }
+
+  // Bölge / görev afişi (ekranın üstünde birkaç saniye)
+  banner(title, sub, cls = 'region') {
+    const b = this.el.banner;
+    b.className = cls;
+    b.innerHTML = '<div class="bt">' + title + '</div>' + (sub ? '<div class="bs">' + sub + '</div>' : '');
+    void b.offsetWidth;   // animasyonu yeniden başlat
+    b.classList.add('show');
+    clearTimeout(this._bt);
+    this._bt = setTimeout(() => b.classList.remove('show'), 3200);
+  }
 
   log(msg, cls = 'sys', color) {
     const d = document.createElement('div');
@@ -92,6 +104,12 @@ class HUD {
     e.expt.textContent = 'EXP ' + s.exp + ' / ' + s.maxExp;
     e.pgold.textContent = '💰 ' + s.gold + '   💎 ' + s.stones;
     e.coords.textContent = Math.round(pl.pos.x) + ', ' + Math.round(pl.pos.z);
+    const ck = (this.world.isNight() ? '🌙 ' : '☀️ ') + this.world.clockText() + ' · ' + (this.quests ? this.quests.region || '' : '');
+    if (ck !== this._lastClock) { e.clock.textContent = ck; this._lastClock = ck; }
+    if (this.quests) {
+      const th = this.quests.trackerHTML();
+      if (th !== this._lastTrack) { e.tracker.innerHTML = th; e.tracker.classList.toggle('hidden', !th); this._lastTrack = th; }
+    }
 
     this.frames++; this.fpsT += dt;
     if (this.fpsT >= 0.5) { e.fps.textContent = Math.round(this.frames / this.fpsT) + ' FPS'; this.frames = 0; this.fpsT = 0; }
@@ -151,7 +169,8 @@ class HUD {
 
     // güvenli bölge
     ctx.fillStyle = 'rgba(120,200,120,.25)';
-    ctx.beginPath(); ctx.arc(0, 0, SAFE_RADIUS, 0, 6.283); ctx.fill();
+    ctx.fillRect(-SAFE_HALF, -SAFE_HALF, SAFE_HALF * 2, SAFE_HALF * 2);
+    ctx.strokeStyle = '#a8281e'; ctx.lineWidth = 2; ctx.strokeRect(-TOWN_HALF, -TOWN_HALF, TOWN_HALF * 2, TOWN_HALF * 2);
 
     // yol
     ctx.strokeStyle = '#8f7a58'; ctx.lineWidth = 8; ctx.lineJoin = 'round';
@@ -166,8 +185,9 @@ class HUD {
     const range = R / scale + 10;
     for (const o of this.world.obstacles) {
       if (Math.abs(o.x - pp.x) > range || Math.abs(o.z - pp.z) > range) continue;
+      if (o.type === 'wall' || o.type === 'lamp') continue;
       if (o.type === 'pond') { ctx.fillStyle = '#3aa0c8'; ctx.beginPath(); ctx.arc(o.x, o.z, o.r + 1, 0, 6.283); ctx.fill(); continue; }
-      ctx.fillStyle = o.type === 'palm' ? '#3f7d2a' : o.type === 'cactus' ? '#5a9a3c' : o.type === 'gate' ? '#a8281e' : o.type === 'npc' ? '#ffd24a' : '#8a7a62';
+      ctx.fillStyle = o.type === 'palm' ? '#3f7d2a' : o.type === 'cactus' ? '#5a9a3c' : o.type === 'gate' ? '#a8281e' : o.type === 'npc' ? '#ffd24a' : o.type === 'house' ? '#c9b48a' : o.type === 'wagon' ? '#7a5a36' : '#8a7a62';
       ctx.beginPath(); ctx.arc(o.x, o.z, Math.max(1.6, o.r * 0.8), 0, 6.283); ctx.fill();
     }
 

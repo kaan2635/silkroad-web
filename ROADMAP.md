@@ -33,11 +33,11 @@ Tarayıcıda çalışan, Silkroad Online tarzı (ipek yolu temalı, tıkla-yür�
 - [x] Demirci: eşyayı +7'ye kadar yükselt (taş + altın, başarı şansı düşer)
 - [x] Envanter, altın ve ekipman tarayıcıda kaydedilir
 
-## Faz 4 — Dünya ve NPC'ler
-- [ ] Şehir (Jangan benzeri), kervan yolu, birden çok bölge
-- [ ] NPC'ler: tüccar ve demirci hazır (Faz 3); görev verici eksik
-- [ ] Görev sistemi (öldür, topla, teslim et)
-- [ ] Gün/gece döngüsü, dünya haritası
+## Faz 4 — Dünya ve NPC'ler (TAMAM)
+- [x] Surlu şehir (Jangan benzeri), kervan yolu (vagonlar, mil taşları), 5 bölge + isimli vahalar, Kum Devi canavarı
+- [x] NPC'ler: Tüccar, Demirci ve görev verici Kaptan Lee; ! / ? işaretleri
+- [x] Görev sistemi: öldür, topla, keşfet, teslim et; zincirli 9 görev, ödüller, takipçi, görev günlüğü (L)
+- [x] Gün/gece döngüsü (14 dk), dünya haritası (M), bölge afişleri
 
 ## Faz 5 — Çok Oyunculu Altyapı
 - [ ] Node.js + WebSocket sunucusu, sunucu otoriteli hareket ve savaş

@@ -162,3 +162,37 @@ body.touch #inv-info { width: 150px; }
 body.touch .islot { min-width: 36px; font-size: 19px; }
 body.touch #equip { width: 44px; }
 body.touch #npc-body { max-height: 46vh; }
+
+/* ---- Faz 4: saat, afiş, görev takipçisi, görev günlüğü, harita ---- */
+#clock { margin-top: 6px; font-size: 12px; color: #ffe9a8; text-shadow: 0 1px 3px #000; }
+#banner { position: absolute; top: 18%; left: 50%; transform: translateX(-50%); text-align: center; pointer-events: none; opacity: 0; transition: opacity .6s; text-shadow: 0 2px 8px #000; }
+#banner.show { opacity: 1; }
+#banner .bt { font-size: 34px; font-weight: bold; color: #ffe08a; letter-spacing: 2px; }
+#banner .bs { font-size: 15px; color: #f3e6c4; margin-top: 2px; }
+#banner.quest .bt { color: #8ef07a; font-size: 28px; }
+#tracker { position: absolute; left: 14px; top: 130px; width: 210px; padding: 6px 8px; font-size: 12px; pointer-events: none; }
+#tracker .tq { margin-bottom: 5px; }
+#tracker .tq b { display: block; color: #ffe08a; }
+#tracker .tq span { color: #f3e6c4; }
+#tracker .tq.ok b { color: #8ef07a; }
+.qrow { padding: 7px 6px; border-bottom: 1px solid #3a2a18; }
+.qrow .qt { font-weight: bold; color: #ffe08a; }
+.qrow .qt small { color: #b8a678; font-weight: normal; }
+.qrow .qd { font-size: 12.5px; color: #f3e6c4; margin: 3px 0; }
+.qrow .qr { font-size: 12px; color: #a8f0a0; }
+.qrow .qo { font-size: 12.5px; color: #7fe3ff; }
+.qrow .qa { margin-top: 5px; }
+.qrow .qs { font-size: 12px; color: #7fe3ff; }
+.qrow .qs.lock { color: #9a8a6a; }
+.qrow.ready .qt { color: #8ef07a; }
+.qrow.locked { opacity: .6; }
+.qfoot { padding: 8px 4px 2px; font-size: 12px; color: #b8a678; }
+#qlog-body { max-height: 60vh; overflow-y: auto; -webkit-overflow-scrolling: touch; }
+#wmap { width: auto; max-width: 96vw; }
+#wmap-canvas { display: block; width: min(420px, 90vw, 76vh); height: auto; aspect-ratio: 1; margin: 0 auto; border: 2px solid #8a6a2f; border-radius: 4px; }
+body.touch #tracker { top: 92px; width: 150px; font-size: 10.5px; padding: 4px 6px; }
+body.touch #clock { font-size: 10px; }
+body.touch #banner .bt { font-size: 22px; }
+body.touch #menu-btns button { width: 38px; height: 38px; font-size: 19px; }
+body.touch #menu-btns { top: 160px; gap: 4px; }
+@media (max-width: 720px) { #tracker { top: 92px; width: 150px; } }

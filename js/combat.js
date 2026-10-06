@@ -55,6 +55,7 @@ class Combat {
   constructor(player, mm, world, camera) {
     this.player = player; this.mm = mm; this.world = world; this.camera = camera;
     this.hud = null;
+    this.quests = null;
     this.target = null;
     this.attacking = false;
     this.cds = new Array(SKILLS.length).fill(0);
@@ -150,6 +151,7 @@ class Combat {
     this.fx(this.player, '+' + exp + ' EXP', 'exp');
     this.gainExp(exp);
     if (this.loot) this.loot.dropFrom(m);
+    if (this.quests) this.quests.onKill(m.typeKey);
   }
   damagePlayer(amount, m) {
     const pl = this.player;
@@ -264,7 +266,7 @@ class Combat {
     }
 
     // Güvenli bölge geçişleri
-    const safe = Math.hypot(pl.pos.x, pl.pos.z) < SAFE_RADIUS;
+    const safe = inSafeZone(pl.pos.x, pl.pos.z);
     if (safe !== this.inSafe) {
       this.inSafe = safe;
       this.hud.log(safe ? 'Güvenli bölgeye girdin.' : 'Güvenli bölgeden çıktın. Dikkat!');

@@ -1,6 +1,6 @@
 # Silkroad Web
 
-Tarayıcıda çalışan, **Silkroad Online** tarzı 3D MMORPG. **Masaüstü ve telefonda** oynanır. Şu an **Faz 3 (eşyalar ve envanter)** hazır. Yol haritası için [ROADMAP.md](ROADMAP.md).
+Tarayıcıda çalışan, **Silkroad Online** tarzı 3D MMORPG. **Masaüstü ve telefonda** oynanır. Şu an **Faz 4 (şehir, görevler, gün/gece)** hazır. Yol haritası için [ROADMAP.md](ROADMAP.md).
 
 ## Çalıştırma
 
@@ -25,6 +25,8 @@ python3 -m http.server 8000   # sonra http://localhost:8000
 | Hedef seç | Tab | 🎯 |
 | Yetenekler | 1–8 | Sağ alttaki butonlar |
 | Envanter | I | 🎒 butonu (sağ üst) |
+| Görev günlüğü | L | 📜 butonu |
+| Dünya haritası | M | 🗺️ butonu |
 | NPC ile konuş | NPC'ye tıkla | NPC'ye dokun |
 | Ganimet | Üstünden geç / tıkla | Üstünden geç / dokun |
 
@@ -43,14 +45,18 @@ python3 -m http.server 8000   # sonra http://localhost:8000
 ## Neler var
 
 - **Dünya:** çöl, ipek yolu, 5 vaha, palmiye/kaktüs/kaya, harabeler, şehir kapısı, uzak dağlar
-- **Canavarlar:** Kurt (Sv. 1–3), Dev Akrep (Sv. 3–5), Haydut kampları (Sv. 4–7). Dolaşır, kovalar, yuvasına döner, 18 sn sonra yeniden doğar
-- **Güvenli bölge:** şehir kapısı çevresinde canavar saldırmaz
+- **Bölgeler:** Jangan Şehri, Kurt Vadisi, Akrep Çölü, Haydut Harabeleri, Kızıl Kum Denizi ve 5 isimli vaha. Bölgeye girince afiş çıkar; kervan yolu boyunca vagonlar ve mil taşları var
+- **Canavarlar:** Kurt (Sv. 1–3), Dev Akrep (Sv. 3–5), Haydut kampları (Sv. 4–7), Kum Devi (Sv. 8–10, Kızıl Kum Denizi). Dolaşır, kovalar, yuvasına döner, 18 sn sonra yeniden doğar
+- **Şehir (Jangan):** surlu kare şehir, 4 köşe kulesi, kuzey/güney kapıları (kervan yolu), doğu/batı açıklıkları, meydan, fenerli yol, evler. Şehirde canavar saldırmaz
 - **Savaş:** hedef çerçevesi, hasar sayıları, kritik vuruş, bekleme süreleri, EXP ve seviye atlama, ölüm ve yeniden doğma
 - **Eşyalar:** 20 eşya, 4 nadirlik, ekipman statları (saldırı, savunma, can, mana). Canavarlar altın, eşya, iksir ve Yükseltme Taşı düşürür
 - **Envanter:** 24 slot + 5 ekipman slotu. Eşyaya dokun, tekrar dokunursan kuşanır
-- **NPC'ler:** şehir kapısının yanında Tüccar Ali (al/sat) ve Demirci Wen (+7'ye kadar yükseltme)
+- **NPC'ler:** Tüccar Ali (al/sat), Demirci Wen (+7'ye kadar yükseltme) ve Kaptan Lee (görev verici). Görev verenlerin başında **!**, teslim edilecek görevlerde **?** işareti çıkar
+- **Görevler:** 9 görev; öldür, topla, keşfet ve teslim et türleri. Zincirli görevler (Kurt Sürüsü → Çöl Zehri → Haydut Kampları → Kum Devleri). EXP, altın, iksir, taş ve ekipman ödülü. Ekranda görev takipçisi
+- **Gün/gece:** 14 dakikalık gün; güneş, ay, yıldızlar, gün batımı renkleri, geceleri parlayan fenerler
+- **Dünya haritası (M):** bölgeler, vahalar, harabeler, kervan yolu, oyuncu oku, görev hedefleri
 - **Mobil:** joystick, dokunmatik kamera, ayrı mobil arayüz yerleşimi
-- Karakter adı, konum, seviye, EXP ve iksirler tarayıcıda kaydedilir (localStorage)
+- Karakter adı, konum, seviye, EXP, eşyalar, görevler ve günün saati tarayıcıda kaydedilir (localStorage)
 
 ## Proje yapısı
 
@@ -59,15 +65,19 @@ index.html        giriş sayfası ve HUD iskeleti
 css/style.css     arayüz stilleri (masaüstü + mobil)
 js/config.js      sabitler ve yardımcı fonksiyonlar
 js/input.js       klavye / fare / dokunmatik giriş, joystick
-js/world.js       arazi, nesneler, gökyüzü, ışık
+js/world.js       arazi, bölgeler, nesneler, gökyüzü, ışık, kapılar
+js/town.js        şehir surları, evler, fenerler, kervan vagonları
+js/daynight.js    gün/gece döngüsü (güneş, ay, yıldız, ışık)
 js/player.js      karakter, hareket, çarpışma
 js/monsters.js    canavar modelleri, yapay zeka, spawn
 js/combat.js      hedefleme, hasar, yetenekler, EXP, ölüm
 js/items.js       eşya verileri, nadirlik, düşme tablosu
 js/inventory.js   envanter, ekipman, stat hesabı
 js/loot.js        yerdeki ganimet
-js/npc.js         Tüccar ve Demirci
-js/ui.js          envanter ve dükkân pencereleri
+js/npc.js         Tüccar, Demirci, Kaptan; görev işaretleri
+js/quests.js      görev tanımları ve takibi
+js/worldmap.js    dünya haritası
+js/ui.js          envanter, dükkân, görev ve harita pencereleri
 js/camera.js      yörünge kamerası
 js/hud.js         arayüz, mini harita, hasar yazıları
 js/main.js        renderer, ana döngü, başlangıç ekranı

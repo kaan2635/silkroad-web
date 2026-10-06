@@ -29,15 +29,18 @@
 
     <div id="minimap-wrap">
       <canvas id="minimap" width="170" height="170"></canvas>
+      <div id="clock">☀️ 08:00</div>
       <div id="coords">0, 0</div>
       <div id="fps">-- FPS</div>
     </div>
 
     <div id="log"></div>
+    <div id="banner"></div>
+    <div id="tracker" class="panel hidden"></div>
 
     <div id="help" class="panel">
       <b>Sol tık</b> yürü / saldır &nbsp;·&nbsp; <b>Sağ tık + sürükle</b> kamera &nbsp;·&nbsp; <b>Tekerlek</b> zoom &nbsp;·&nbsp;
-      <b>WASD</b> yürü &nbsp;·&nbsp; <b>Tab</b> hedef &nbsp;·&nbsp; <b>Space</b> saldır &nbsp;·&nbsp; <b>1–8</b> yetenek &nbsp;·&nbsp; <b>I</b> envanter
+      <b>WASD</b> yürü &nbsp;·&nbsp; <b>Tab</b> hedef &nbsp;·&nbsp; <b>Space</b> saldır &nbsp;·&nbsp; <b>1–8</b> yetenek &nbsp;·&nbsp; <b>I</b> envanter &nbsp;·&nbsp; <b>L</b> görevler &nbsp;·&nbsp; <b>M</b> harita
     </div>
 
     <div id="cast" class="hidden"><div id="cast-fill"></div><span id="cast-text"></span></div>
@@ -51,7 +54,7 @@
     <div id="joy-zone"><div id="joy-base"></div><div id="joy-knob"></div></div>
     <div id="btn-target">🎯</div>
 
-    <div id="menu-btns"><button id="btn-inv" title="Envanter (I)">🎒</button></div>
+    <div id="menu-btns"><button id="btn-inv" title="Envanter (I)">🎒</button><button id="btn-quest" title="Görevler (L)">📜</button><button id="btn-map" title="Harita (M)">🗺️</button></div>
 
     <div id="inv" class="win hidden">
       <div class="win-head"><span>🎒 Envanter</span><button class="x">✕</button></div>
@@ -69,6 +72,16 @@
       <div id="npc-msg"></div>
       <div id="npc-body"></div>
       <div id="npc-foot"></div>
+    </div>
+
+    <div id="qlog" class="win hidden">
+      <div class="win-head"><span>📜 Görevler</span><button class="x">✕</button></div>
+      <div id="qlog-body"></div>
+    </div>
+
+    <div id="wmap" class="win hidden">
+      <div class="win-head"><span>🗺️ Dünya Haritası</span><button class="x">✕</button></div>
+      <canvas id="wmap-canvas" width="420" height="420"></canvas>
     </div>
 
     <div id="fx"></div>
@@ -89,7 +102,7 @@
       <input id="name-input" maxlength="16" placeholder="Karakter adın" autocomplete="off" spellcheck="false">
       <button id="start-btn">Oyuna Başla</button>
       <p class="hint-touch">📱 Telefonu yatay tut</p>
-      <p class="ver">Faz 3 · Eşyalar ve envanter</p>
+      <p class="ver">Faz 4 · Şehir, görevler, gün/gece</p>
     </div>
   </div>
 
@@ -107,6 +120,8 @@
   <script src="js/inventory.js"></script>
   <script src="js/input.js"></script>
   <script src="js/world.js"></script>
+  <script src="js/town.js"></script>
+  <script src="js/daynight.js"></script>
   <script src="js/player.js"></script>
   <script src="js/npc.js"></script>
   <script src="js/monsters.js"></script>
@@ -114,6 +129,8 @@
   <script src="js/combat.js"></script>
   <script src="js/camera.js"></script>
   <script src="js/hud.js"></script>
+  <script src="js/quests.js"></script>
+  <script src="js/worldmap.js"></script>
   <script src="js/ui.js"></script>
   <script src="js/main.js"></script>
 </body>

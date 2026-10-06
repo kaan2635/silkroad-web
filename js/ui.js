@@ -7,22 +7,29 @@ const SHOP_STOCK = [
 ];
 
 class UI {
-  constructor(player, hud) {
-    this.p = player; this.inv = player.inv; this.hud = hud;
+  constructor(player, hud, quests, wmap) {
+    this.p = player; this.inv = player.inv; this.hud = hud; this.quests = quests; this.wmap = wmap;
     const $ = id => document.getElementById(id);
     this.invWin = $('inv'); this.equipEl = $('equip'); this.gridEl = $('inv-grid');
     this.infoEl = $('inv-info'); this.footEl = $('inv-foot');
     this.npcWin = $('npc-win'); this.npcTitle = $('npc-title'); this.npcTabs = $('npc-tabs');
     this.npcBody = $('npc-body'); this.npcFoot = $('npc-foot'); this.npcMsgEl = $('npc-msg');
+    this.qWin = $('qlog'); this.qBody = $('qlog-body'); this.mapWin = $('wmap');
     this.sel = null; this.confirmDrop = false; this.sellConfirm = null;
     this.npc = null; this.tab = null; this.msg = null;
 
     this.inv.onChange = () => this.refresh();
 
     $('btn-inv').addEventListener('click', () => this.toggleInv());
-    for (const w of [this.invWin, this.npcWin]) {
+    $('btn-quest').addEventListener('click', () => this.toggleQ());
+    $('btn-map').addEventListener('click', () => this.toggleMap());
+    for (const w of [this.invWin, this.npcWin, this.qWin, this.mapWin]) {
       w.addEventListener('click', e => {
-        if (e.target.closest('.x')) { if (w === this.invWin) this.toggleInv(false); else this.closeNpc(); }
+        if (!e.target.closest('.x')) return;
+        if (w === this.invWin) this.toggleInv(false);
+        else if (w === this.qWin) this.toggleQ(false);
+        else if (w === this.mapWin) this.toggleMap(false);
+        else this.closeNpc();
       });
     }
 
@@ -53,7 +60,9 @@ class UI {
       const a = document.activeElement;
       if (a && a.tagName === 'INPUT') return;
       if (e.code === 'KeyI') this.toggleInv();
-      else if (e.code === 'Escape') { this.toggleInv(false); this.closeNpc(); }
+      else if (e.code === 'KeyL') this.toggleQ();
+      else if (e.code === 'KeyM') this.toggleMap();
+      else if (e.code === 'Escape') { this.toggleInv(false); this.closeNpc(); this.toggleQ(false); this.toggleMap(false); }
     });
   }
 
@@ -64,7 +73,30 @@ class UI {
     if (open) { this.sel = null; this.confirmDrop = false; this.refreshInv(); }
   }
 
+  // ---------- Görev günlüğü ve dünya haritası ----------
+  toggleQ(force) {
+    const open = force === undefined ? this.qWin.classList.contains('hidden') : force;
+    this.qWin.classList.toggle('hidden', !open);
+    if (open) this.refreshQ();
+  }
+  refreshQ() {
+    const qm = this.quests, list = qm.activeList();
+    this.qBody.innerHTML = (list.length ? list.map(q => {
+      const ready = qm.state[q.id].s === 'ready';
+      return '<div class="qrow' + (ready ? ' ready' : '') + '"><div class="qt">' + q.name + '</div><div class="qd">' + q.desc + '</div>' +
+        '<div class="qo">' + qm.objectiveText(q) + '</div><div class="qr">Ödül: ' + qm.rewardText(q) + '</div></div>';
+    }).join('') : '<div class="hint">Aktif görevin yok.<br>Şehirde Kaptan Lee, Tüccar Ali ve Demirci Wen\'e danış. Başlarındaki <b>!</b> işaretine bak.</div>') +
+      '<div class="qfoot">Tamamlanan görev: <b>' + qm.doneCount() + ' / ' + qm.defs.length + '</b></div>';
+  }
+  toggleMap(force) {
+    const open = force === undefined ? this.mapWin.classList.contains('hidden') : force;
+    this.mapWin.classList.toggle('hidden', !open);
+    this.wmap.open = open;
+    if (open) this.wmap.draw();
+  }
+
   refresh() {
+    if (!this.qWin.classList.contains('hidden')) this.refreshQ();
     if (!this.invWin.classList.contains('hidden')) this.refreshInv();
     if (this.npc) this.refreshNpc();
   }
@@ -136,7 +168,7 @@ class UI {
   // ---------- NPC ----------
   openNpc(npc) {
     this.npc = npc;
-    this.tab = npc.id === 'merchant' ? 'buy' : 'upgrade';
+    this.tab = npc.id === 'merchant' ? 'buy' : npc.id === 'smith' ? 'upgrade' : 'quests';
     this.msg = null; this.sellConfirm = null;
     this.npcWin.classList.remove('hidden');
     this.refreshNpc();
@@ -151,9 +183,11 @@ class UI {
     const npc = this.npc, s = this.p.stats;
     if (!npc) return;
     this.npcTitle.textContent = npc.name + ' — ' + npc.title;
-    const tabs = npc.id === 'merchant' ? [['buy', 'Satın Al'], ['sell', 'Sat']] : [['upgrade', 'Yükselt']];
+    const mk = this.quests.markerFor(npc.id);
+    const tabs = npc.id === 'merchant' ? [['buy', 'Satın Al'], ['sell', 'Sat']] : npc.id === 'smith' ? [['upgrade', 'Yükselt']] : [];
+    tabs.push(['quests', 'Görevler' + (mk ? ' ' + mk : '')]);
     this.npcTabs.innerHTML = tabs.map(t => '<button data-tab="' + t[0] + '" class="' + (t[0] === this.tab ? 'on' : '') + '">' + t[1] + '</button>').join('');
-    this.npcBody.innerHTML = this.tab === 'buy' ? this._buyHTML() : this.tab === 'sell' ? this._sellHTML() : this._upgradeHTML();
+    this.npcBody.innerHTML = this.tab === 'buy' ? this._buyHTML() : this.tab === 'sell' ? this._sellHTML() : this.tab === 'quests' ? this._questHTML() : this._upgradeHTML();
     this.npcFoot.innerHTML = '💰 <b>' + s.gold + '</b> &nbsp; 💎 <b>' + s.stones + '</b>' + (this.tab === 'upgrade' ? ' &nbsp; <small>Taşları Tüccar\'dan al veya canavarlardan topla.</small>' : '');
     this.npcMsgEl.innerHTML = this.msg ? '<span style="color:' + this.msg.color + '">' + this.msg.text + '</span>' : '';
   }
@@ -162,6 +196,25 @@ class UI {
 
   _row(icon, name, sub, right, color) {
     return '<div class="srow"><span class="ic">' + icon + '</span><div class="nm"' + (color ? ' style="color:' + color + '"' : '') + '>' + name + '<small>' + sub + '</small></div>' + right + '</div>';
+  }
+
+  _questHTML() {
+    const qm = this.quests, list = qm.forNpc(this.npc.id);
+    const greet = this.npc.id === 'captain' ? '<div class="hint">Şehrin güvenliği için yardımına ihtiyacımız var, yolcu.</div>' : '';
+    if (!list.length) return greet + '<div class="hint">Şu an verecek görevim yok. Seviye atladıkça tekrar gel.</div>' + '<div class="qfoot">Tamamlanan görev: <b>' + qm.doneCount() + ' / ' + qm.defs.length + '</b></div>';
+    // önce teslim edilecekler, sonra alınabilirler, sonra devam edenler, en sonda kilitliler
+    const order = { ready: 0, none: 1, active: 2, locked: 3 };
+    list.sort((a, b) => order[a.s] - order[b.s]);
+    return greet + list.map(({ q, s }) => {
+      let right = '';
+      if (s === 'none') right = '<button data-act="qaccept" data-q="' + q.id + '">Kabul Et</button>';
+      else if (s === 'ready') right = '<button data-act="qturn" data-q="' + q.id + '">Teslim Et</button>';
+      else if (s === 'active') right = '<span class="qs">' + qm.objectiveText(q) + '</span>';
+      else right = '<span class="qs lock">🔒 ' + qm.lockText(q) + '</span>';
+      return '<div class="qrow ' + s + '"><div class="qt">' + q.name + '<small> Sv. ' + q.minLevel + '+</small></div>' +
+        (s === 'locked' ? '' : '<div class="qd">' + q.desc + '</div><div class="qr">Ödül: ' + qm.rewardText(q) + '</div>') +
+        '<div class="qa">' + right + '</div></div>';
+    }).join('');
   }
 
   _buyHTML() {
@@ -216,6 +269,9 @@ class UI {
       s.gold -= cost;
       if (st.k === 'pot') s[st.stat] += n; else s.stones += n;
       this._say(st.name + ' x' + n + ' satın alındı.', '#a8f0a0');
+    } else if (act === 'qaccept' || act === 'qturn') {
+      const r = act === 'qaccept' ? this.quests.accept(btn.dataset.q) : this.quests.turnIn(btn.dataset.q);
+      this._say(r.msg, r.ok ? '#a8f0a0' : '#ff8a7a');
     } else if (act === 'sell') {
       const i = +btn.dataset.i, it = inv.slots[i];
       if (!it) return;

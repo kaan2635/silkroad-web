@@ -1,12 +1,14 @@
 // Canavarlar: modeller, yapay zeka (dolaşma, kovalama, saldırı, geri dönüş), yeniden doğma.
 
-const SAFE_RADIUS = 28;    // şehir kapısı çevresi: canavar girmez, saldırmaz
+const SAFE_HALF = TOWN_HALF + 3;   // şehir ve çevresi: canavar girmez, saldırmaz
+function inSafeZone(x, z) { return Math.max(Math.abs(x), Math.abs(z)) < SAFE_HALF; }
 const LEASH = 45;          // canavar yuvasından bu kadar uzaklaşırsa geri döner
 const RESPAWN_TIME = 18;
 
 const MONSTER_TYPES = {
   wolf:     { name: 'Kurt',       hp: 40,  dmg: 5,  speed: 6.5, aggro: 11, range: 2.0, atkInt: 1.4, exp: 12, hit: 1.2, scale: 1.0, labelY: 2.5 },
   scorpion: { name: 'Dev Akrep',  hp: 70,  dmg: 8,  speed: 4.6, aggro: 8,  range: 2.3, atkInt: 1.8, exp: 20, hit: 1.5, scale: 1.25, labelY: 3.3 },
+  golem:    { name: 'Kum Devi',   hp: 220, dmg: 18, speed: 3.8, aggro: 9,  range: 2.8, atkInt: 2.0, exp: 60, hit: 2.0, scale: 1.5, labelY: 3.6 },
   bandit:   { name: 'Haydut',     hp: 120, dmg: 12, speed: 5.5, aggro: 12, range: 2.4, atkInt: 1.6, exp: 35, hit: 1.3, scale: 1.0, labelY: 3.3 }
 };
 
@@ -65,6 +67,12 @@ function buildScorpion() {
   return { group: g, legs: [] };
 }
 
+function buildGolem() {
+  const h = buildHumanoid({ robe: 0xb08a58, robeDark: 0x7a5c36, hat: null });
+  h.group.traverse(o => { if (o.material && o.material.color) { o.material = o.material.clone(); o.material.color.lerp(new THREE.Color(0xa07a4c), 0.55); } });
+  return { group: h.group, legs: [h.legL, h.legR], arms: [h.armL, h.armR], armR: h.armR };
+}
+
 function pushOut(p, radius, obstacles) {
   for (const o of obstacles) {
     const dx = p.x - o.x, dz = p.z - o.z, min = o.r + radius;
@@ -104,6 +112,7 @@ class Monster {
     let parts;
     if (typeKey === 'wolf') parts = buildWolf();
     else if (typeKey === 'scorpion') parts = buildScorpion();
+    else if (typeKey === 'golem') parts = buildGolem();
     else {
       const h = buildHumanoid({ robe: 0x3a3a44, robeDark: 0x24242c, hat: 'band' });
       parts = { group: h.group, legs: [h.legL, h.legR], arms: [h.armL, h.armR], armR: h.armR };
@@ -180,7 +189,7 @@ class Monster {
     if (this.atkCd > 0) this.atkCd -= dt;
     if (this.attackAnim > 0) this.attackAnim = Math.max(0, this.attackAnim - dt);
 
-    const playerSafe = player.dead || Math.hypot(player.pos.x, player.pos.z) < SAFE_RADIUS;
+    const playerSafe = player.dead || inSafeZone(player.pos.x, player.pos.z);
     const homeDist = Math.hypot(p.x - this.home.x, p.z - this.home.z);
     this.moving = false;
 
@@ -225,7 +234,7 @@ class Monster {
     const s = this.moving ? Math.sin(this.walkPhase) * 0.8 : 0;
     if (this.typeKey === 'wolf') {
       this.legs.forEach((l, i) => { l.rotation.x = (i === 0 || i === 3 ? s : -s); });
-    } else if (this.typeKey === 'bandit') {
+    } else if (this.typeKey === 'bandit' || this.typeKey === 'golem') {
       this.legs[0].rotation.x = s; this.legs[1].rotation.x = -s;
       this.arms[0].rotation.x = -s * 0.8; this.arms[1].rotation.x = s * 0.8;
       if (this.attackAnim > 0) this.armR.rotation.x = -2.3 * Math.sin((1 - this.attackAnim / 0.3) * Math.PI);
@@ -250,7 +259,7 @@ class MonsterManager {
     const w = this.world;
     const freeSpot = (x, z) => {
       if (Math.abs(x) > 270 || Math.abs(z) > 270) return false;
-      if (Math.hypot(x, z) < SAFE_RADIUS + 10) return false;
+      if (Math.max(Math.abs(x), Math.abs(z)) < SAFE_HALF + 12) return false;
       for (const o of w.obstacles) if (Math.hypot(x - o.x, z - o.z) < o.r + 2) return false;
       return true;
     };
@@ -268,6 +277,7 @@ class MonsterManager {
     };
     ring('wolf', 20, 40, 105, 1, 3);
     ring('scorpion', 14, 100, 190, 3, 5);
+    ring('golem', 12, 200, 270, 7, 10);
     // Harabelerde haydut kampları
     for (const c of RUINS) {
       for (let i = 0; i < 4; i++) {

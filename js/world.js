@@ -10,13 +10,33 @@ const RUINS = [{ x: 55, z: -75 }, { x: -75, z: -45 }, { x: -20, z: 110 }];
 
 function roadCenterX(z) { return Math.sin(z * 0.012) * 35; }
 
+// Şehir: Jangan benzeri surlu kare (yarı genişlik 30), orijinde
+const TOWN_HALF = 30;
+const POND_NAMES = ['Yeşim Vahası', 'Ejder Gölü', 'Gümüş Vaha', 'Kervan Vahası', 'Gün Batımı Vahası'];
+
+// Bölge bilgisi: ad ve tavsiye edilen seviye (görev "git" hedefleri ve afiş için)
+const REGION_LEVELS = {
+  'Jangan Şehri': 'Güvenli bölge', 'Kurt Vadisi': 'Sv. 1–3', 'Akrep Çölü': 'Sv. 3–5',
+  'Haydut Harabeleri': 'Sv. 4–7', 'Kızıl Kum Denizi': 'Sv. 7–10'
+};
+POND_NAMES.forEach(n => { REGION_LEVELS[n] = 'Vaha'; });
+
+function regionAt(x, z) {
+  if (Math.max(Math.abs(x), Math.abs(z)) < TOWN_HALF + 3) return 'Jangan Şehri';
+  for (const c of RUINS) if (Math.hypot(x - c.x, z - c.z) < 26) return 'Haydut Harabeleri';
+  for (let i = 0; i < PONDS.length; i++) if (Math.hypot(x - PONDS[i].x, z - PONDS[i].z) < 30) return POND_NAMES[i];
+  const d = Math.hypot(x, z);
+  if (d < 110) return 'Kurt Vadisi';
+  if (d < 195) return 'Akrep Çölü';
+  return 'Kızıl Kum Denizi';
+}
+
 // Arazi yüksekliği: hem zemini kurmak hem karakteri yere basmak için kullanılır
 function terrainHeight(x, z) {
-  const d = Math.hypot(x, z);
   let h = Math.sin(x * 0.035) * Math.cos(z * 0.03) * 5
         + Math.sin(x * 0.011 + z * 0.017) * 9
         + Math.sin(x * 0.09 + z * 0.07) * 0.9;
-  h *= sstep(10, 50, d);                                   // spawn bölgesi düz
+  h *= sstep(TOWN_HALF + 2, TOWN_HALF + 34, Math.max(Math.abs(x), Math.abs(z)));   // şehir düz
   h *= 0.2 + 0.8 * sstep(3, 10, Math.abs(x - roadCenterX(z))); // yol düzleşir
   h *= 1 - sstep(235, 292, Math.max(Math.abs(x), Math.abs(z)));  // dünya kenarı düzleşir
   for (const p of PONDS) {
@@ -40,10 +60,14 @@ class World {
     this._buildSky();
     this._buildTerrain();
     this._buildWater();
-    this._buildGate();
+    this._buildGate(-TOWN_HALF);
+    this._buildGate(TOWN_HALF);
+    this._buildTown();
     this._scatter();
     this._buildMountains();
     this._buildMarker();
+    this._buildCaravan();
+    this._buildDayNight();
   }
 
   heightAt(x, z) { return terrainHeight(x, z); }
@@ -51,6 +75,7 @@ class World {
   _buildLights() {
     const hemi = new THREE.HemisphereLight(0xcfe8ff, 0xc9a66b, 0.65);
     this.scene.add(hemi);
+    this.hemi = hemi;
     const sun = new THREE.DirectionalLight(0xfff1d0, 0.95);
     sun.castShadow = true;
     sun.shadow.mapSize.set(CONFIG.isTouch ? 1024 : 2048, CONFIG.isTouch ? 1024 : 2048);
@@ -91,7 +116,7 @@ class World {
     const pos = geo.attributes.position;
     const col = new Float32Array(pos.count * 3);
     const sand = new THREE.Color(0xdcbf86), dark = new THREE.Color(0xc29a5c), road = new THREE.Color(0x9a8260);
-    const rock = new THREE.Color(0xa88a62), grass = new THREE.Color(0x7d9a52), c = new THREE.Color();
+    const rock = new THREE.Color(0xa88a62), paved = new THREE.Color(), grass = new THREE.Color(0x7d9a52), c = new THREE.Color();
 
     for (let i = 0; i < pos.count; i++) {
       const x = pos.getX(i), z = pos.getZ(i);
@@ -104,6 +129,12 @@ class World {
       for (const p of PONDS) g = Math.max(g, sstep(30, 14, Math.hypot(x - p.x, z - p.z)));
       c.lerp(grass, g * 0.85);
       c.lerp(road, sstep(5.5, 3, Math.abs(x - roadCenterX(z))));
+      const tm = Math.max(Math.abs(x), Math.abs(z));
+      if (tm < TOWN_HALF + 4) {   // şehir içi taş döşeme
+        const tile = (Math.floor(x / 3) + Math.floor(z / 3)) & 1;
+        paved.setHex(tile ? 0xb7a784 : 0xaa9a78);
+        c.lerp(paved, sstep(TOWN_HALF + 4, TOWN_HALF - 2, tm));
+      }
       col[i * 3] = c.r; col[i * 3 + 1] = c.g; col[i * 3 + 2] = c.b;
     }
     geo.setAttribute('color', new THREE.BufferAttribute(col, 3));
@@ -132,8 +163,8 @@ class World {
   }
 
   // Yolun üstünde Çin tarzı şehir kapısı
-  _buildGate() {
-    const z = -22, cx = roadCenterX(z), y = terrainHeight(cx, z);
+  _buildGate(z) {
+    const cx = roadCenterX(z), y = terrainHeight(cx, z);
     const red = new THREE.MeshLambertMaterial({ color: 0xa8281e });
     const tile = new THREE.MeshLambertMaterial({ color: 0x38302c });
     const gold = new THREE.MeshLambertMaterial({ color: 0xd8a830 });
@@ -180,7 +211,7 @@ class World {
     const half = CONFIG.worldSize / 2 - 14;
     const rand = (a, b) => a + rng() * (b - a);
     const free = (x, z, r) => {
-      if (Math.hypot(x, z) < 9) return false;
+      if (Math.max(Math.abs(x), Math.abs(z)) < TOWN_HALF + 6) return false;
       if (Math.abs(x - roadCenterX(z)) < 6) return false;
       for (const p of PONDS) if (Math.hypot(x - p.x, z - p.z) < POND_RADIUS + 2 + r) return false;
       for (const o of this.obstacles) if (Math.hypot(x - o.x, z - o.z) < o.r + r + 0.8) return false;
@@ -282,9 +313,7 @@ class World {
   update(dt, playerPos, camera) {
     this.time += dt;
     this.sky.position.copy(camera.position);
-    this.sunMesh.position.copy(camera.position).addScaledVector(this.sunDir, 380);
-    this.light.position.copy(playerPos).addScaledVector(this.sunDir, 110);
-    this.light.target.position.copy(playerPos);
+    this._updateDayNight(dt, playerPos, camera);
     if (this.marker.visible) {
       this.markerT += dt / 0.9;
       if (this.markerT >= 1) this.marker.visible = false;
