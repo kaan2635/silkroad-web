@@ -82,3 +82,8 @@ js/camera.js      yörünge kamerası
 js/hud.js         arayüz, mini harita, hasar yazıları
 js/main.js        renderer, ana döngü, başlangıç ekranı
 ```
+
+
+## Asset ve UI/UX güncellemesi (Faz 5 öncesi)
+- Şehir, surlar, kuleler, evler, tezgâhlar, kervan ve doğa dekoru **Kenney CC0** modelleriyle yenilendi (bkz. `CREDITS.md`). Modeller yüklenemezse prosedürel yedek devreye girer.
+- Yükleme ekranı, **ses sistemi** (WebAudio efekt + ortam + müzik), **ayarlar penceresi** (⚙️ / Esc: ses, kalite, gölge, FPS, kamera hassasiyeti, kayıt sıfırlama), kamera-arazi çarpışma düzeltmesi, menü yerleşim düzeltmesi.

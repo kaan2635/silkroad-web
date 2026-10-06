@@ -54,7 +54,7 @@
     <div id="joy-zone"><div id="joy-base"></div><div id="joy-knob"></div></div>
     <div id="btn-target">🎯</div>
 
-    <div id="menu-btns"><button id="btn-inv" title="Envanter (I)">🎒</button><button id="btn-quest" title="Görevler (L)">📜</button><button id="btn-map" title="Harita (M)">🗺️</button></div>
+    <div id="menu-btns"><button id="btn-inv" title="Envanter (I)">🎒</button><button id="btn-quest" title="Görevler (L)">📜</button><button id="btn-map" title="Harita (M)">🗺️</button><button id="btn-settings" title="Ayarlar (Esc)">⚙️</button></div>
 
     <div id="inv" class="win hidden">
       <div class="win-head"><span>🎒 Envanter</span><button class="x">✕</button></div>
@@ -84,6 +84,11 @@
       <canvas id="wmap-canvas" width="420" height="420"></canvas>
     </div>
 
+    <div id="settings" class="win hidden">
+      <div class="win-head"><span>⚙️ Ayarlar</span><button class="x">✕</button></div>
+      <div id="set-body"></div>
+    </div>
+
     <div id="fx"></div>
   </div>
 
@@ -100,7 +105,9 @@
       <h1>SILKROAD <span>WEB</span></h1>
       <p class="sub">İpek Yolu'nda yolculuğun başlıyor</p>
       <input id="name-input" maxlength="16" placeholder="Karakter adın" autocomplete="off" spellcheck="false">
-      <button id="start-btn">Oyuna Başla</button>
+      <div id="loadbar"><div id="loadfill"></div></div>
+      <p id="loadtxt">Varlıklar yükleniyor…</p>
+      <button id="start-btn" disabled>Oyuna Başla</button>
       <p class="hint-touch">📱 Telefonu yatay tut</p>
       <p class="ver">Faz 4 · Şehir, görevler, gün/gece</p>
     </div>
@@ -113,15 +120,20 @@
     </div>
   </div>
 
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-  <script>window.THREE || document.write('<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.min.js"><\/script>');</script>
+  <script src="js/lib/three.min.js"></script>
+  <script src="js/lib/GLTFLoader.js"></script>
   <script src="js/config.js"></script>
+  <script src="js/audio.js"></script>
+  <script src="js/settings.js"></script>
   <script src="js/items.js"></script>
   <script src="js/inventory.js"></script>
   <script src="js/input.js"></script>
   <script src="js/world.js"></script>
   <script src="js/town.js"></script>
   <script src="js/daynight.js"></script>
+  <script src="js/assetpack.js"></script>
+  <script src="js/assets.js"></script>
+  <script src="js/town3d.js"></script>
   <script src="js/player.js"></script>
   <script src="js/npc.js"></script>
   <script src="js/monsters.js"></script>

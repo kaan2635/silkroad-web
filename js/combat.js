@@ -7,18 +7,18 @@ const expToNext = l => Math.round(60 * l * l + 40);
 const SKILLS = [
   { key: '1', icon: '⚔️', name: 'Temel Saldırı', mp: 0, cd: 0, tip: 'Hedefe otomatik saldırır',
     use: c => { c.startAttack(); return true; } },
-  { key: '2', icon: '💨', name: 'Hızlı Adım', mp: 10, cd: 14, tip: '4 sn hız artışı',
+  { key: '2', icon: '💨', name: 'Hızlı Adım', sfx: 'buff', mp: 10, cd: 14, tip: '4 sn hız artışı',
     use: c => { c.player.buffs.haste = 4; c.fx(c.player, 'Hızlı Adım!', 'buff'); return true; } },
-  { key: '3', icon: '🔥', name: 'Ateş Darbesi', mp: 15, cd: 4, tip: 'Uzaktan ateş topu (2.4x hasar)',
+  { key: '3', icon: '🔥', name: 'Ateş Darbesi', sfx: 'fire', mp: 15, cd: 4, tip: 'Uzaktan ateş topu (2.4x hasar)',
     use: c => {
       const t = c.requireTarget(14); if (!t) return false;
       c.faceTarget(t); c.player.swingT = 0.3;
       c.spawnProjectile(t, () => c.hitWithSkill(t, 2.4));
       return true;
     } },
-  { key: '4', icon: '❄️', name: 'Buz Kalkanı', mp: 20, cd: 22, tip: '8 sn boyunca hasarı yarıya indirir',
+  { key: '4', icon: '❄️', name: 'Buz Kalkanı', sfx: 'buff', mp: 20, cd: 22, tip: '8 sn boyunca hasarı yarıya indirir',
     use: c => { c.player.buffs.shield = 8; c.fx(c.player, 'Buz Kalkanı!', 'buff'); return true; } },
-  { key: '5', icon: '🗡️', name: 'Çifte Kesik', mp: 12, cd: 6, tip: 'Yakın dövüş, 2 vuruş (1.5x)',
+  { key: '5', icon: '🗡️', name: 'Çifte Kesik', sfx: 'swing', mp: 12, cd: 6, tip: 'Yakın dövüş, 2 vuruş (1.5x)',
     use: c => {
       const t = c.requireTarget(MELEE_RANGE + 0.8); if (!t) return false;
       c.faceTarget(t); c.player.swingT = 0.3;
@@ -26,7 +26,7 @@ const SKILLS = [
       c.later(0.25, () => { if (!t.dead && !c.player.dead) { c.player.swingT = 0.3; c.hitWithSkill(t, 1.5); } });
       return true;
     } },
-  { key: '6', icon: '🧪', name: 'Can İksiri', mp: 0, cd: 8, tip: 'Can yeniler', potion: 'hpPots',
+  { key: '6', icon: '🧪', name: 'Can İksiri', sfx: 'potion', mp: 0, cd: 8, tip: 'Can yeniler', potion: 'hpPots',
     use: c => {
       const s = c.player.stats;
       if (s.hpPots <= 0) { c.hud.log('Can iksirin kalmadı.'); return false; }
@@ -34,7 +34,7 @@ const SKILLS = [
       s.hpPots--; const h = 60 + s.level * 8; s.hp = Math.min(s.maxHp, s.hp + h);
       c.fx(c.player, '+' + h, 'heal'); return true;
     } },
-  { key: '7', icon: '💧', name: 'Mana İksiri', mp: 0, cd: 8, tip: 'Mana yeniler', potion: 'mpPots',
+  { key: '7', icon: '💧', name: 'Mana İksiri', sfx: 'potion', mp: 0, cd: 8, tip: 'Mana yeniler', potion: 'mpPots',
     use: c => {
       const s = c.player.stats;
       if (s.mpPots <= 0) { c.hud.log('Mana iksirin kalmadı.'); return false; }
@@ -42,7 +42,7 @@ const SKILLS = [
       s.mpPots--; const m = 40 + s.level * 5; s.mp = Math.min(s.maxMp, s.mp + m);
       c.fx(c.player, '+' + m + ' MP', 'mana'); return true;
     } },
-  { key: '8', icon: '📜', name: 'Şehre Dönüş', mp: 0, cd: 60, tip: '3 sn kıpırdamadan bekle, şehre ışınlan',
+  { key: '8', icon: '📜', name: 'Şehre Dönüş', sfx: 'cast', mp: 0, cd: 60, tip: '3 sn kıpırdamadan bekle, şehre ışınlan',
     use: c => {
       if (c.casting) return false;
       c.casting = { t: 3, total: 3, name: 'Şehre dönüş' };
@@ -139,6 +139,7 @@ class Combat {
     m.provoke();
     this.player.combatT = 5;
     this.fx(m, String(dmg), crit ? 'crit' : 'hit');
+    SFX.play(crit ? 'crit' : 'hit');
     if (m.hp <= 0) { m.hp = 0; this.killMonster(m); }
   }
   killMonster(m) {
@@ -148,6 +149,7 @@ class Combat {
     const base = m.type.exp * (1 + 0.25 * (m.level - 1));
     const exp = Math.max(1, Math.round(base * clamp(1 + 0.2 * (m.level - p.level), 0.1, 1.6)));
     this.hud.log(m.type.name + ' öldürüldü. +' + exp + ' EXP', 'exp');
+    SFX.play('kill');
     this.fx(this.player, '+' + exp + ' EXP', 'exp');
     this.gainExp(exp);
     if (this.loot) this.loot.dropFrom(m);
@@ -163,6 +165,7 @@ class Combat {
     pl.stats.hp -= dmg;
     pl.combatT = 5;
     this.fx(pl, '-' + dmg, 'player');
+    SFX.play('hurt');
     if (this.casting) { this.casting = null; this.hud.log('Büyü bozuldu!'); }
     if (pl.stats.hp <= 0) { pl.stats.hp = 0; this.die(m); }
   }
@@ -177,6 +180,7 @@ class Combat {
       s.hp = s.maxHp; s.mp = s.maxMp;
       this.player.setName(this.player.name);
       this.hud.log('SEVİYE ATLADIN! Yeni seviye: ' + s.level, 'lvl');
+      SFX.play('levelup');
       this.fx(this.player, 'SEVİYE ATLADIN!', 'lvl');
     }
   }
@@ -209,6 +213,7 @@ class Combat {
     this.attacking = false; this.target = null; this.casting = null;
     this.hud.log((m ? m.type.name : 'Bir canavar') + ' seni yendi.', 'dmg');
     this.hud.showDeath(true);
+    SFX.play('death');
   }
   respawn() {
     const pl = this.player, s = pl.stats;
@@ -227,7 +232,8 @@ class Combat {
     if (!s || pl.dead) return;
     if (this.cds[i] > 0) { this.hud.log(s.name + ' bekleme süresinde.'); return; }
     if (pl.stats.mp < s.mp) { this.hud.log('Yeterli mana yok.'); return; }
-    if (s.use(this) === false) return;
+    if (s.use(this) === false) { SFX.play('error'); return; }
+    SFX.play(s.sfx || 'ui');
     pl.stats.mp -= s.mp;
     this.cds[i] = s.cd; this.cdMax[i] = Math.max(0.01, s.cd);
     this.hud.flashSlot(i);
@@ -302,6 +308,7 @@ class Combat {
         if (pl.attackCd <= 0) {
           pl.attackCd = 1.0;
           pl.swingT = 0.3;
+          SFX.play('swing');
           const r = this.rollDamage(1);
           this.damageMonster(t, r.dmg, r.crit);
         }

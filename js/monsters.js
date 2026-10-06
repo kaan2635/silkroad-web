@@ -185,7 +185,7 @@ class Monster {
 
     const dpx = player.pos.x - p.x, dpz = player.pos.z - p.z, dp = Math.hypot(dpx, dpz);
     if (dp > 140 && this.state === 'idle') return;          // uzaktaki canavarlar uyur
-    this.label.visible = dp < 48;
+    this.label.visible = dp < 48 && Settings.data.names;
     if (this.atkCd > 0) this.atkCd -= dt;
     if (this.attackAnim > 0) this.attackAnim = Math.max(0, this.attackAnim - dt);
 

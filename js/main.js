@@ -7,6 +7,8 @@
   }
   if (CONFIG.isTouch) document.body.classList.add('touch');
 
+  function boot() {
+
   const canvas = document.getElementById('game');
   const renderer = new THREE.WebGLRenderer({ canvas, antialias: !CONFIG.isTouch, powerPreference: 'high-performance' });
   renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, CONFIG.isTouch ? 1.5 : 2));
@@ -51,6 +53,9 @@
   window.addEventListener('orientationchange', () => setTimeout(resize, 200));
   resize();
 
+  new SettingsUI({ renderer, scene: world.scene, resize, onReset: () => { try { localStorage.removeItem(CONFIG.saveKey); } catch (e) {} started = false; location.reload(); } });
+  let stepD = 0, lastP = null;
+
   // --- Kayıt (localStorage) ---
   function loadSave() {
     try { return JSON.parse(localStorage.getItem(CONFIG.saveKey)) || null; } catch (e) { return null; }
@@ -78,11 +83,12 @@
     if (started) return;
     const name = (nameInput.value || '').trim() || 'Gezgin';
     const sameChar = saved && saved.name === name;
-    if (sameChar) combat.applySave(saved); else player.inv.starter();
+    if (sameChar) combat.applySave(saved); else { player.inv.starter(); player.teleport(0, 7); }
     player.setName(name);
     if (sameChar && isFinite(saved.x) && isFinite(saved.z)) player.teleport(saved.x, saved.z);
     if (sameChar) { quests.load(saved.quests); if (isFinite(saved.tod)) world.timeOfDay = clamp(saved.tod, 0, 0.9999); }
     npcs.refreshMarkers(quests);
+    SFX.init(); SFX.play('ui');
     startScreen.classList.add('hidden');
     hud.show();
     started = true;
@@ -134,6 +140,9 @@
       npcs.update(dt, player);
       quests.update();
       ui.update();
+      if (lastP) { stepD += Math.hypot(player.pos.x - lastP.x, player.pos.z - lastP.z); if (stepD > 1.9) { stepD = 0; if (!player.dead) SFX.play('step'); } }
+      lastP = { x: player.pos.x, z: player.pos.z };
+      SFX.update(dt, { combat: player.combatT > 0, night: world.isNight(), inTown: inSafeZone(player.pos.x, player.pos.z) });
       if (wmap.open) wmap.draw();
       if (pendingNpc) {
         const d = Math.hypot(player.pos.x - pendingNpc.x, player.pos.z - pendingNpc.z);
@@ -154,7 +163,14 @@
     renderer.render(world.scene, camera);
   }
 
+  window.__game = { world, player, rig, monsters, npcs, combat, quests, hud, ui, loot, input, save };   // hata ayıklama / test
   window.addEventListener('beforeunload', () => { if (started) save(); });
   document.addEventListener('visibilitychange', () => { if (document.hidden && started) save(); });
   frame();
+  }
+
+  // Varlıkları (3D modeller) yükle, sonra oyunu kur. Yükleme başarısız olursa prosedürel modellerle devam.
+  const sb = document.getElementById('start-btn'), lf = document.getElementById('loadfill'), lt = document.getElementById('loadtxt');
+  const go = ok => { lf.style.width = '100%'; lt.textContent = ok ? 'Hazır!' : 'Basit grafiklerle başlıyor'; sb.disabled = false; setTimeout(() => document.getElementById('loadbar').classList.add('done'), 300); boot(); };
+  Assets.load(f => { lf.style.width = Math.round(f * 100) + '%'; }).then(go, () => go(false));
 })();

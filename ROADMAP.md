@@ -55,3 +55,7 @@ Tarayıcıda çalışan, Silkroad Online tarzı (ipek yolu temalı, tıkla-yür�
 - [ ] Gerçek 3D modeller, animasyonlar, ses ve müzik
 - [ ] Performans (LOD, chunk yükleme), gamepad desteği
 - [ ] Sunucu yayını (VPS), yedekleme, anti-hile kontrolleri
+
+
+## ✅ Faz 4.5 — Asset & UI/UX
+Kenney CC0 modeller, ses/müzik, ayarlar penceresi, yükleme ekranı. (Gerçek telefon performansı henüz test edilmedi.)

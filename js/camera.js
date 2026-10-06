@@ -30,7 +30,14 @@ class CameraRig {
     const want = new THREE.Vector3(playerPos.x, playerPos.y + 1.8, playerPos.z);
     this.focus.lerp(want, 1 - Math.exp(-dt * 14));
 
-    const d = this.smoothDistance, cp = Math.cos(this.pitch);
+    // Arazi kamerayı kapatıyorsa (vadi/kum tepesi) mesafeyi kısalt
+    let d = this.smoothDistance;
+    const cp = Math.cos(this.pitch), sp = Math.sin(this.pitch), sy = Math.sin(this.yaw), cy = Math.cos(this.yaw);
+    for (let i = 1; i <= 10; i++) {
+      const t = i / 10, px = this.focus.x + sy * cp * d * t, pz = this.focus.z + cy * cp * d * t, py = this.focus.y + sp * d * t;
+      if (py < terrainHeight(px, pz) + 0.7) { d = Math.max(3.5, d * (i - 1) / 10); break; }
+    }
+    this._occ = d;
     const cam = this.camera;
     cam.position.set(
       this.focus.x + Math.sin(this.yaw) * cp * d,

@@ -39,6 +39,7 @@ function terrainHeight(x, z) {
   h *= sstep(TOWN_HALF + 2, TOWN_HALF + 34, Math.max(Math.abs(x), Math.abs(z)));   // şehir düz
   h *= 0.2 + 0.8 * sstep(3, 10, Math.abs(x - roadCenterX(z))); // yol düzleşir
   h *= 1 - sstep(235, 292, Math.max(Math.abs(x), Math.abs(z)));  // dünya kenarı düzleşir
+  for (const r of RUINS) h *= sstep(16, 38, Math.hypot(x - r.x, z - r.z));   // harabe kampları düz zeminde
   for (const p of PONDS) {
     const t = sstep(22, POND_RADIUS, Math.hypot(x - p.x, z - p.z));
     if (t > 0) h = h * (1 - t) + (-1.2) * t;               // vaha çukuru
@@ -143,10 +144,15 @@ class World {
     this.ground.receiveShadow = true;
     this.scene.add(this.ground);
 
-    // Dünya sınırının ötesini dolduran büyük düz zemin
-    const outer = new THREE.Mesh(new THREE.CircleGeometry(900, 32), new THREE.MeshLambertMaterial({ color: 0xc9a468 }));
+    // Dünya sınırının ötesini dolduran büyük düz zemin (ortası kare delik: vadiler üstü örtülmesin)
+    const half = CONFIG.worldSize / 2;
+    const shape = new THREE.Shape(); shape.absarc(0, 0, 900, 0, Math.PI * 2, false);
+    const hole = new THREE.Path();
+    hole.moveTo(-half, -half); hole.lineTo(-half, half); hole.lineTo(half, half); hole.lineTo(half, -half); hole.lineTo(-half, -half);
+    shape.holes.push(hole);
+    const outer = new THREE.Mesh(new THREE.ShapeGeometry(shape, 24), new THREE.MeshLambertMaterial({ color: 0xc9a468 }));
     outer.rotation.x = -Math.PI / 2;
-    outer.position.y = -0.15;
+    outer.position.y = -0.05;
     this.scene.add(outer);
   }
 
@@ -249,7 +255,9 @@ class World {
       }
     }
 
-    // --- Instanced mesh'ler ---
+    if (this._modelsOK && this._modelsOK()) { this._scatterModels(palms, cacti, rocks, pillars, rng); return; }
+
+    // --- Instanced mesh'ler (prosedürel yedek) ---
     const trunkGeo = new THREE.CylinderGeometry(0.22, 0.38, 1, 6); trunkGeo.translate(0, 0.5, 0);
     this._instanced(trunkGeo, new THREE.MeshLambertMaterial({ color: 0x7a5a36 }),
       palms.map(p => this._matrix(p.x, p.y, p.z, 1, p.h, 1, p.ry)));

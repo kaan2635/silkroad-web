@@ -1,7 +1,7 @@
 // Şehir (Jangan benzeri): surlar, kuleler, evler, meydan, fenerler. Ayrıca kervan yolundaki vagonlar.
 // World sınıfına eklenir; world.js'den sonra yüklenmeli.
 
-World.prototype._buildTown = function () {
+World.prototype._buildTownProc = function () {
   const H = TOWN_HALF, rng = mulberry32(777);
   const stone = new THREE.MeshLambertMaterial({ color: 0xcdbb98 });
   const red = new THREE.MeshLambertMaterial({ color: 0xa8281e });
@@ -103,7 +103,7 @@ World.prototype._buildTown = function () {
 };
 
 // Kervan yolu: yol kenarında vagonlar ve mil taşları
-World.prototype._buildCaravan = function () {
+World.prototype._buildCaravanProc = function () {
   const wood = new THREE.MeshLambertMaterial({ color: 0x7a5a36 });
   const cloth = new THREE.MeshLambertMaterial({ color: 0xd9c9a0 });
   const dark = new THREE.MeshLambertMaterial({ color: 0x2c2118 });

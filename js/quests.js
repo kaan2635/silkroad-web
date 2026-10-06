@@ -67,6 +67,7 @@ class QuestManager {
     this.state[id] = { s: 'active', p: 0 };
     if (q.type === 'deliver') this.state[id] = { s: 'ready', p: 1 };
     this.hud.log('Görev alındı: ' + q.name, 'lvl');
+    SFX.play('quest');
     if (q.type === 'visit' && this.region === q.target) this._add(q, 1);   // zaten oradaysa
     this._changed();
     return { ok: true, msg: 'Görev alındı: ' + q.name };
@@ -80,6 +81,7 @@ class QuestManager {
       st.s = 'ready';
       this.hud.log('Görev tamamlandı: ' + q.name + ' — ödül için ' + this._npcName(this.turnTo(q)) + '\'e dön.', 'lvl');
       if (this.hud.banner) this.hud.banner('Görev Tamamlandı', q.name, 'quest');
+      SFX.play('questdone');
     } else this.hud.log(q.name + ': ' + st.p + '/' + this.need(q), 'sys', '#ffe08a');
     this._changed();
   }
@@ -119,6 +121,7 @@ class QuestManager {
     if (r.mpPots) s.mpPots += r.mpPots;
     if (r.item) inv.add(makeItem(r.item.base, r.item.rarity, 0));
     if (r.exp && this.combat) { this.combat.fx(this.p, '+' + r.exp + ' EXP', 'exp'); this.combat.gainExp(r.exp); }
+    SFX.play('levelup');
     this.hud.log('Görev teslim edildi: ' + q.name + ' (' + this.rewardText(q) + ')', 'lvl');
     this._changed();
     return { ok: true, msg: '✅ ' + q.name + ' tamamlandı! ' + this.rewardText(q) };
@@ -170,7 +173,7 @@ class QuestManager {
     if (r !== this.region) {
       const first = this.region === null;
       this.region = r;
-      if (!first && this.hud.banner) this.hud.banner(r, REGION_LEVELS[r] || '', 'region');
+      if (!first && this.hud.banner) { this.hud.banner(r, REGION_LEVELS[r] || '', 'region'); SFX.play('region'); }
       this.onVisit(r);
     }
   }

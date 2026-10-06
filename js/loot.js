@@ -104,17 +104,21 @@ class LootManager {
       s.gold += d.amount;
       this.hud.floatText(pos, '+' + d.amount + ' 💰', 'exp');
       this.hud.log('+' + d.amount + ' altın', 'gold');
+      SFX.play('coin');
     } else if (d.kind === 'stone') {
       s.stones += d.amount;
       if (this.quests) this.quests.onCollect('stone');
       this.hud.log('Yükseltme Taşı aldın.', 'sys', '#7fe3ff');
+      SFX.play('gem');
     } else if (d.kind === 'hp' || d.kind === 'mp') {
       s[d.kind === 'hp' ? 'hpPots' : 'mpPots'] += d.amount;
       this.hud.log((d.kind === 'hp' ? 'Can' : 'Mana') + ' İksiri aldın.', 'sys');
+      SFX.play('potion');
     } else {
       if (!this.player.inv.add(d.item)) { d.cool = 4; this.hud.log('Envanter dolu!', 'dmg'); return; }
       const n = itemInfo(d.item);
       this.hud.log(n.name + ' aldın. (' + n.rarityName + ')', 'sys', n.color);
+      SFX.play('item');
     }
     this.remove(d);
   }

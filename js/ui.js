@@ -52,7 +52,7 @@ class UI {
     // NPC pencere etkileşimi
     this.npcWin.addEventListener('click', e => {
       const tab = e.target.closest('[data-tab]'), btn = e.target.closest('[data-act]');
-      if (tab) { this.tab = tab.dataset.tab; this.msg = null; this.refreshNpc(); }
+      if (tab) { this.tab = tab.dataset.tab; this.msg = null; SFX.play('tab'); this.refreshNpc(); }
       else if (btn) this._npcAct(btn);
     });
 
@@ -62,7 +62,11 @@ class UI {
       if (e.code === 'KeyI') this.toggleInv();
       else if (e.code === 'KeyL') this.toggleQ();
       else if (e.code === 'KeyM') this.toggleMap();
-      else if (e.code === 'Escape') { this.toggleInv(false); this.closeNpc(); this.toggleQ(false); this.toggleMap(false); }
+      else if (e.code === 'Escape') {
+        window.__escClosed = !!document.querySelector('.win:not(.hidden)');
+        this.toggleInv(false); this.closeNpc(); this.toggleQ(false); this.toggleMap(false);
+        const st = document.getElementById('settings'); if (st && window.__escClosed) st.classList.add('hidden');
+      }
     });
   }
 
@@ -70,6 +74,7 @@ class UI {
   toggleInv(force) {
     const open = force === undefined ? this.invWin.classList.contains('hidden') : force;
     this.invWin.classList.toggle('hidden', !open);
+    SFX.play('ui');
     if (open) { this.sel = null; this.confirmDrop = false; this.refreshInv(); }
   }
 
@@ -149,7 +154,7 @@ class UI {
     if (act === 'equip' && sel.type === 'slot') {
       const n = inv.slots[sel.i] && itemInfo(inv.slots[sel.i]);
       res = inv.equipFrom(sel.i);
-      if (res.ok) this.sel = { type: 'equip', key: n.slot };
+      if (res.ok) { this.sel = { type: 'equip', key: n.slot }; SFX.play('equip'); } else SFX.play('error');
     } else if (act === 'unequip' && sel.type === 'equip') {
       res = inv.unequip(sel.key);
       if (res.ok) this.sel = null;
@@ -167,7 +172,7 @@ class UI {
 
   // ---------- NPC ----------
   openNpc(npc) {
-    this.npc = npc;
+    this.npc = npc; SFX.play('ui');
     this.tab = npc.id === 'merchant' ? 'buy' : npc.id === 'smith' ? 'upgrade' : 'quests';
     this.msg = null; this.sellConfirm = null;
     this.npcWin.classList.remove('hidden');
@@ -266,6 +271,7 @@ class UI {
         s.gold -= cost; inv.add(makeItem(st.base));
         return this._say(ITEM_BASES[st.base].name + ' satın alındı.', '#a8f0a0');
       }
+      SFX.play('coin');
       s.gold -= cost;
       if (st.k === 'pot') s[st.stat] += n; else s.stones += n;
       this._say(st.name + ' x' + n + ' satın alındı.', '#a8f0a0');
@@ -277,7 +283,7 @@ class UI {
       if (!it) return;
       if (it.rarity >= 2 && this.sellConfirm !== it.uid) { this.sellConfirm = it.uid; return this.refreshNpc(); }
       const price = sellPrice(it), name = itemInfo(it).name;
-      s.gold += price; this.sellConfirm = null; inv.remove(i);
+      s.gold += price; this.sellConfirm = null; inv.remove(i); SFX.play('coin');
       this._say(name + ' satıldı. +' + price + ' 💰', '#a8f0a0');
     } else if (act === 'upg') {
       const [kind, ref] = btn.dataset.src.split(':');
@@ -291,9 +297,11 @@ class UI {
         it.plus++;
         inv.recalc(); inv.changed();
         this.hud.log(itemInfo(it).name + ' yükseltildi!', 'lvl');
+        SFX.play('upgrade');
         this._say('✅ ' + itemInfo(it).name + ' yükseltildi!', '#ffd23a');
       } else {
         inv.changed();
+        SFX.play('fail');
         this._say('❌ Yükseltme başarısız. Eşya zarar görmedi.', '#ff8a7a');
       }
     }

@@ -196,3 +196,32 @@ body.touch #banner .bt { font-size: 22px; }
 body.touch #menu-btns button { width: 38px; height: 38px; font-size: 19px; }
 body.touch #menu-btns { top: 160px; gap: 4px; }
 @media (max-width: 720px) { #tracker { top: 92px; width: 150px; } }
+
+/* ---- yükleme çubuğu ---- */
+#loadbar { width: 240px; height: 8px; margin: 12px auto 4px; border-radius: 4px; background: #0006; border: 1px solid #8a6a2f; overflow: hidden; transition: opacity .4s; }
+#loadbar.done { opacity: 0; height: 0; margin: 0; border: 0; }
+#loadfill { height: 100%; width: 0; background: linear-gradient(#ffd966, #c9942a); transition: width .15s; }
+#loadtxt { font-size: 12px; color: #c9b88a; margin: 0 0 8px; }
+#start-btn:disabled { opacity: .5; cursor: wait; }
+
+/* Ayarlar penceresi */
+#settings { width: min(460px, 96vw); }
+#settings h4 { margin: 12px 0 6px; color: #ffe08a; font-size: 13px; letter-spacing: .08em; text-transform: uppercase; border-bottom: 1px solid #5a4222; padding-bottom: 3px; }
+.srow2 { display: flex; align-items: center; gap: 10px; margin: 6px 0; font-size: 14px; }
+.srow2 span { flex: 0 0 38%; }
+.srow2 input[type=range] { flex: 1; accent-color: #d9a441; height: 28px; }
+.srow2 b { width: 44px; text-align: right; color: #ffe08a; font-size: 13px; }
+.seg { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin: 6px 0; font-size: 14px; }
+.seg > span { margin-right: 4px; }
+#settings .tg { background: #3a2a18; color: #f3e6c4; border-color: #8a6a2f; padding: 8px 12px; }
+#settings .tg.on { background: linear-gradient(#ffd966, #c9942a); color: #2b1400; }
+#settings .tg.warn { background: linear-gradient(#ff8a6a, #c0402a); color: #fff; }
+.keys { display: grid; grid-template-columns: 1fr 1fr; gap: 4px 12px; font-size: 12px; color: #d8c8a0; }
+kbd { background: #3a2a18; border: 1px solid #8a6a2f; border-radius: 3px; padding: 0 5px; margin-right: 4px; font-family: inherit; color: #ffe08a; }
+.credit { margin: 12px 0 0; font-size: 11px; color: #a8987a; }
+
+/* Menü düğmeleri minimap bilgilerinin altında */
+#menu-btns { top: 262px; }
+@media (max-width: 720px) { #menu-btns { top: 178px; } #menu-btns button { width: 40px; height: 40px; font-size: 20px; } }
+body.touch #menu-btns { top: 172px; gap: 5px; }
+body.touch #menu-btns button { width: 40px; height: 40px; font-size: 20px; }

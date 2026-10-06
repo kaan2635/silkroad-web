@@ -1,0 +1,247 @@
+// Gerçek 3D modellerle şehir, kervan yolu ve doğa dekoru (Kenney CC0 — bkz. CREDITS.md).
+// Modeller yüklenemezse town.js ve world.js içindeki prosedürel yedek kullanılır.
+
+World.prototype._modelsOK = function () {
+  return Assets.ready && ['nature/tree_palm', 'nature/cactus_tall', 'survival/rock-sand-a', 'nature/statue_column', 'castle/wall-narrow',
+    'castle/tower-hexagon-base', 'fantasy-town/wall', 'fantasy-town/roof-point', 'fantasy-town/lantern'].every(k => Assets.has(k));
+};
+
+// Dekor için serbest nokta (çarpışma yok, sadece üst üste binmesin)
+World.prototype._freeDeco = function (x, z, r) {
+  if (Math.max(Math.abs(x), Math.abs(z)) < TOWN_HALF + 6) return false;
+  if (Math.abs(x - roadCenterX(z)) < 5.5) return false;
+  for (const p of PONDS) if (Math.hypot(x - p.x, z - p.z) < POND_RADIUS + 2 + r) return false;
+  for (const o of this.obstacles) if (Math.abs(x - o.x) < o.r + r && Math.abs(z - o.z) < o.r + r && Math.hypot(x - o.x, z - o.z) < o.r + r) return false;
+  return true;
+};
+
+World.prototype._buildTown = function () {
+  if (!this._modelsOK()) return this._buildTownProc();
+  const H = TOWN_HALF, rng = mulberry32(777);
+  const red = new THREE.MeshLambertMaterial({ color: 0xa8281e });
+  const tile = new THREE.MeshLambertMaterial({ color: 0x38302c });
+  this.lanternMat = new THREE.MeshBasicMaterial({ color: 0x6a5a40 });
+  const sz = k => Assets.parts(k).size;
+
+  // --- Surlar: kale duvar parçaları ---
+  const wallMats = [];
+  const gapN = roadCenterX(-H), gapS = roadCenterX(H);
+  const WS = 3, WH = 3.9 / 1.31;           // parça uzunluğu 3, yükseklik ~3.9
+  for (let t = -H; t <= H + 0.01; t += 3) {
+    const sides = [
+      { x: t, z: -H, run: 'x', gap: Math.abs(t - gapN) < 8.5 },
+      { x: t, z: H, run: 'x', gap: Math.abs(t - gapS) < 8.5 },
+      { x: -H, z: t, run: 'z', gap: Math.abs(t) < 5 },
+      { x: H, z: t, run: 'z', gap: Math.abs(t) < 5 }
+    ];
+    for (const s of sides) {
+      if (s.gap) continue;
+      if (Math.abs(s.x) > H - 2 && Math.abs(s.z) > H - 2) continue;       // köşe kuleye bırak
+      // wall-narrow: x ∈ [-0.5, 0] (kalınlık), z boyunca uzanır
+      if (s.run === 'z') wallMats.push(this._matrix(s.x + 0.75, 0, s.z, WS, WH, WS, 0));
+      else wallMats.push(this._matrix(s.x, 0, s.z - 0.75, WS, WH, WS, Math.PI / 2));
+      this.obstacles.push({ x: s.x, z: s.z, r: 1.75, type: 'wall' });
+    }
+  }
+  this._inst('castle/wall-narrow', wallMats);
+
+  // doğu/batı kapı direkleri
+  for (const sx of [-1, 1]) for (const sz2 of [-1, 1]) {
+    const post = new THREE.Mesh(new THREE.CylinderGeometry(0.55, 0.65, 6.5, 8), red);
+    post.position.set(sx * H, 3.25, sz2 * 5.6); post.castShadow = true; this.scene.add(post);
+    const cap = new THREE.Mesh(new THREE.ConeGeometry(1.1, 1, 8), tile);
+    cap.position.set(sx * H, 7, sz2 * 5.6); this.scene.add(cap);
+    this.obstacles.push({ x: sx * H, z: sz2 * 5.6, r: 0.9, type: 'gate' });
+  }
+
+  // --- Köşe kuleleri: altıgen taban + gövde + çatı + flama ---
+  const TS = 4.6, hb = sz('castle/tower-hexagon-base').y, hm = sz('castle/tower-hexagon-mid').y, hr = sz('castle/tower-hexagon-roof').y;
+  for (const sx of [-1, 1]) for (const sz2 of [-1, 1]) {
+    const x = sx * H, z = sz2 * H;
+    this._place('castle/tower-hexagon-base', x, z, TS, 0);
+    this._place('castle/tower-hexagon-mid', x, z, TS, 0, hb * TS);
+    this._place('castle/tower-hexagon-roof', x, z, TS, 0, (hb + hm) * TS);
+    if (Assets.has('castle/flag-pennant')) this._place('castle/flag-pennant', x, z, 3.2, sx > 0 ? 0 : Math.PI, (hb + hm + hr) * TS - 0.2, false);
+    this.obstacles.push({ x, z, r: 2.7, type: 'wall' });
+  }
+
+  // --- Meydan ---
+  const plaza = new THREE.Mesh(new THREE.CircleGeometry(10, 40), new THREE.MeshLambertMaterial({ color: 0xd2c3a0, polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -2 }));
+  plaza.rotation.x = -Math.PI / 2; plaza.position.y = 0.04; plaza.receiveShadow = true; this.scene.add(plaza);
+  const rim = new THREE.Mesh(new THREE.RingGeometry(9.6, 10.4, 40), new THREE.MeshLambertMaterial({ color: 0x8e7e60, polygonOffset: true, polygonOffsetFactor: -3, polygonOffsetUnits: -3 }));
+  rim.rotation.x = -Math.PI / 2; rim.position.y = 0.05; this.scene.add(rim);
+  if (Assets.has('fantasy-town/fountain-round')) {
+    this._place('fantasy-town/fountain-round', 0, 0, 2.6, 0);
+    this.obstacles.push({ x: 0, z: 0, r: 2.7, type: 'fountain' });
+  }
+
+  // --- Fenerler ---
+  const lampPts = [];
+  for (let z = -H + 3; z <= H - 3; z += 8) { const cx = roadCenterX(z); lampPts.push([cx - 4.5, z], [cx + 4.5, z]); }
+  for (let i = 0; i < 6; i++) { const a = (i / 6) * 6.283 + 0.5; lampPts.push([Math.cos(a) * 11.5, Math.sin(a) * 11.5]); }
+  const LS = 2.2, lampMats = [], glowMats = [];
+  for (const [x, z] of lampPts) {
+    lampMats.push(this._matrix(x, 0, z, LS, LS, LS));
+    glowMats.push(this._matrix(x, 3.0, z, 1, 1, 1));
+    this.obstacles.push({ x, z, r: 0.35, type: 'lamp' });
+  }
+  this._inst('fantasy-town/lantern', lampMats);
+  const glow = this._instanced(new THREE.SphereGeometry(0.3, 8, 6), this.lanternMat, glowMats, false);
+  glow.receiveShadow = false;
+
+  // --- Pazar tezgâhları (meydanın dört yanında) ---
+  const reserved = [];
+  const stalls = [[11.5, -8.5, 'stall-red'], [11.5, 8.5, 'stall-green'], [-11.5, 8.5, 'stall-red'], [-11.5, -8.5, 'stall-green']];
+  for (const [x, z, k] of stalls) {
+    const ry = Math.atan2(-x, -z);                          // meydana bak
+    this._place('fantasy-town/' + k, x, z, 3.2, ry);
+    this.obstacles.push({ x, z, r: 1.9, type: 'stall' });
+    reserved.push([x, z]);
+    const tx = Math.cos(ry), tz = -Math.sin(ry);            // teğet yön
+    const props = [['survival/barrel', 2.6, 0, 3.4], ['survival/box', 2.7, 0.2, 2.6]];
+    props.forEach(([key, off, side, sc], i) => {
+      if (!Assets.has(key)) return;
+      const px = x + tx * (i ? -2.7 : 2.6), pz = z + tz * (i ? -2.7 : 2.6);
+      this._place(key, px, pz, sc, rng() * 6);
+      this.obstacles.push({ x: px, z: pz, r: 0.7, type: 'prop' });
+    });
+  }
+
+  // demirci: örs ve bileme tezgâhı; kaptan: flamalar
+  const smith = (typeof NPC_DEFS !== 'undefined' ? NPC_DEFS : []).find(n => n.id === 'smith');
+  if (smith) {
+    for (const [key, dx, dz, sc] of [['survival/workbench-anvil', -2.6, -1.4, 4.2], ['survival/workbench-grind', -2.4, 1.6, 4.2]]) {
+      if (!Assets.has(key)) continue;
+      this._place(key, smith.x + dx, smith.z + dz, sc, 1.2);
+      this.obstacles.push({ x: smith.x + dx, z: smith.z + dz, r: 0.9, type: 'prop' });
+      reserved.push([smith.x + dx, smith.z + dz]);
+    }
+  }
+  const cap = (typeof NPC_DEFS !== 'undefined' ? NPC_DEFS : []).find(n => n.id === 'captain');
+  if (cap && Assets.has('castle/flag-wide')) {
+    for (const dx of [-3, 3]) { this._place('castle/flag-wide', cap.x + dx, cap.z - 2.5, 4.4, Math.PI / 2, null, false); }
+    reserved.push([cap.x, cap.z]);
+  }
+  const npcSpots = (typeof NPC_DEFS !== 'undefined' ? NPC_DEFS : []).map(n => [n.x, n.z]);
+
+  // --- Evler: kale/kasaba modüllerinden (duvar panelleri + piramit çatı) ---
+  const spots = [];
+  let tries = 0;
+  while (spots.length < 9 && tries++ < 800) {
+    const x = (rng() * 2 - 1) * 24, z = (rng() * 2 - 1) * 24;
+    const n = rng() < 0.6 ? 2 : 3, S = n === 2 ? 2.8 : 2.5, half = n * S / 2;
+    if (Math.hypot(x, z) < 17) continue;
+    if (Math.abs(x - roadCenterX(z)) < 11 + half * 0.4 || Math.abs(x - roadCenterX(z - 6)) < 11 || Math.abs(x - roadCenterX(z + 6)) < 11) continue;
+    if (Math.abs(z) < 10 + half * 0.3) continue;                                           // doğu-batı yolu açık
+    if (Math.abs(x) > H - half - 2.5 || Math.abs(z) > H - half - 2.5) continue;            // sura yaslanmasın
+    if (npcSpots.some(p => Math.hypot(x - p[0], z - p[1]) < 8 + half)) continue;
+    if (reserved.some(p => Math.hypot(x - p[0], z - p[1]) < 7 + half)) continue;
+    if (spots.some(p => Math.hypot(x - p.x, z - p.z) < p.half + half + 3)) continue;
+    spots.push({ x, z, n, S, half, floors: n === 3 ? 2 : (rng() < 0.3 ? 2 : 1) });
+  }
+  const buckets = {};
+  const add = (key, m) => (buckets[key] = buckets[key] || []).push(m);
+  const plain = ['wall', 'wall-window-small', 'wall-window-shutters', 'wall-window-round', 'wall'];
+  for (const s of spots) {
+    const { x: cx, z: cz, n, S } = s;
+    // kapı meydana (orijine) bakan yüzde
+    const doorSide = Math.abs(cx) > Math.abs(cz) ? (cx > 0 ? '-x' : '+x') : (cz > 0 ? '-z' : '+z');
+    for (let fl = 0; fl < s.floors; fl++) {
+      for (const side of ['+x', '-x', '+z', '-z']) {
+        for (let k = 0; k < n; k++) {
+          const off = (k - (n - 1) / 2) * S, e = (n - 1) / 2 * S;
+          let px, pz, ry;
+          if (side === '+x') { px = cx + e; pz = cz + off; ry = 0; }
+          else if (side === '-x') { px = cx - e; pz = cz + off; ry = Math.PI; }
+          else if (side === '+z') { px = cx + off; pz = cz + e; ry = -Math.PI / 2; }
+          else { px = cx + off; pz = cz - e; ry = Math.PI / 2; }
+          let piece;
+          if (fl === 0 && side === doorSide && k === (n >> 1)) piece = 'wall-door';
+          else piece = plain[Math.floor(rng() * plain.length)];
+          add('fantasy-town/' + piece, this._matrix(px, fl * S, pz, S, S, S, ry));
+        }
+      }
+    }
+    const rk = n === 2 ? 'roof-point' : 'roof-high-point';
+    const rs = n * S / 1.1 * 1.06;
+    add('fantasy-town/' + rk, this._matrix(cx, s.floors * S, cz, rs, n === 2 ? rs * 0.9 : rs * 0.75, rs, 0));
+    this.obstacles.push({ x: cx, z: cz, r: s.half * 1.42, type: 'house' });
+  }
+  for (const key in buckets) this._inst(key, buckets[key]);
+  this.houses = spots;
+};
+
+// Kervan yolu: vagonlar, yük yığınları, tabelalar
+World.prototype._buildCaravan = function () {
+  if (!this._modelsOK() || !Assets.has('fantasy-town/cart-high')) return this._buildCaravanProc();
+  const rng = mulberry32(31);
+  const spots = [[-75, -1], [-140, 1], [-215, -1], [80, 1], [150, -1], [225, 1]];
+  for (const [z, side] of spots) {
+    const x = roadCenterX(z) + side * 8, ry = rng() * 6.28;
+    this._place('fantasy-town/cart-high', x, z, 3.3, ry);
+    this.obstacles.push({ x, z, r: 2.3, type: 'wagon' });
+    for (const [key, dx, dz, sc] of [['survival/barrel', 3, 1, 3.6], ['survival/box-large', -3, 2, 3], ['survival/barrel', 3.8, -0.5, 3.6]]) {
+      if (!Assets.has(key)) continue;
+      this._place(key, x + dx, z + dz, sc, rng() * 6);
+    }
+  }
+  // yön tabelaları
+  const mats = [];
+  for (let z = -260; z <= 260; z += 40) {
+    if (Math.abs(z) < 45) continue;
+    const x = roadCenterX(z) + 5.6;
+    mats.push(this._matrix(x, terrainHeight(x, z), z, 4, 4, 4, 0.4));
+  }
+  this._inst('survival/signpost', mats);
+};
+
+// Doğa: palmiye, kaktüs, kaya, sütun + dekor
+World.prototype._scatterModels = function (palms, cacti, rocks, pillars, rng) {
+  const rand = (a, b) => a + rng() * (b - a);
+  const bucket = {};
+  const add = (key, m) => (bucket[key] = bucket[key] || []).push(m);
+  const H = key => Assets.parts(key).size.y, W = key => Math.max(Assets.parts(key).size.x, Assets.parts(key).size.z);
+
+  const PV = ['nature/tree_palm', 'nature/tree_palmTall', 'nature/tree_palmDetailedTall', 'nature/tree_palmBend', 'nature/tree_palmShort'].filter(k => Assets.has(k));
+  palms.forEach((p, i) => { const k = PV[i % PV.length], s = p.h / H(k); add(k, this._matrix(p.x, p.y - 0.1, p.z, s, s, s, p.ry)); });
+  const CV = ['nature/cactus_short', 'nature/cactus_tall'].filter(k => Assets.has(k));
+  cacti.forEach((c, i) => { const k = CV[i % CV.length], s = c.h / H(k); add(k, this._matrix(c.x, c.y - 0.05, c.z, s, s, s, c.ry)); });
+  const RV = ['survival/rock-sand-a', 'survival/rock-sand-b', 'survival/rock-sand-c', 'survival/rock-sand-a', 'nature/stone_largeA', 'nature/stone_largeB', 'nature/stone_tallA'].filter(k => Assets.has(k));
+  rocks.forEach((r, i) => { const k = RV[i % RV.length], s = (1.9 * r.s) / W(k); add(k, this._matrix(r.x, r.y - 0.05, r.z, s, s * (0.8 + rng() * 0.5), s, r.ry)); });
+  let ri = 0;
+  for (const o of this.obstacles) if (o.type === 'rock') o.r = Math.max(0.8, rocks[ri++].s * 0.95);
+  const PL = ['nature/statue_column', 'nature/statue_columnDamaged'].filter(k => Assets.has(k));
+  pillars.forEach((p, i) => { const k = PL[i % PL.length], s = p.h / H(k); add(k, this._matrix(p.x, p.y, p.z, s * 1.15, s, s * 1.15, rng() * 6)); });
+
+  // Dekor (çarpışmasız): çalılar, kuru dallar, vaha otları
+  const deco = (keys, count, sc0, sc1, gen, shadow = false) => {
+    const ok = keys.filter(k => Assets.has(k)); if (!ok.length) return;
+    let made = 0, tries = 0;
+    while (made < count && tries++ < count * 6) {
+      const [x, z] = gen();
+      if (Math.abs(x) > 285 || Math.abs(z) > 285 || !this._freeDeco(x, z, 1)) continue;
+      const k = ok[Math.floor(rng() * ok.length)], s = rand(sc0, sc1) / Math.max(0.5, H(k));
+      add(k, this._matrix(x, terrainHeight(x, z) - 0.03, z, s, s, s, rng() * 6.28));
+      made++;
+    }
+  };
+  deco(['nature/plant_bush', 'nature/plant_bushLarge', 'nature/plant_flatTall'], 130, 1.1, 2.2, () => [rand(-280, 280), rand(-280, 280)]);
+  deco(['nature/log', 'nature/log_stack', 'nature/stump_old'], 26, 0.9, 1.5, () => [rand(-270, 270), rand(-270, 270)], true);
+  PONDS.forEach(p => deco(['nature/plant_flatShort', 'nature/grass_large', 'nature/plant_bush'], 22, 0.9, 1.8, () => { const a = rng() * 6.28, d = rand(POND_RADIUS + 1.5, 17); return [p.x + Math.cos(a) * d, p.z + Math.sin(a) * d]; }));
+
+  for (const key in bucket) this._inst(key, bucket[key], !/plant|grass|log|stump/.test(key));
+
+  // Haydut kampları: obelisk, çadırlar, kamp ateşi, fıçı ve sandıklar
+  const camp = (cx, cz) => {
+    const place = (key, x, z, sc, ry, r) => { if (!Assets.has(key)) return; this._place(key, x, z, sc, ry); if (r) this.obstacles.push({ x, z, r, type: 'prop' }); };
+    place('nature/statue_obelisk', cx, cz, 6, rng() * 6, 0.9);
+    place('survival/campfire-pit', cx + 3.2, cz + 2.4, 5, 0, 0);
+    for (let i = 0; i < 3; i++) {
+      const a = rand(0, 6.28) + i * 2.1, d = rand(10.5, 12.5), x = cx + Math.cos(a) * d, z = cz + Math.sin(a) * d;
+      place(i === 1 ? 'survival/tent-canvas' : 'survival/tent', x, z, 7, Math.atan2(cx - x, cz - z), 2.2);
+    }
+    const props = ['survival/barrel', 'survival/box', 'survival/chest', 'survival/barrel', 'survival/box-large'];
+    props.forEach((k, i) => { const a = 0.8 + i * 1.3, d = rand(5.2, 7), x = cx + Math.cos(a) * d, z = cz + Math.sin(a) * d; place(k, x, z, 3.6, rng() * 6, 0.7); });
+  };
+  for (const c of RUINS) camp(c.x, c.z);
+};
