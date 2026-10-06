@@ -53,6 +53,7 @@ class Combat {
   select(m, attack) { this.target = m; if (attack) this.startAttack(); }
   clearTarget() { this.target = null; this.attacking = false; this.queued = null; }
   startAttack() {
+    if (this.pets) this.pets.onAction();
     if (!this.target) { const t = this.mm.nearest(this.player.pos, 20); if (t) this.target = t; }
     if (!this.target) { this.hud.log('Hedef yok. Bir canavara dokun / tıkla.'); return; }
     this.attacking = true;
@@ -149,6 +150,7 @@ class Combat {
     dmg = Math.max(1, Math.round(dmg));
     if (pl.absorb) { const a = Math.min(pl.absorb.amt, dmg); pl.absorb.amt -= a; dmg -= a; if (a) this.fx(pl, 'Emildi ' + a, 'buff'); }
     if (dmg <= 0) return;
+    if (this.pets) this.pets.onPlayerHit();
     pl.stats.hp -= dmg;
     this.fx(pl, '-' + dmg, 'player');
     SFX.play('hurt');
@@ -258,6 +260,13 @@ class Combat {
     if (inv.count(base) <= 0) { this.hud.log(b.name + ' kalmadı.'); SFX.play('error'); return false; }
     if (s.level < (b.req || 1)) { this.hud.log(b.name + ' için ' + b.req + '. seviye gerekli.'); SFX.play('error'); return false; }
     let ok = true, cd = 1;
+    if (['horse', 'camel', 'grabpet', 'atkpet', 'petpot'].includes(b.use)) {
+      if (!this.pets || !this.pets.useItem(b)) return false;
+      cd = b.use === 'petpot' ? 1 : 2;
+      if (!b.keep) inv.take(base, 1);
+      this._setCd(key, cd);
+      return true;
+    }
     if (b.use === 'hp') {
       if (s.hp >= s.maxHp) { this.hud.log('Canın zaten dolu.'); return false; }
       s.hp = Math.min(s.maxHp, s.hp + b.amount); this.fx(pl, '+' + b.amount, 'heal'); SFX.play('potion');
@@ -270,6 +279,7 @@ class Combat {
     } else if (b.use === 'return' || b.use === 'reverse') {
       if (this.casting) return false;
       if (b.use === 'reverse' && !this.deathPos && !this.recallPos) { this.hud.log('Dönülecek bir nokta yok.'); return false; }
+      if (this.jobs && (this.jobs.cargoCount() || this.jobs.mission)) { this.hud.log('Kervanla / görevdeyken parşömen kullanılamaz.'); return false; }
       this.casting = { t: 3, total: 3, name: b.use === 'return' ? 'Şehre dönüş' : 'Ters dönüş', kind: b.use };
       this.hud.log(b.name + '... 3 saniye kıpırdama.'); SFX.play('cast'); cd = 5;
     } else if (b.use === 'speed') {
@@ -314,6 +324,7 @@ class Combat {
     if (!s) return;
     if (!r) { this.hud.log(s.name + ' henüz öğrenilmedi.'); return; }
     if (s.type === 'passive') { this.hud.log(s.name + ' kalıcı bir yetenektir.'); return; }
+    if (this.pets && (s.type === 'atk' || s.type === 'nuke' || s.type === 'dash')) this.pets.onAction();
     if (pl.disabled()) { this.hud.log('Hareket edemiyorsun!'); SFX.play('error'); return; }
     if (this.cd[id] > 0) { this.hud.log(s.name + ' bekleme süresinde.'); return; }
     if (this.gcd > 0) return;

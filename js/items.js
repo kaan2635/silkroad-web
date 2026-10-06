@@ -123,6 +123,12 @@ Object.assign(ITEM_BASES, {
   astral: { cat: 'mat', icon: '🔷', name: 'Koruma Taşı', stack: 20, value: 2500, sub: 'Simya başarısız olursa eşya +0\'a düşmez, sadece -1' },
   q_fang: { cat: 'quest', icon: '🦷', name: 'Kurt Dişi', stack: 50, value: 0, sub: 'Görev eşyası' },
   q_tail: { cat: 'quest', icon: '🦂', name: 'Akrep İğnesi', stack: 50, value: 0, sub: 'Görev eşyası' },
+  horse:  { cat: 'use', use: 'horse', keep: true, icon: '🐴', name: 'At Kartı', stack: 1, value: 2500, sub: 'Atını çağırır / iner. Atlıyken %70 daha hızlı (saldırınca inersin)', cd: 'mount' },
+  camel:  { cat: 'use', use: 'camel', icon: '🐫', name: 'Kervan Devesi Düdüğü', stack: 20, value: 400, sub: 'Ticaret malı taşıyan kervan devesini çağırır (Tüccar)', cd: 'camel' },
+  pet_grab: { cat: 'use', use: 'grabpet', keep: true, icon: '🦊', name: 'Toplayıcı Tilki', stack: 1, value: 4000, sub: 'Çağır / gönder. Yerdeki ganimeti senin için toplar', cd: 'pet' },
+  pet_atk:  { cat: 'use', use: 'atkpet', keep: true, icon: '🐺', name: 'Savaş Kurdu', stack: 1, value: 8000, sub: 'Çağır / gönder. Hedefine saldırır, seninle güçlenir', cd: 'pet' },
+  pet_pot:  { cat: 'use', use: 'petpot', icon: '🍖', name: 'Evcil Can İksiri', stack: 100, value: 40, sub: 'Savaş kurdunun canını yeniler', cd: 'petpot' },
+  sg:     { cat: 'quest', icon: '💰', name: 'Çalıntı Mal', stack: 100, value: 0, sub: 'Hırsız Simsarı\'na sat' },
   q_scale: { cat: 'quest', icon: '🐍', name: 'Yılan Pulu', stack: 50, value: 0, sub: 'Görev eşyası' },
   q_fur: { cat: 'quest', icon: '🐻', name: 'Ayı Postu', stack: 50, value: 0, sub: 'Görev eşyası' }
 });

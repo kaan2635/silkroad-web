@@ -15,7 +15,7 @@ const ZONES = {
     shop: [1, 2, 3], tele: [{ zone: 'donwhang', cost: 500 }],
     col: { sand: 0xdcbf86, dark: 0xc29a5c, rock: 0xa88a62, grass: 0x7d9a52, road: 0x9a8260, outer: 0xc9a468, mount: 0xb89868, skyH: 0xf0d9a8, skyZ: 0x5fa4e0 },
     flora: { palms: 50, cacti: 90, rocks: 130, pines: 0, crypts: 0, bushes: 130 }, tint: null,
-    npc: { merchant: 'Şifacı Ali', smith: 'Demirci Wen', armor: 'Zırhçı Mei', acc: 'Takıcı Su', storage: 'Depocu Lin', captain: 'Kaptan Lee', tele: 'Işınlayıcı Bao' }
+    npc: { merchant: 'Şifacı Ali', smith: 'Demirci Wen', armor: 'Zırhçı Mei', acc: 'Takıcı Su', storage: 'Depocu Lin', captain: 'Kaptan Lee', tele: 'Işınlayıcı Bao', job: 'Lonca Ustası Fu', stable: 'Seyis Tan', special: 'Ticaret Ustası Hu', den: 'Hırsız Simsarı Kara' }
   },
   donwhang: {
     id: 'donwhang', name: 'Donwhang', town: 'Donwhang Şehri', next: 'hotan', prev: 'jangan', seed: 1.7, amp: 0.85,
@@ -29,7 +29,7 @@ const ZONES = {
     shop: [3, 4, 5], tele: [{ zone: 'jangan', cost: 500 }, { zone: 'hotan', cost: 1500 }],
     col: { sand: 0xe6c886, dark: 0xcfa45a, rock: 0xb08a5a, grass: 0x8a9a52, road: 0xa08460, outer: 0xd8b070, mount: 0xc8a068, skyH: 0xf5dfae, skyZ: 0x6aa8dc },
     flora: { palms: 25, cacti: 70, rocks: 150, pines: 0, crypts: 16, bushes: 80 }, tint: 0xfff0d0,
-    npc: { merchant: 'Şifacı Mo', smith: 'Demirci Chang', armor: 'Zırhçı Ling', acc: 'Takıcı Yun', storage: 'Depocu Han', captain: 'Komutan Zhao', tele: 'Işınlayıcı Wei' }
+    npc: { merchant: 'Şifacı Mo', smith: 'Demirci Chang', armor: 'Zırhçı Ling', acc: 'Takıcı Yun', storage: 'Depocu Han', captain: 'Komutan Zhao', tele: 'Işınlayıcı Wei', job: 'Lonca Ustası Ma', stable: 'Seyis Bo', special: 'Ticaret Ustası Jin', den: 'Hırsız Simsarı Sinsi' }
   },
   hotan: {
     id: 'hotan', name: 'Hotan', town: 'Hotan Şehri', next: null, prev: 'donwhang', seed: 3.3, amp: 1.55,
@@ -43,7 +43,7 @@ const ZONES = {
     shop: [6, 7, 8], tele: [{ zone: 'donwhang', cost: 1500 }, { zone: 'jangan', cost: 2000 }],
     col: { sand: 0xc8b48a, dark: 0xa89870, rock: 0xd8d8dc, grass: 0x6a9a4a, road: 0x8a7a62, outer: 0xb8a888, mount: 0xe8eef4, skyH: 0xe8ecf0, skyZ: 0x4a8ad0 },
     flora: { palms: 8, cacti: 0, rocks: 170, pines: 140, crypts: 0, bushes: 150 }, tint: 0xe8f0ff,
-    npc: { merchant: 'Şifacı Aysu', smith: 'Demirci Tarık', armor: 'Zırhçı Ilgın', acc: 'Takıcı Nur', storage: 'Depocu Emre', captain: 'Bey Arslan', tele: 'Işınlayıcı Kaya' }
+    npc: { merchant: 'Şifacı Aysu', smith: 'Demirci Tarık', armor: 'Zırhçı Ilgın', acc: 'Takıcı Nur', storage: 'Depocu Emre', captain: 'Bey Arslan', tele: 'Işınlayıcı Kaya', job: 'Lonca Ustası Oğuz', stable: 'Seyis Batu', special: 'Ticaret Ustası Kerim', den: 'Hırsız Simsarı Gölge' }
   }
 };
 

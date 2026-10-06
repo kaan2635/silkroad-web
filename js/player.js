@@ -176,6 +176,16 @@ class Player {
     this.recalc();
   }
 
+  // Meslek pelerini (Tüccar sarı, Avcı mavi, Hırsız kırmızı)
+  setCape(color) {
+    if (this.cape) { this.model.remove(this.cape); this.cape = null; }
+    if (color) {
+      this.cape = new THREE.Mesh(new THREE.BoxGeometry(0.85, 1.25, 0.06), new THREE.MeshLambertMaterial({ color }));
+      this.cape.position.set(0, 1.25, -0.42); this.cape.rotation.x = 0.12; this.cape.castShadow = true;
+      this.model.add(this.cape);
+    }
+  }
+
   teleport(x, z) {
     this.pos.set(x, terrainHeight(x, z), z);
     this.target = null;
@@ -251,6 +261,7 @@ class Player {
       this.model.rotation.x += (-Math.PI / 2 - this.model.rotation.x) * k;
       this.model.position.y += (0.45 - this.model.position.y) * k;
       this.shieldMesh.visible = false; this.aura.visible = false; this.zerkAura.intensity = 0;
+      if (this.mounted && this.onDeathMount) this.onDeathMount();
       pos.y = terrainHeight(pos.x, pos.z);
       return;
     }
@@ -354,7 +365,9 @@ class Player {
       else this.armR.rotation.x = -2.3 * Math.sin(k * Math.PI);
     } else this.model.position.z = 0;
     if (this.d.wtype === 'bow' && !this.moving && this.swingT <= 0) { this.armL.rotation.x = -0.4; }
-    const bob = Math.abs(Math.sin(this.walkPhase)) * 0.12 * this.walkBlend + Math.sin(performance.now() * 0.002) * 0.015 * (1 - this.walkBlend);
+    if (this.mounted) { this.legL.rotation.x = -1.3; this.legR.rotation.x = -1.3; this.legL.rotation.z = -0.35; this.legR.rotation.z = 0.35; this.armL.rotation.x = -0.6; if (this.swingT <= 0) this.armR.rotation.x = -0.6; }
+    else { this.legL.rotation.z = 0; this.legR.rotation.z = 0; }
+    const bob = this.mounted ? Math.abs(Math.sin(performance.now() * 0.018)) * 0.12 * this.walkBlend : Math.abs(Math.sin(this.walkPhase)) * 0.12 * this.walkBlend + Math.sin(performance.now() * 0.002) * 0.015 * (1 - this.walkBlend);
     this.pos.y += bob;
   }
 

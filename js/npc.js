@@ -8,7 +8,11 @@ const NPC_DEFS = [
   { id: 'acc',      title: 'Takı ve Şans Tozu', x: -11.5, z: 5.2, robe: 0x3a7a5a, robeDark: 0x1a3a2a, hat: 'straw', weapon: null },
   { id: 'storage',  title: 'Depo', x: 6.5, z: -21, robe: 0x8a7a3a, robeDark: 0x4a3a1a, hat: 'band', weapon: null },
   { id: 'captain',  title: 'Şehir Muhafızı', x: -3.5, z: -21, robe: 0x8a1c1c, robeDark: 0x4a0e0e, hat: 'band', weapon: 'spear' },
-  { id: 'tele',     title: 'Işınlayıcı', x: 8, z: 16, robe: 0x5a3a9a, robeDark: 0x2a1a4a, hat: 'straw', weapon: null }
+  { id: 'tele',     title: 'Işınlayıcı', x: 8, z: 16, robe: 0x5a3a9a, robeDark: 0x2a1a4a, hat: 'straw', weapon: null },
+  { id: 'job',      title: 'Meslek Loncası', x: -8, z: 16, robe: 0x7a5a1a, robeDark: 0x3a2a08, hat: 'band', weapon: null },
+  { id: 'stable',   title: 'Ahır · Binek ve Evcil', x: -17, z: -13, robe: 0x5a4a2a, robeDark: 0x2a2010, hat: 'straw', weapon: null },
+  { id: 'special',  title: 'Ticaret Malları', x: 17, z: -13, robe: 0xc8902a, robeDark: 0x6a4a10, hat: 'straw', weapon: null },
+  { id: 'den',      title: 'Çalıntı Mal Alır', x: RUINS[0].x + 14, z: RUINS[0].z + 9, robe: 0x2a2a2a, robeDark: 0x0a0a0a, hat: 'band', weapon: 'blade' }
 ];
 NPC_DEFS.forEach(n => { n.name = ZONE.npc[n.id] || n.id; });
 

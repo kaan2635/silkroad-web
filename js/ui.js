@@ -13,6 +13,8 @@ function shopStock(kind) {
     out.push('arrow');
   } else if (kind === 'armor') {
     for (const d of SHOP_DEGREES) for (const at in ARMOR_TYPES) for (const p of ARMOR_PARTS) out.push(p + '_' + at + '_' + d);
+  } else if (kind === 'stable') {
+    out.push('horse', 'camel', 'pet_grab', 'pet_atk', 'pet_pot');
   } else if (kind === 'acc') {
     for (const d of SHOP_DEGREES) for (const a of ['earring', 'necklace', 'ring']) out.push(a + '_' + d);
     out.push('luck');
@@ -28,7 +30,11 @@ const NPC_TABS = {
   acc: [['buy:acc', 'Takılar'], ['sell', 'Sat'], ['quests', 'Görevler']],
   storage: [['storage', 'Depo'], ['quests', 'Görevler']],
   captain: [['quests', 'Görevler'], ['unique', 'Unique']],
-  tele: [['tele', 'Işınlan'], ['quests', 'Görevler']]
+  tele: [['tele', 'Işınlan'], ['quests', 'Görevler']],
+  job: [['job', 'Meslek'], ['quests', 'Görevler']],
+  stable: [['buy:stable', 'Ahır'], ['sell', 'Sat']],
+  special: [['trade', 'Ticaret']],
+  den: [['den', 'Simsar']]
 };
 
 class UI {
@@ -44,7 +50,7 @@ class UI {
     this.npc = null; this.tab = null; this.msg = null;
     this.skTab = 'bicheon';
     this.filter = { at: 'protector', d: SHOP_DEGREES[0] };
-    this.onTravel = null; this.mm = null;
+    this.onTravel = null; this.mm = null; this.jobs = null;
     this.alc = { sel: null, lucky: false, astral: false, msg: null, stone: null };
 
     this.inv.onChange = () => this.refresh();
@@ -415,7 +421,7 @@ class UI {
     this.npcTabs.innerHTML = tabs.map(t => '<button data-tab="' + t[0] + '" class="' + (t[0] === this.tab ? 'on' : '') + '">' + t[1] + (t[0] === 'quests' && mk ? ' ' + mk : '') + '</button>').join('');
     const t = this.tab;
     this.npcBody.innerHTML = t.startsWith('buy:') ? this._buyHTML(t.slice(4)) : t === 'sell' ? this._sellHTML() : t === 'repair' ? this._repairHTML() :
-      t === 'storage' ? this._storageHTML() : t === 'tele' ? this._teleHTML() : t === 'unique' ? this._uniqueHTML() : this._questHTML();
+      t === 'storage' ? this._storageHTML() : t === 'tele' ? this._teleHTML() : t === 'job' ? this._jobHTML() : t === 'trade' ? this._tradeHTML() : t === 'den' ? this._denHTML() : t === 'unique' ? this._uniqueHTML() : this._questHTML();
     this.npcFoot.innerHTML = '💰 <b>' + s.gold.toLocaleString('tr-TR') + '</b> &nbsp; 🎒 ' + (INV_SIZE - this.inv.freeCount()) + '/' + INV_SIZE;
     this.npcMsgEl.innerHTML = this.msg ? '<span style="color:' + this.msg.color + '">' + this.msg.text + '</span>' : '';
   }
@@ -491,6 +497,41 @@ class UI {
     return '<div class="hint">Kervan yollarını aşmak uzun sürer. Ücreti öde, anında diğer şehre geç. (Yolun ucundaki kapılardan yürüyerek de gidebilirsin.)</div>' +
       ZONE.tele.map(t => { const z = ZONES[t.zone]; return this._row('🌀', z.town, 'Önerilen ' + lv[t.zone], '<b class="pr">' + t.cost.toLocaleString('tr-TR') + ' 💰</b><button data-act="travel" data-z="' + t.zone + '" data-c="' + t.cost + '">Işınlan</button>'); }).join('');
   }
+  _jobHTML() {
+    const J = this.jobs, s = this.p.stats;
+    let h = '<div class="hint">Silkroad\'un üçgen sistemi: <b style="color:#ffd23a">Tüccar</b> mal taşır, <b style="color:#ff7a6a">Hırsız</b> kervan soyar, <b style="color:#6ab4ff">Avcı</b> kervanları korur. Katılmak için Sv. ' + JOB_MIN_LEVEL + '.</div>';
+    if (J.job) {
+      const J0 = JOBS[J.job], nx = J.nextExp();
+      h += '<div class="mcard"><div class="mi">' + J0.icon + '</div><div class="mt"><b style="color:' + J0.color + '">' + J0.name + ' · Meslek Sv. ' + J.level() + '</b><small>' + J0.desc + '</small>' +
+        '<div class="bar exp" style="margin-top:4px"><div class="fill" style="width:' + (nx ? (J.jexp / nx * 100) : 100) + '%"></div><span>' + J.jexp.toLocaleString('tr-TR') + (nx ? ' / ' + nx.toLocaleString('tr-TR') : ' (en üst)') + '</span></div></div></div>';
+      if (J.job === 'hunter') h += this._row('🛡️', 'Kervan Koruma', 'Kervanı yolun sonuna kadar hırsızlara karşı koru. Ödül: altın + Avcı EXP', J.mission ? '<span class="qs">' + J.status() + '</span>' : '<button data-act="escort">Başlat</button>');
+      if (J.job === 'thief') h += this._row('🗡️', 'Kervan Soygunu', 'Yoldaki tüccar kervanının devesini düşür, Çalıntı Malı simsara sat (' + ZONE.npc.den + ', ' + ZONE.ruinName + ')', J.mission ? '<span class="qs">' + J.status() + '</span>' : '<button data-act="raid">Başlat</button>');
+      if (J.job === 'trader') h += this._row('🐫', 'Ticaret', 'Ahır\'dan Kervan Devesi Düdüğü al, Ticaret Ustası\'ndan mal yükle, başka şehirde sat. Teleport ve dönüş parşömeni kullanılamaz; yolun ucundaki kapılardan yürü.', '<span class="qs">Yük ' + J.cargoCount() + '/' + J.capacity() + '</span>');
+      h += '<div class="btns"><button data-act="leave" class="warn">Loncadan Ayrıl</button></div>';
+    }
+    h += Object.keys(JOBS).filter(k => k !== J.job).map(k => this._row(JOBS[k].icon, JOBS[k].name + ' Loncası', JOBS[k].desc, '<button data-act="join" data-j="' + k + '"' + (s.level < JOB_MIN_LEVEL ? ' class="dis"' : '') + '>Katıl</button>', JOBS[k].color)).join('');
+    return h;
+  }
+  _tradeHTML() {
+    const J = this.jobs, g = J.localGood();
+    let h = '<div class="hint">' + ZONE.town + ' malı: <b>' + g.icon + ' ' + g.name + '</b>. Uzak şehirlerde daha pahalı satılır. Fiyatlar saatlik değişir.</div>';
+    h += '<div class="seg">' + ZONE_ORDER.map(z => { const pz = J.price(g.base, z); return '<span class="tag">' + ZONES[z].name + ': <b>' + pz + '</b></span>'; }).join('') + '</div>';
+    if (J.job !== 'trader') return h + '<div class="hint">Mal almak için Meslek Loncası\'nda <b>Tüccar</b> olmalısın.</div>';
+    h += this._row(g.icon, g.name + ' <small>' + J.price(g.base) + ' 💰 / adet</small>', 'Kervan: ' + J.cargoCount() + ' / ' + J.capacity() + (J.transport ? '' : ' — önce deveyi çağır'),
+      [5, 10, 'max'].map(n => '<button data-act="tbuy" data-n="' + n + '">' + (n === 'max' ? 'Doldur' : 'x' + n) + '</button>').join(''));
+    const lines = Object.keys(J.cargo).map(b => { const o = TRADE_GOODS[goodOrigin(b)]; return this._row(o.icon, o.name + ' x' + J.cargo[b], 'Buradaki fiyat: ' + J.price(b) + ' 💰', ''); }).join('');
+    if (lines) {
+      let rev = 0; for (const b in J.cargo) rev += J.price(b) * J.cargo[b];
+      h += '<h4>🐫 Kervandaki mallar</h4>' + lines + '<div class="srow"><span class="ic">💰</span><div class="nm">Hepsini sat<small>Maliyet ' + J.cargoCost.toLocaleString('tr-TR') + ' → Gelir ' + rev.toLocaleString('tr-TR') + '</small></div><button data-act="tsell">Sat</button></div>';
+    }
+    if (J.transport && !J.cargoCount()) h += '<div class="btns"><button data-act="tdismiss">Deveyi Gönder</button></div>';
+    return h;
+  }
+  _denHTML() {
+    const n = this.inv.count('sg'), L = this.p.stats.level;
+    return '<div class="hint">"Kervanlardan ne getirdiysen alırım, soru sormam."</div>' +
+      this._row('💰', 'Çalıntı Mal x' + n, 'Adet başı ~' + (60 + 8 * L) + ' 💰 + Hırsız EXP', '<button data-act="sgsell"' + (n ? '' : ' disabled') + '>Sat</button>');
+  }
   _uniqueHTML() {
     const st = this.mm ? this.mm.uniqueStatus() : [];
     return '<div class="hint">Bölgenin efsanevi canavarları. Ortaya çıktıklarında bütün bölgeye duyurulur. Çok güçlüdürler; iyi hazırlan!</div>' +
@@ -531,6 +572,19 @@ class UI {
       if (s.gold < c) { SFX.play('error'); return this._say('Yeterli altının yok.', '#ff8a7a'); }
       s.gold -= c; inv.repairAll(); SFX.play('upgrade');
       this._say('Tüm eşyalar tamir edildi.', '#a8f0a0');
+    } else if (['join', 'leave', 'escort', 'raid', 'tbuy', 'tsell', 'tdismiss', 'sgsell'].includes(act)) {
+      const J = this.jobs;
+      let r;
+      if (act === 'join') r = J.join(btn.dataset.j);
+      else if (act === 'leave') r = J.leave();
+      else if (act === 'escort') r = J.startEscort();
+      else if (act === 'raid') r = J.startRaid();
+      else if (act === 'tbuy') r = J.buy(btn.dataset.n === 'max' ? 999 : +btn.dataset.n);
+      else if (act === 'tsell') r = J.sellAll();
+      else if (act === 'sgsell') r = J.sellStolen();
+      else { J.dismissTransport(); r = { ok: true, msg: 'Deve ahıra döndü.' }; }
+      SFX.play(r.ok ? (act === 'tsell' || act === 'sgsell' ? 'coin' : 'quest') : 'error');
+      if (r.msg) this._say(r.msg, r.ok ? '#a8f0a0' : '#ff8a7a');
     } else if (act === 'travel') {
       const c = +btn.dataset.c;
       if (s.gold < c) { SFX.play('error'); return this._say('Yeterli altının yok.', '#ff8a7a'); }

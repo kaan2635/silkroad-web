@@ -28,6 +28,10 @@ const MONSTER_TYPES = {
   stonegolem:{ name: 'Taş Dev', model: 'golem', look: { c: 0x8a8a92 }, hpM: 1.9, dmgM: 1.3, defM: 1.6, expM: 1.55, speed: 3.8, aggro: 9, range: 2.9, atkInt: 2.0, hit: 2.0, scale: 1.6, labelY: 3.7, status: { kind: 'stun', chance: 0.1, dur: 1.3 } },
   hbandit:   { name: 'Tepe Haydudu', model: 'human', look: { robe: 0x2a4a2a, dark: 0x14240f, hat: 'band', weapon: 'spear' }, hpM: 1.3, dmgM: 1.2, defM: 1.1, expM: 1.3, speed: 5.8, aggro: 12, range: 2.8, atkInt: 1.5, hit: 1.3, scale: 1.05, labelY: 3.3 },
   demon:     { name: 'Şeytan Muhafız', model: 'char', char: 'vampire', look: { tint: 0xff6a5a, h: 2.6, horns: true }, magic: true, hpM: 1.5, dmgM: 1.35, defM: 1.3, expM: 1.5, speed: 5.0, aggro: 12, range: 6, atkInt: 1.7, hit: 1.4, scale: 1.2, labelY: 3.6, status: { kind: 'burn', chance: 0.15, dur: 4 } },
+  // --- Meslek sistemi ---
+  kthief:    { name: 'Kervan Hırsızı', model: 'human', look: { robe: 0x5a1a1a, dark: 0x2a0a0a, hat: 'band', weapon: 'blade' }, job: true, hpM: 0.8, dmgM: 0.8, defM: 0.9, expM: 0.8, speed: 6.4, aggro: 18, range: 2.4, atkInt: 1.4, hit: 1.3, scale: 1.0, labelY: 3.3 },
+  kguard:    { name: 'Kervan Muhafızı', model: 'human', look: { robe: 0x1a3a8a, dark: 0x0a1a4a, hat: 'band', weapon: 'spear' }, job: true, hpM: 1.4, dmgM: 1.1, defM: 1.2, expM: 0.9, speed: 6.0, aggro: 14, range: 2.8, atkInt: 1.5, hit: 1.3, scale: 1.05, labelY: 3.3 },
+  kcamel:    { name: 'Tüccar Kervanı', model: 'camel', look: {}, passive: true, job: true, hpM: 3.0, dmgM: 0, defM: 1.0, expM: 0.5, speed: 3.2, aggro: 0, range: 0, atkInt: 99, hit: 2.0, scale: 1.3, labelY: 3.8 },
   // --- Unique'ler ---
   u_tiger:   { name: 'Kaplan Kız', model: 'human', look: { robe: 0xe07a1a, dark: 0x2a1a10, hat: 'ears', weapon: 'blade', stripes: true }, unique: { hp: 10, dmg: 1.7, exp: 40, drop: 1 }, hpM: 1.3, dmgM: 1.2, defM: 1.2, expM: 1.3, speed: 6.8, aggro: 16, range: 2.8, atkInt: 1.2, hit: 1.8, scale: 1.6, labelY: 3.6, status: { kind: 'bleed', chance: 0.2, dur: 5 } },
   u_uruchi:  { name: 'Uruchi', model: 'human', look: { robe: 0x8a1010, dark: 0x1a0606, hat: 'horns', weapon: 'glaive', skin: 0xb83a2a }, unique: { hp: 14, dmg: 1.8, exp: 40, drop: 1 }, hpM: 1.4, dmgM: 1.25, defM: 1.3, expM: 1.3, speed: 6, aggro: 16, range: 3.4, atkInt: 1.4, hit: 2.4, scale: 2.5, labelY: 3.5, status: { kind: 'burn', chance: 0.25, dur: 5 } },
@@ -78,6 +82,20 @@ function buildQuad(o = {}) {
   return { group: g, legs, kind: 'quad' };
 }
 function buildWolf() { return buildQuad(); }
+
+// Deve: hörgüçlü dört ayaklı + yük sandıkları (kervan / tüccar taşıyıcısı)
+function buildCamel(cargo = true) {
+  const q = buildQuad({ fur: 0xc8a068, dark: 0x8a6a3a, body: [0.9, 0.8, 1.9], legH: 1.25, noTail: false, eye: 0x1a1a1a });
+  const g = q.group, fur = new THREE.MeshLambertMaterial({ color: 0xc8a068 });
+  const hump = new THREE.Mesh(new THREE.SphereGeometry(0.45, 10, 8), fur); hump.scale.set(1, 0.8, 1.3); hump.position.set(0, 2.05, -0.1); hump.castShadow = true; g.add(hump);
+  const neck = new THREE.Mesh(new THREE.BoxGeometry(0.32, 1.0, 0.32), fur); neck.position.set(0, 2.05, 1.05); neck.rotation.x = 0.45; neck.castShadow = true; g.add(neck);
+  if (cargo) {
+    const box = new THREE.MeshLambertMaterial({ color: 0x7a4a22 }), cloth = new THREE.MeshLambertMaterial({ color: 0xa8281e });
+    for (const sx of [-1, 1]) { const b = new THREE.Mesh(new THREE.BoxGeometry(0.4, 0.6, 0.8), box); b.position.set(sx * 0.68, 1.6, -0.1); b.castShadow = true; g.add(b); }
+    const c = new THREE.Mesh(new THREE.BoxGeometry(1.0, 0.1, 1.1), cloth); c.position.set(0, 2.0, -0.1); g.add(c);
+  }
+  return q;
+}
 
 function buildSnake(o = {}) {
   const g = new THREE.Group(), mat = new THREE.MeshLambertMaterial({ color: o.c || 0x5a7a2a }), belly = new THREE.MeshLambertMaterial({ color: o.belly || 0xc8b878 });
@@ -191,7 +209,7 @@ class Monster {
 
     this.group = new THREE.Group();
     const t = this.type, L = t.look || {};
-    const parts = t.model === 'quad' ? buildQuad(L) : t.model === 'scorpion' ? buildScorpion(L) : t.model === 'golem' ? buildGolem(L) :
+    const parts = t.model === 'camel' ? buildCamel() : t.model === 'quad' ? buildQuad(L) : t.model === 'scorpion' ? buildScorpion(L) : t.model === 'golem' ? buildGolem(L) :
       t.model === 'snake' ? buildSnake(L) : t.model === 'char' ? buildCharMob(t) : buildHumanMob(L);
     this.kind = parts.kind;
     this.segs = parts.segs || null; this.headPart = parts.head || null;
@@ -352,6 +370,21 @@ class Monster {
     }
     if (this.group.rotation.z) this.group.rotation.z = 0;
     const slow = this.status.slow ? 0.5 : 1;
+    if (this.lifeT !== undefined && (this.lifeT -= dt) <= 0) { this.removed = true; return; }
+    // yol boyunca yürüyen kervan devesi (saldırmaz)
+    if (this.walker) {
+      const w = this.walker, wp = w.path[w.i];
+      if (!wp) { if (w.onEnd) w.onEnd(this); this.walker = null; this.removed = true; return; }
+      const rem = this._moveToward(wp.x, wp.z, w.speed * slow, dt);
+      if (rem < 1) w.i++;
+      p.y = terrainHeight(p.x, p.z); this.group.rotation.y = this.heading; this._animate(dt);
+      return;
+    }
+    // kervan muhafızı: deveyi takip eder
+    if (this.follow) {
+      if (this.follow.dead || this.follow.removed) this.follow = null;
+      else { this.home.x = this.follow.x + this.fOff.x; this.home.z = this.follow.z + this.fOff.z; if (this.state === 'idle') { this.wanderTarget = null; const r = this._moveToward(this.home.x, this.home.z, this.type.speed * 0.6, dt); if (r < 0.5) this.moving = false; } }
+    }
 
     const playerSafe = player.dead || inSafeZone(player.pos.x, player.pos.z);
     const homeDist = Math.hypot(p.x - this.home.x, p.z - this.home.z);
@@ -371,7 +404,12 @@ class Monster {
       }
     } else if (this.state === 'chase') {
       if (this.rank === 'unique') this._slam(dt, player, combat);
-      if (playerSafe || homeDist > LEASH) { this.state = 'return'; this.provoked = false; }
+      const ent = this.targetEnt && !this.targetEnt.dead ? this.targetEnt : null;
+      if (ent && (dp > 7 || playerSafe) && !inSafeZone(ent.x, ent.z)) {
+        const ex = ent.x - p.x, ez = ent.z - p.z, de = Math.hypot(ex, ez);
+        if (de > this.type.range * 0.85 + (ent.r || 0.8)) this._moveToward(ent.x, ent.z, this.type.speed * slow, dt);
+        else { this.heading = Math.atan2(ex, ez); if (this.atkCd <= 0) { this.atkCd = this.type.atkInt / slow; this.attackAnim = 0.3; ent.hurt(this.dmg, this); } }
+      } else if (playerSafe || (homeDist > LEASH && !this.noLeash)) { this.state = 'return'; this.provoked = false; if (this.noLeash) { this.home.x = p.x; this.home.z = p.z; } }
       else if (dp > this.type.range * 0.85) {
         this._moveToward(player.pos.x, player.pos.z, this.type.speed * slow, dt);
       } else {

@@ -63,9 +63,11 @@ Tarayıcıda çalışan, Silkroad Online tarzı (ipek yolu temalı, tıkla-yür�
 - [x] 19 canavar türü (Kenney mezarlık kitinden iskelet, hayalet, mumya, şeytan modelleri dahil), Sv. 1–80
 - [x] Unique'ler: Kaplan Kız (20), Uruchi (40), Isyutaru (60), Lord Yarkan (80) — gerçek zamanlı doğma, duyuru, alan saldırısı, garantili mühürlü eşya
 - [x] Bölge başına yeni görev zincirleri (toplam 25 görev), bölge dükkânlarında 1–8. derece eşyalar
-**5D — Meslekler ve Binekler**
-- [ ] Tüccar / Avcı / Hırsız; ticaret malları, kervan devesi, haydut baskınları
-- [ ] At, toplayıcı ve saldırı evcil hayvanları
+**5D — Meslekler ve Binekler (TAMAM)**
+- [x] Meslek Loncası (Sv. 20+): Tüccar / Avcı / Hırsız, 7 meslek seviyesi, meslek pelerini
+- [x] Tüccar: şehre özgü ticaret malları (İpek, Baharat, Yeşim), uzaklığa göre fiyat, kervan devesi, yolda hırsız baskınları; mallarla teleport/parşömen yasak
+- [x] Avcı: kervan koruma görevi (3 hırsız dalgası); Hırsız: muhafızlı kervan soygunu, çalıntı malı harabelerdeki simsara satma
+- [x] Ahır: At (binek, %70 hız), Toplayıcı Tilki (ganimeti toplar), Savaş Kurdu (hedefe saldırır), evcil can iksiri
 
 ## Faz 6 — Çok Oyunculu Altyapı
 - [ ] Node.js + WebSocket sunucusu, sunucu otoriteli hareket ve savaş

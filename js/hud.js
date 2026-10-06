@@ -144,7 +144,8 @@ class HUD {
     const ck = (this.world.isNight() ? '🌙 ' : '☀️ ') + this.world.clockText() + ' · ' + (this.quests ? this.quests.region || '' : '');
     if (ck !== this._lastClock) { e.clock.textContent = ck; this._lastClock = ck; }
     if (this.quests) {
-      const th = this.quests.trackerHTML();
+      const js = this.jobs && this.jobs.status();
+      const th = (js ? '<div class="tq"><b style="color:' + JOBS[this.jobs.job].color + '">' + JOBS[this.jobs.job].icon + ' ' + js + '</b></div>' : '') + this.quests.trackerHTML();
       if (th !== this._lastTrack) { e.tracker.innerHTML = th; e.tracker.classList.toggle('hidden', !th); this._lastTrack = th; }
     }
     // rozetler: harcanmamış stat puanı / öğrenilebilir yetenek

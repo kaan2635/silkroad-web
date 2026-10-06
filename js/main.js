@@ -29,13 +29,18 @@
   hud.combat = combat; hud.mm = monsters; hud.hotbar = hotbar; combat.hud = hud; combat.hotbar = hotbar;
   const loot = new LootManager(world, player, hud);
   combat.loot = loot;
+  const pets = new PetSystem(player, world, combat, loot, hud);
+  const jobs = new JobSystem(player, world, monsters, combat, hud, loot);
+  combat.pets = pets; combat.jobs = jobs; pets.jobs = jobs; hud.jobs = jobs;
+  player.onDeathMount = () => pets.toggleMount(false);
   const quests = new QuestManager(player, hud, world);
   quests.combat = combat; combat.quests = quests; loot.quests = quests; hud.quests = quests;
   const wmap = new WorldMap(player, quests);
   const ui = new UI(player, hud, quests, wmap, combat, hotbar);
   quests.onChange = () => { npcs.refreshMarkers(quests); ui.refresh(); };
   combat.onLevel = lvl => { hotbar.upgradePots(lvl); ui.refresh(); };
-  ui.mm = monsters;
+  ui.mm = monsters; ui.jobs = jobs; ui.pets = pets;
+  jobs.onChange = () => ui.refresh();
   monsters.announce = (title, sub, kind) => {
     hud.banner(title, sub, kind === 'kill' ? 'quest' : 'unique');
     hud.log('📣 ' + title + ' — ' + sub, 'lvl', kind === 'kill' ? '#8ef07a' : '#ff8ae8');
@@ -70,6 +75,7 @@
   // Bölge değiştir: kaydet → yükleme ekranı → sayfayı yeniden kur (otomatik devam)
   function travel(zone, arrive) {
     if (travelTo || !ZONES[zone]) return;
+    if (jobs.mission) { if (!travel._warn || Date.now() - travel._warn > 4000) { hud.log('Görevdeyken bölgeden çıkamazsın.', 'dmg'); travel._warn = Date.now(); } player.target = null; player.teleport(player.pos.x, player.pos.z + (player.pos.z < 0 ? 6 : -6)); return; }
     travelTo = { zone, arrive };
     if (zone !== CUR_ZONE_ID) { combat.deathPos = null; combat.recallPos = null; }
     save();
@@ -81,6 +87,7 @@
     setTimeout(() => location.reload(), 600);
   }
   ui.onTravel = (zone, arrive) => {
+    if (jobs.cargoCount() || jobs.mission) { hud.log('Kervanla / görevdeyken ışınlanamazsın. Yolun ucundaki kapıdan yürü.', 'dmg'); player.stats.gold += (ZONE.tele.find(t => t.zone === zone) || { cost: 0 }).cost; return; }
     if (player.combatT > 0) { hud.log('Savaştayken ışınlanamazsın.', 'dmg'); player.stats.gold += (ZONE.tele.find(t => t.zone === zone) || { cost: 0 }).cost; return; }
     ui.closeNpc(); travel(zone, arrive);
   };
@@ -97,12 +104,14 @@
         hp: Math.round(s.hp), mp: Math.round(s.mp),
         inv: player.inv.serialize(), book: player.book.serialize(), hotbar: hotbar.serialize(),
         tod: world.timeOfDay, quests: quests.serialize(), death: combat.deathPos, recall: combat.recallPos,
-        zone: travelTo ? travelTo.zone : CUR_ZONE_ID, arrive: travelTo ? travelTo.arrive : null
+        zone: travelTo ? travelTo.zone : CUR_ZONE_ID, arrive: travelTo ? travelTo.arrive : null,
+        jobs: jobs.serialize(), pets: pets.serialize()
       }));
     } catch (e) { /* özel pencere vb. */ }
   }
 
   // Kayıttan yükle (v1 → v2 göçü dahil)
+  let afterLoad = null;
   function applySave(sv) {
     const s = player.stats;
     s.level = clamp(sv.level | 0 || 1, 1, MAX_LEVEL);
@@ -116,6 +125,7 @@
       player.book.load(sv.book);
       hotbar.load(sv.hotbar);
       combat.deathPos = sv.death || null; combat.recallPos = sv.recall || null;
+      afterLoad = () => { jobs.load(sv.jobs); pets.load(sv.pets); };
     } else {
       // Eski (Faz 2–4) kayıt: seviye, altın ve görevler korunur; yeni sistemlere göre başlangıç seti ve puanlar verilir
       s.str = 20 + (s.level - 1); s.int = 20 + (s.level - 1); s.statPts = 3 * (s.level - 1);
@@ -193,6 +203,7 @@
     }
     if (sameChar) { quests.load(saved.quests); if (isFinite(saved.tod)) world.timeOfDay = clamp(saved.tod, 0, 0.9999); }
     hotbar.upgradePots(player.stats.level);
+    if (afterLoad) { afterLoad(); afterLoad = null; }
     npcs.refreshMarkers(quests);
     SFX.init(); SFX.play('ui');
     startScreen.classList.add('hidden');
@@ -251,6 +262,8 @@
       player.update(dt, input, rig.yaw);
       monsters.update(dt, player, combat);
       loot.update(dt);
+      pets.update(dt);
+      jobs.update(dt);
       npcs.update(dt, player);
       quests.update();
       ui.update();
@@ -277,7 +290,7 @@
     if (started) hud.update(dt);
   }
 
-  window.__game = { world, player, rig, monsters, npcs, combat, quests, hud, ui, loot, input, save, hotbar, renderer, camera, travel, step: (n = 20, dt = 0.05) => { for (let i = 0; i < n; i++) tick(dt); } };   // hata ayıklama / test
+  window.__game = { world, player, rig, monsters, npcs, combat, quests, hud, ui, loot, input, save, hotbar, renderer, camera, travel, pets, jobs, step: (n = 20, dt = 0.05) => { for (let i = 0; i < n; i++) tick(dt); } };   // hata ayıklama / test
   window.addEventListener('beforeunload', () => { if (started) save(); });
   document.addEventListener('visibilitychange', () => { if (document.hidden && started) save(); });
   frame();

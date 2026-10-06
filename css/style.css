@@ -388,3 +388,5 @@ body.touch #inv { max-height: 96vh; }
 @keyframes lb2 { from { margin-left: 0; } to { margin-left: 70%; } }
 #banner.unique .bt { color: #ff8ae8; font-size: 32px; }
 #tracker .tq b small { color: #b9a77c; font-weight: normal; }
+.tag { display: inline-block; padding: 3px 8px; border-radius: 4px; background: #0006; border: 1px solid #5a4222; font-size: 12px; }
+.tag b { color: #ffd23a; }
