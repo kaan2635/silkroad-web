@@ -122,7 +122,9 @@ Object.assign(ITEM_BASES, {
   luck:   { cat: 'mat', icon: '✨', name: 'Şans Tozu', stack: 50, value: 250, sub: 'Simyada başarı şansı +%12' },
   astral: { cat: 'mat', icon: '🔷', name: 'Koruma Taşı', stack: 20, value: 2500, sub: 'Simya başarısız olursa eşya +0\'a düşmez, sadece -1' },
   q_fang: { cat: 'quest', icon: '🦷', name: 'Kurt Dişi', stack: 50, value: 0, sub: 'Görev eşyası' },
-  q_tail: { cat: 'quest', icon: '🦂', name: 'Akrep İğnesi', stack: 50, value: 0, sub: 'Görev eşyası' }
+  q_tail: { cat: 'quest', icon: '🦂', name: 'Akrep İğnesi', stack: 50, value: 0, sub: 'Görev eşyası' },
+  q_scale: { cat: 'quest', icon: '🐍', name: 'Yılan Pulu', stack: 50, value: 0, sub: 'Görev eşyası' },
+  q_fur: { cat: 'quest', icon: '🐻', name: 'Ayı Postu', stack: 50, value: 0, sub: 'Görev eşyası' }
 });
 for (const k in BLUES) ITEM_BASES['ms_' + k] = { cat: 'mat', icon: '🔮', name: 'Büyü Taşı (' + BLUES[k].name + ')', stack: 50, value: 600, sub: 'Simya: eşyaya ' + BLUES[k].name + ' mavi statı ekler/artırır', stone: k };
 

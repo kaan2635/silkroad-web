@@ -2,13 +2,15 @@
 const NPC_RANGE = 5.5;   // bu mesafeden etkileşime girilir
 
 const NPC_DEFS = [
-  { id: 'merchant', name: 'Şifacı Ali',   title: 'İksir ve Parşömen', x: 5.5,  z: -4.5, robe: 0x2e6aa8, robeDark: 0x1c3f68, hat: 'straw', weapon: null },
-  { id: 'smith',    name: 'Demirci Wen',  title: 'Silah · Tamir · Simya', x: -6.5, z: -5.0, robe: 0x6a5a4a, robeDark: 0x33281e, hat: 'band', weapon: 'blade' },
-  { id: 'armor',    name: 'Zırhçı Mei',   title: 'Zırh ve Kalkan', x: 11.5, z: 5.2, robe: 0x7a3a5a, robeDark: 0x3a1a2a, hat: null, weapon: null },
-  { id: 'acc',      name: 'Takıcı Su',    title: 'Takı ve Şans Tozu', x: -11.5, z: 5.2, robe: 0x3a7a5a, robeDark: 0x1a3a2a, hat: 'straw', weapon: null },
-  { id: 'storage',  name: 'Depocu Lin',   title: 'Depo', x: 6.5, z: -21, robe: 0x8a7a3a, robeDark: 0x4a3a1a, hat: 'band', weapon: null },
-  { id: 'captain',  name: 'Kaptan Lee',   title: 'Şehir Muhafızı', x: -3.5, z: -21, robe: 0x8a1c1c, robeDark: 0x4a0e0e, hat: 'band', weapon: 'spear' }
+  { id: 'merchant', title: 'İksir ve Parşömen', x: 5.5,  z: -4.5, robe: 0x2e6aa8, robeDark: 0x1c3f68, hat: 'straw', weapon: null },
+  { id: 'smith',    title: 'Silah · Tamir · Simya', x: -6.5, z: -5.0, robe: 0x6a5a4a, robeDark: 0x33281e, hat: 'band', weapon: 'blade' },
+  { id: 'armor',    title: 'Zırh ve Kalkan', x: 11.5, z: 5.2, robe: 0x7a3a5a, robeDark: 0x3a1a2a, hat: null, weapon: null },
+  { id: 'acc',      title: 'Takı ve Şans Tozu', x: -11.5, z: 5.2, robe: 0x3a7a5a, robeDark: 0x1a3a2a, hat: 'straw', weapon: null },
+  { id: 'storage',  title: 'Depo', x: 6.5, z: -21, robe: 0x8a7a3a, robeDark: 0x4a3a1a, hat: 'band', weapon: null },
+  { id: 'captain',  title: 'Şehir Muhafızı', x: -3.5, z: -21, robe: 0x8a1c1c, robeDark: 0x4a0e0e, hat: 'band', weapon: 'spear' },
+  { id: 'tele',     title: 'Işınlayıcı', x: 8, z: 16, robe: 0x5a3a9a, robeDark: 0x2a1a4a, hat: 'straw', weapon: null }
 ];
+NPC_DEFS.forEach(n => { n.name = ZONE.npc[n.id] || n.id; });
 
 function makeMarkerTexture(ch, color) {
   const c = document.createElement('canvas'); c.width = c.height = 64;

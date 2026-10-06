@@ -17,6 +17,8 @@ World.prototype._freeDeco = function (x, z, r) {
 
 World.prototype._buildTown = function () {
   if (!this._modelsOK()) return this._buildTownProc();
+  // bölgeye göre bina tonu (Donwhang kumtaşı, Hotan soğuk taş)
+  if (ZONE.tint) for (const k of ['fantasy-town', 'castle']) if (Assets.matTex[k]) Assets.matTex[k].color.setHex(ZONE.tint);
   const H = TOWN_HALF, rng = mulberry32(777);
   const red = new THREE.MeshLambertMaterial({ color: 0xa8281e });
   const tile = new THREE.MeshLambertMaterial({ color: 0x38302c });
@@ -210,6 +212,8 @@ World.prototype._scatterModels = function (palms, cacti, rocks, pillars, rng) {
   rocks.forEach((r, i) => { const k = RV[i % RV.length], s = (1.9 * r.s) / W(k); add(k, this._matrix(r.x, r.y - 0.05, r.z, s, s * (0.8 + rng() * 0.5), s, r.ry)); });
   let ri = 0;
   for (const o of this.obstacles) if (o.type === 'rock') o.r = Math.max(0.8, rocks[ri++].s * 0.95);
+  const PI_ = ['nature/tree_pineTallA', 'nature/tree_pineTallB', 'nature/tree_pineRoundA', 'nature/tree_pineRoundC', 'graveyard/pine-crooked'].filter(k => Assets.has(k));
+  if (PI_.length) (this._pines || []).forEach((p, i) => { const k = PI_[i % PI_.length], s = p.h / H(k); add(k, this._matrix(p.x, p.y - 0.1, p.z, s, s, s, p.ry)); });
   const PL = ['nature/statue_column', 'nature/statue_columnDamaged'].filter(k => Assets.has(k));
   pillars.forEach((p, i) => { const k = PL[i % PL.length], s = p.h / H(k); add(k, this._matrix(p.x, p.y, p.z, s * 1.15, s, s * 1.15, rng() * 6)); });
 
@@ -225,11 +229,31 @@ World.prototype._scatterModels = function (palms, cacti, rocks, pillars, rng) {
       made++;
     }
   };
-  deco(['nature/plant_bush', 'nature/plant_bushLarge', 'nature/plant_flatTall'], 130, 1.1, 2.2, () => [rand(-280, 280), rand(-280, 280)]);
+  deco(['nature/plant_bush', 'nature/plant_bushLarge', 'nature/plant_flatTall'], ZONE.flora.bushes, 1.1, 2.2, () => [rand(-280, 280), rand(-280, 280)]);
+  if (ZONE.id === 'hotan') {
+    deco(['nature/flower_redA', 'nature/flower_yellowA', 'nature/mushroom_redGroup'], 120, 0.5, 0.9, () => [rand(-280, 280), rand(-280, 280)]);
+    deco(['nature/tree_default', 'nature/tree_oak'], 40, 4, 7, () => { const p = PONDS[Math.floor(rng() * PONDS.length)], a = rng() * 6.28, d = rand(13, 26); return [p.x + Math.cos(a) * d, p.z + Math.sin(a) * d]; }, true);
+  }
   deco(['nature/log', 'nature/log_stack', 'nature/stump_old'], 26, 0.9, 1.5, () => [rand(-270, 270), rand(-270, 270)], true);
   PONDS.forEach(p => deco(['nature/plant_flatShort', 'nature/grass_large', 'nature/plant_bush'], 22, 0.9, 1.8, () => { const a = rng() * 6.28, d = rand(POND_RADIUS + 1.5, 17); return [p.x + Math.cos(a) * d, p.z + Math.sin(a) * d]; }));
 
-  for (const key in bucket) this._inst(key, bucket[key], !/plant|grass|log|stump/.test(key));
+  // Donwhang: mezarlıklar (mumya çölü)
+  if (ZONE.flora.crypts) {
+    const GV = ['graveyard/gravestone-cross', 'graveyard/gravestone-round', 'graveyard/gravestone-broken', 'graveyard/urn-round'].filter(k => Assets.has(k));
+    for (let c = 0; c < ZONE.flora.crypts; c++) {
+      const a = rng() * 6.283, d = rand(205, 272), cx = Math.cos(a) * d, cz = Math.sin(a) * d;
+      if (!this._freeDeco(cx, cz, 5)) continue;
+      const ck = c % 3 ? 'graveyard/crypt-small' : 'graveyard/crypt';
+      if (Assets.has(ck)) { this._place(ck, cx, cz, 4, rng() * 6); this.obstacles.push({ x: cx, z: cz, r: 3, type: 'house' }); }
+      for (let i = 0; i < 6; i++) {
+        const ga = rng() * 6.283, gd = rand(4.5, 8), gx = cx + Math.cos(ga) * gd, gz = cz + Math.sin(ga) * gd;
+        if (GV.length) add(GV[i % GV.length], this._matrix(gx, terrainHeight(gx, gz) - 0.05, gz, 2.6, 2.6, 2.6, rng() * 6));
+      }
+      if (Assets.has('graveyard/fire-basket')) this._place('graveyard/fire-basket', cx + 3.5, cz + 3.5, 3, 0, null, false);
+    }
+  }
+
+  for (const key in bucket) this._inst(key, bucket[key], !/plant|grass|log|stump|flower|mushroom/.test(key));
 
   // Haydut kampları: obelisk, çadırlar, kamp ateşi, fıçı ve sandıklar
   const camp = (cx, cz) => {
@@ -244,4 +268,26 @@ World.prototype._scatterModels = function (palms, cacti, rocks, pillars, rng) {
     props.forEach((k, i) => { const a = 0.8 + i * 1.3, d = rand(5.2, 7), x = cx + Math.cos(a) * d, z = cz + Math.sin(a) * d; place(k, x, z, 3.6, rng() * 6, 0.7); });
   };
   for (const c of RUINS) camp(c.x, c.z);
+};
+
+// Bölge geçiş kapıları: yolun kuzey ucu → sonraki şehir, güney ucu → önceki şehir
+World.prototype._buildPortals = function () {
+  this.portals = [];
+  const mk = (z, zone, arrive) => {
+    if (!zone) return;
+    const x = roadCenterX(z), y = terrainHeight(x, z), g = new THREE.Group();
+    const stone = new THREE.MeshLambertMaterial({ color: 0x8a7a62 }), red = new THREE.MeshLambertMaterial({ color: 0xa8281e });
+    for (const sx of [-1, 1]) { const c = new THREE.Mesh(new THREE.BoxGeometry(1.6, 9, 1.6), stone); c.position.set(sx * 5, 4.5, 0); c.castShadow = true; g.add(c); }
+    const top = new THREE.Mesh(new THREE.BoxGeometry(13, 1.4, 2.2), red); top.position.y = 9.4; top.castShadow = true; g.add(top);
+    const glow = new THREE.Mesh(new THREE.PlaneGeometry(8.4, 8.6), new THREE.MeshBasicMaterial({ color: 0x7fd8ff, transparent: true, opacity: 0.35, side: THREE.DoubleSide, depthWrite: false, blending: THREE.AdditiveBlending }));
+    glow.position.y = 4.4; g.add(glow);
+    const label = makeLabel('→ ' + ZONES[zone].name, 'Bölge geçişi', '#7fe3ff', '#ffe9a8');
+    label.position.y = 11.6; label.scale.set(7, 2.2, 1); g.add(label);
+    g.position.set(x, y, z);
+    this.scene.add(g);
+    for (const sx of [-1, 1]) this.obstacles.push({ x: x + sx * 5, z, r: 1.1, type: 'gate' });
+    this.portals.push({ x, z, zone, arrive, glow });
+  };
+  mk(-284, ZONE.next, 'S');
+  mk(284, ZONE.prev, 'N');
 };

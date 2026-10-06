@@ -25,13 +25,64 @@ const QUEST_DEFS = [
   { id: 'bandit', name: 'Haydut Kampları', giver: 'captain', minLevel: 6, after: 'scorp', type: 'kill', target: 'bandit', n: 8, noun: 'Haydut',
     desc: 'Harabelerdeki haydutlar kervanları soyuyor. 8 haydutu etkisiz hale getir.',
     reward: { exp: 900, gold: 300, gear: { base: 'CHEST_1', rarity: 2 } } },
-  { id: 'caravan', name: 'Kızıl Kum Denizi', giver: 'merchant', minLevel: 8, after: 'oasis', type: 'visit', target: 'Kızıl Kum Denizi',
-    desc: 'Kervan yolunun ucunda, şehirden çok uzakta Kızıl Kum Denizi var. Orayı keşfet ve haber getir. Dikkatli ol!',
+  { id: 'caravan', name: 'Kaplan Dağları', giver: 'merchant', minLevel: 8, after: 'oasis', type: 'visit', target: 'Kaplan Dağları',
+    desc: 'Şehirden çok uzakta, haritanın kenarında Kaplan Dağları var. Orayı keşfet ve haber getir. Dikkatli ol, kaplanlar çok güçlü!',
     reward: { exp: 1400, gold: 400, items: [['luck', 2], ['elx_a', 3], ['ms_str', 1]] } },
-  { id: 'golem', name: 'Kum Devleri', giver: 'captain', minLevel: 10, after: 'bandit', type: 'kill', target: 'golem', n: 8, noun: 'Kum Devi',
-    desc: 'Kızıl Kum Denizi\'nde kum devleri uyandı. 8 devi yık; şehrin güvenliği sana emanet.',
-    reward: { exp: 3000, gold: 800, gear: { base: 'WEAPON_2', rarity: 1 }, items: [['astral', 1]] } }
+  { id: 'tigers', name: 'Kaplan Avı', giver: 'captain', minLevel: 13, after: 'bandit', type: 'kill', target: 'tiger', n: 10, noun: 'Kaplan',
+    desc: 'Kaplan Dağları\'ndan inen kaplanlar çobanları korkutuyor. 10 kaplanı avla.',
+    reward: { exp: 6000, gold: 900, items: [['hp2', 20], ['elx_a', 2]] } },
+  { id: 'golem', name: 'Kum Devleri', giver: 'captain', minLevel: 15, after: 'tigers', type: 'kill', target: 'golem', n: 8, noun: 'Kum Devi',
+    desc: 'Kaplan Dağları\'nın eteklerinde kum devleri uyandı. 8 devi yık; şehrin güvenliği sana emanet.',
+    reward: { exp: 9000, gold: 1200, gear: { base: 'WEAPON_2', rarity: 1 }, items: [['astral', 1]] } },
+  { id: 'tigergirl', name: 'Kaplan Kız', giver: 'captain', minLevel: 18, after: 'golem', type: 'kill', target: 'u_tiger', n: 1, noun: 'Kaplan Kız',
+    desc: 'Dağların efendisi Kaplan Kız ortaya çıktığında bütün bölge titrer. Onu yen ve Jangan\'ın kahramanı ol! (Ortaya çıkınca duyurulur.)',
+    reward: { exp: 15000, gold: 3000, gear: { base: 'CHEST_3', rarity: 2 }, items: [['astral', 2]] } },
+  // --- Donwhang ---
+  { id: 'dw_jackal', zone: 'donwhang', name: 'Çakal Sürüleri', giver: 'captain', minLevel: 20, type: 'kill', target: 'jackal', n: 12, noun: 'Çakal',
+    desc: 'Donwhang\'a hoş geldin. Çakallar kervan develerine saldırıyor; 12 çakalı avla.',
+    reward: { exp: 7000, gold: 1500, items: [['hp2', 30], ['mp2', 20]] } },
+  { id: 'dw_scales', zone: 'donwhang', name: 'Yılan Pulları', giver: 'merchant', minLevel: 24, type: 'collect', target: 'q_scale', n: 8, noun: 'Yılan Pulu',
+    desc: 'Yılan Kanyonu\'ndaki dev yılanların pulları iksirlerde kullanılır. 8 Yılan Pulu getir.',
+    reward: { gold: 2500, gear: { base: 'WEAPON_4', rarity: 1 } } },
+  { id: 'dw_oasis', zone: 'donwhang', name: 'Kayıp Vaha', giver: 'merchant', minLevel: 25, type: 'visit', target: 'Kayıp Vaha',
+    desc: 'Eski kervancılar kuzeybatıda bir Kayıp Vaha\'dan söz eder. Bul ve yolu işaretle.',
+    reward: { exp: 12000, gold: 1500, items: [['luck', 2]] } },
+  { id: 'dw_fort', zone: 'donwhang', name: 'Haydut Kalesi', giver: 'captain', minLevel: 28, after: 'dw_jackal', type: 'kill', target: 'dbandit', n: 12, noun: 'Çöl Haydudu',
+    desc: 'Çöl haydutları eski kalelere yerleşti. 12 haydutu yen.',
+    reward: { exp: 20000, gold: 3000, items: [['elx_w', 3], ['elx_a', 3]] } },
+  { id: 'dw_mummy', zone: 'donwhang', name: 'Uyanan Ölüler', giver: 'captain', minLevel: 32, after: 'dw_fort', type: 'kill', target: 'mummy', n: 12, noun: 'Mumya',
+    desc: 'Mumya Çölü\'ndeki mezarlardan ölüler kalktı. 12 mumyayı toprağa geri gönder.',
+    reward: { exp: 28000, gold: 3500, gear: { base: 'CHEST_4', rarity: 1 } } },
+  { id: 'dw_uruchi', zone: 'donwhang', name: 'Uruchi', giver: 'captain', minLevel: 38, after: 'dw_mummy', type: 'kill', target: 'u_uruchi', n: 1, noun: 'Uruchi',
+    desc: 'Kadim iblis Uruchi Mumya Çölü\'nde dolaşıyor. Onu yen!',
+    reward: { exp: 60000, gold: 8000, gear: { base: 'WEAPON_5', rarity: 2 }, items: [['astral', 2]] } },
+  // --- Hotan ---
+  { id: 'ht_wolf', zone: 'hotan', name: 'Buz Kurtları', giver: 'captain', minLevel: 40, type: 'kill', target: 'icewolf', n: 12, noun: 'Buz Kurdu',
+    desc: 'Hotan\'a hoş geldin. Buzul eteğindeki buz kurtlarını temizle.',
+    reward: { exp: 25000, gold: 4000, items: [['hp4', 30], ['mp4', 20]] } },
+  { id: 'ht_fur', zone: 'hotan', name: 'Ayı Postu', giver: 'merchant', minLevel: 43, type: 'collect', target: 'q_fur', n: 8, noun: 'Ayı Postu',
+    desc: 'Kışlık kürk için 8 Dağ Ayısı postu getir.',
+    reward: { gold: 6000, gear: { base: 'CHEST_6', rarity: 1 } } },
+  { id: 'ht_ghost', zone: 'hotan', name: 'Hayalet Ormanı', giver: 'captain', minLevel: 48, after: 'ht_wolf', type: 'kill', target: 'ghost', n: 15, noun: 'Hayalet Savaşçı',
+    desc: 'Ormanın hayaletleri gece gündüz dolaşıyor. 15 hayalet savaşçıyı yok et.',
+    reward: { exp: 45000, gold: 6000, items: [['elx_w', 4], ['elx_a', 4], ['ms_crit', 1]] } },
+  { id: 'ht_pass', zone: 'hotan', name: 'Kunlun Geçidi', giver: 'merchant', minLevel: 55, type: 'visit', target: 'Kunlun Geçidi',
+    desc: 'Batıya giden kervan yolu Kunlun Geçidi\'nden geçer. Geçide ulaş.',
+    reward: { exp: 40000, gold: 5000, items: [['luck', 3]] } },
+  { id: 'ht_golem', zone: 'hotan', name: 'Taş Devler', giver: 'captain', minLevel: 58, after: 'ht_ghost', type: 'kill', target: 'stonegolem', n: 12, noun: 'Taş Dev',
+    desc: 'Kunlun Geçidi\'nde taş devler yolu kesiyor. 12 devi yık.',
+    reward: { exp: 70000, gold: 9000, gear: { base: 'WEAPON_7', rarity: 1 } } },
+  { id: 'ht_isyutaru', zone: 'hotan', name: 'Isyutaru', giver: 'captain', minLevel: 60, after: 'ht_golem', type: 'kill', target: 'u_isyutaru', n: 1, noun: 'Isyutaru',
+    desc: 'Gölgelerin efendisi Isyutaru uyandı. Onu yen!',
+    reward: { exp: 120000, gold: 15000, gear: { base: 'CHEST_8', rarity: 2 }, items: [['astral', 3]] } },
+  { id: 'ht_demon', zone: 'hotan', name: 'Taklamakan Muhafızları', giver: 'captain', minLevel: 70, after: 'ht_isyutaru', type: 'kill', target: 'demon', n: 15, noun: 'Şeytan Muhafız',
+    desc: 'Taklamakan çölünün kalbinde şeytan muhafızlar bekliyor. 15 muhafızı yen.',
+    reward: { exp: 130000, gold: 20000, items: [['elx_w', 6], ['elx_a', 6], ['ms_str', 2], ['ms_int', 2]] } },
+  { id: 'ht_yarkan', zone: 'hotan', name: 'Lord Yarkan', giver: 'captain', minLevel: 76, after: 'ht_demon', type: 'kill', target: 'u_yarkan', n: 1, noun: 'Lord Yarkan',
+    desc: 'Taklamakan\'ın efendisi Lord Yarkan. İpek Yolu\'nun en büyük tehdidini yen ve efsane ol!',
+    reward: { exp: 200000, gold: 50000, gear: { base: 'WEAPON_9', rarity: 3 }, items: [['astral', 5]] } }
 ];
+QUEST_DEFS.forEach(q => { q.zone = q.zone || 'jangan'; });
 
 class QuestManager {
   constructor(player, hud, world) {
@@ -89,7 +140,7 @@ class QuestManager {
     this._changed();
   }
 
-  _npcName(id) { const n = (typeof NPC_DEFS !== 'undefined') && NPC_DEFS.find(d => d.id === id); return n ? n.name : id; }
+  _npcName(id, zone = CUR_ZONE_ID) { return (ZONES[zone].npc && ZONES[zone].npc[id]) || id; }
 
   onKill(typeKey) { for (const q of this.defs) if (q.type === 'kill' && q.target === typeKey) this._add(q, 1); }
   onCollect() { this._syncCollect(); }
@@ -158,6 +209,7 @@ class QuestManager {
   forNpc(npcId) {
     const out = [];
     for (const q of this.defs) {
+      if (q.zone !== CUR_ZONE_ID) continue;
       const s = this.status(q);
       if (q.giver === npcId && (s === 'none' || s === 'locked' || s === 'active')) out.push({ q, s });
       else if (this.turnTo(q) === npcId && s === 'ready') out.push({ q, s });
@@ -169,6 +221,7 @@ class QuestManager {
   markerFor(npcId) {
     let m = null;
     for (const q of this.defs) {
+      if (q.zone !== CUR_ZONE_ID) continue;
       const s = this.status(q);
       if (s === 'ready' && this.turnTo(q) === npcId) return '?';
       if (s === 'none' && q.giver === npcId) m = '!';
@@ -182,16 +235,16 @@ class QuestManager {
 
   objectiveText(q) {
     const st = this.state[q.id];
-    if (st.s === 'ready') return '✔ Tamamlandı — ' + this._npcName(this.turnTo(q)) + '\'e git';
+    if (st.s === 'ready') return '✔ Tamamlandı — ' + this._npcName(this.turnTo(q), q.zone) + '\'e git';
     if (q.type === 'kill' || q.type === 'collect') return q.noun + ': ' + st.p + '/' + q.n;
     if (q.type === 'visit') return q.target + ' bölgesini keşfet';
     return '';
   }
 
   trackerHTML() {
-    const list = this.activeList();
+    const list = this.activeList().sort((a, b) => (a.zone === CUR_ZONE_ID ? 0 : 1) - (b.zone === CUR_ZONE_ID ? 0 : 1)).slice(0, 4);
     if (!list.length) return '';
-    return list.map(q => '<div class="tq' + (this.state[q.id].s === 'ready' ? ' ok' : '') + '"><b>' + q.name + '</b><span>' + this.objectiveText(q) + '</span></div>').join('');
+    return list.map(q => '<div class="tq' + (this.state[q.id].s === 'ready' ? ' ok' : '') + '"><b>' + q.name + (q.zone !== CUR_ZONE_ID ? ' <small>(' + ZONES[q.zone].name + ')</small>' : '') + '</b><span>' + this.objectiveText(q) + '</span></div>').join('');
   }
 
   // Her karede: bölge takibi

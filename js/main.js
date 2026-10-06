@@ -6,6 +6,7 @@
     return;
   }
   if (CONFIG.isTouch) document.body.classList.add('touch');
+  try { if (sessionStorage.getItem('srw-autostart') === '1') { document.getElementById('travel-t').textContent = ZONE.town; document.getElementById('travel').classList.remove('hidden'); } } catch (e) { /* yok */ }
 
   function boot() {
 
@@ -34,6 +35,12 @@
   const ui = new UI(player, hud, quests, wmap, combat, hotbar);
   quests.onChange = () => { npcs.refreshMarkers(quests); ui.refresh(); };
   combat.onLevel = lvl => { hotbar.upgradePots(lvl); ui.refresh(); };
+  ui.mm = monsters;
+  monsters.announce = (title, sub, kind) => {
+    hud.banner(title, sub, kind === 'kill' ? 'quest' : 'unique');
+    hud.log('📣 ' + title + ' — ' + sub, 'lvl', kind === 'kill' ? '#8ef07a' : '#ff8ae8');
+    SFX.play(kind === 'kill' ? 'questdone' : 'region');
+  };
   npcs.refreshMarkers(quests);
   let pendingNpc = null;
   input.bindJoystick(document.getElementById('joy-zone'), document.getElementById('joy-knob'));
@@ -59,6 +66,25 @@
   let stepD = 0, lastP = null;
 
   // --- Kayıt (localStorage) ---
+  let travelTo = null;
+  // Bölge değiştir: kaydet → yükleme ekranı → sayfayı yeniden kur (otomatik devam)
+  function travel(zone, arrive) {
+    if (travelTo || !ZONES[zone]) return;
+    travelTo = { zone, arrive };
+    if (zone !== CUR_ZONE_ID) { combat.deathPos = null; combat.recallPos = null; }
+    save();
+    try { sessionStorage.setItem('srw-autostart', '1'); } catch (e) { /* yok */ }
+    document.getElementById('travel-t').textContent = ZONES[zone].town;
+    document.getElementById('travel-s').textContent = 'İpek Yolu boyunca yolculuk…';
+    document.getElementById('travel').classList.remove('hidden');
+    started = false;
+    setTimeout(() => location.reload(), 600);
+  }
+  ui.onTravel = (zone, arrive) => {
+    if (player.combatT > 0) { hud.log('Savaştayken ışınlanamazsın.', 'dmg'); player.stats.gold += (ZONE.tele.find(t => t.zone === zone) || { cost: 0 }).cost; return; }
+    ui.closeNpc(); travel(zone, arrive);
+  };
+
   function loadSave() {
     try { return JSON.parse(localStorage.getItem(CONFIG.saveKey)) || null; } catch (e) { return null; }
   }
@@ -70,7 +96,8 @@
         level: s.level, exp: s.exp, gold: s.gold, str: s.str, int: s.int, statPts: s.statPts, zerk: s.zerk,
         hp: Math.round(s.hp), mp: Math.round(s.mp),
         inv: player.inv.serialize(), book: player.book.serialize(), hotbar: hotbar.serialize(),
-        tod: world.timeOfDay, quests: quests.serialize(), death: combat.deathPos, recall: combat.recallPos
+        tod: world.timeOfDay, quests: quests.serialize(), death: combat.deathPos, recall: combat.recallPos,
+        zone: travelTo ? travelTo.zone : CUR_ZONE_ID, arrive: travelTo ? travelTo.arrive : null
       }));
     } catch (e) { /* özel pencere vb. */ }
   }
@@ -121,19 +148,29 @@
   chip('pick-w', 'w', v => { pickW = v; });
   chip('pick-a', 'a', v => { pickA = v; });
   const refreshStart = () => {
-    const same = saved && saved.name && saved.name === (nameInput.value || '').trim();
+    const same = saved && saved.name && !saved.newChar && saved.name === (nameInput.value || '').trim();
     create.classList.toggle('hidden', !!same);
     note.textContent = same ? 'Kayıtlı karakter: ' + saved.name + ' (Sv. ' + (saved.level || 1) + ') — devam edilecek.' : (saved && saved.name ? 'Yeni ad = yeni karakter (' + saved.name + ' kaydının üzerine yazılır).' : '');
     startBtn.textContent = same ? 'Devam Et' : 'Karakteri Oluştur';
   };
   if (saved && saved.name) nameInput.value = saved.name;
+  if (saved && saved.newChar) { nameInput.value = saved.newChar.name; pickW = saved.newChar.w || 'blade'; pickA = saved.newChar.a || 'protector'; }
   nameInput.addEventListener('input', refreshStart);
   refreshStart();
+  let autostart = false;
+  try { autostart = sessionStorage.getItem('srw-autostart') === '1'; sessionStorage.removeItem('srw-autostart'); } catch (e) { /* yok */ }
 
   function start() {
     if (started) return;
     const name = (nameInput.value || '').trim() || 'Gezgin';
-    const sameChar = saved && saved.name === name;
+    const sameChar = saved && saved.name === name && !saved.newChar;
+    if (!sameChar && CUR_ZONE_ID !== 'jangan') {          // yeni karakter Jangan'da başlar
+      try {
+        localStorage.setItem(CONFIG.saveKey, JSON.stringify({ v: 2, newChar: { name, w: pickW, a: pickA }, zone: 'jangan' }));
+        sessionStorage.setItem('srw-autostart', '1');
+      } catch (e) { /* yok */ }
+      location.reload(); return;
+    }
     if (sameChar) applySave(saved);
     else {
       player.inv.starter(pickW);
@@ -148,11 +185,18 @@
     }
     player.setName(name);
     if (sameChar && isFinite(saved.x) && isFinite(saved.z)) player.teleport(saved.x, saved.z);
+    if (sameChar && saved.arrive) {
+      const z = saved.arrive === 'S' ? 258 : saved.arrive === 'N' ? -258 : 7;
+      player.teleport(saved.arrive === 'T' ? 0 : roadCenterX(z), z);
+      if (saved.arrive !== 'T') { rig.yaw = saved.arrive === 'S' ? 0 : Math.PI; player.heading = saved.arrive === 'S' ? Math.PI : 0; }
+      setTimeout(() => hud.banner(ZONE.name, ZONE.rings[0].lv.replace(/–.*/, '') + '+ bölgesi · ' + regionAt(player.pos.x, player.pos.z), 'region'), 400);
+    }
     if (sameChar) { quests.load(saved.quests); if (isFinite(saved.tod)) world.timeOfDay = clamp(saved.tod, 0, 0.9999); }
     hotbar.upgradePots(player.stats.level);
     npcs.refreshMarkers(quests);
     SFX.init(); SFX.play('ui');
     startScreen.classList.add('hidden');
+    document.getElementById('travel').classList.add('hidden');
     hud.show();
     setTimeout(() => document.getElementById('help').classList.add('gone'), 30000);
     started = true;
@@ -197,7 +241,10 @@
   function frame() {
     requestAnimationFrame(frame);
     const dt = Math.min(clock.getDelta(), 0.05);
-
+    tick(dt);
+    renderer.render(world.scene, camera);
+  }
+  function tick(dt) {
     if (started) {
       handleClicks();
       combat.update(dt);
@@ -213,6 +260,7 @@
         if (player.manualMove || player.dead) pendingNpc = null;
         else if (d < NPC_RANGE) { player.target = null; ui.openNpc(pendingNpc); pendingNpc = null; }
       }
+      for (const pt of world.portals) if (!player.dead && Math.hypot(player.pos.x - pt.x, player.pos.z - pt.z) < 4) { travel(pt.zone, pt.arrive); break; }
       if (lastP) { stepD += Math.hypot(player.pos.x - lastP.x, player.pos.z - lastP.z); if (stepD > 1.9) { stepD = 0; if (!player.dead) SFX.play('step'); } }
       lastP = { x: player.pos.x, z: player.pos.z };
       SFX.update(dt, { combat: player.combatT > 0, night: world.isNight(), inTown: inSafeZone(player.pos.x, player.pos.z) });
@@ -227,13 +275,13 @@
     rig.update(dt, player.pos, !started);
     world.update(dt, player.pos, camera);
     if (started) hud.update(dt);
-    renderer.render(world.scene, camera);
   }
 
-  window.__game = { world, player, rig, monsters, npcs, combat, quests, hud, ui, loot, input, save, hotbar };   // hata ayıklama / test
+  window.__game = { world, player, rig, monsters, npcs, combat, quests, hud, ui, loot, input, save, hotbar, renderer, camera, travel, step: (n = 20, dt = 0.05) => { for (let i = 0; i < n; i++) tick(dt); } };   // hata ayıklama / test
   window.addEventListener('beforeunload', () => { if (started) save(); });
   document.addEventListener('visibilitychange', () => { if (document.hidden && started) save(); });
   frame();
+  if (autostart) setTimeout(start, 50);
   }
 
   // Varlıkları (3D modeller) yükle, sonra oyunu kur. Yükleme başarısız olursa prosedürel modellerle devam.

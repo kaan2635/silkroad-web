@@ -5,11 +5,12 @@
 
 const ASSET_COLORS = {   // dokusuz (Doğa kiti) materyal adı → renk
   grass: 0x8f9a5a, leafsGreen: 0x5f9a3c, woodBark: 0x7a5a36, woodBarkDark: 0x57402a, wood: 0xa87a48, woodDark: 0x6a4a2a,
-  woodInner: 0xc89a62, stone: 0xa09483, stoneDark: 0x6e6458, dirt: 0x9a7a52, colorRed: 0xa8281e, _defaultMat: 0x9a8f80, Water: 0x3aa0c8
+  woodInner: 0xc89a62, stone: 0xa09483, stoneDark: 0x6e6458, dirt: 0x9a7a52, colorRed: 0xa8281e, _defaultMat: 0x9a8f80, Water: 0x3aa0c8,
+  leafsDark: 0x3f6a2c, colorYellow: 0xe0b020
 };
 
 const Assets = {
-  ready: false, failed: 0, entries: {}, texByKit: {}, matTex: {}, matVC: null,
+  ready: false, failed: 0, entries: {}, texByKit: {}, matTex: {}, matVC: null, scenes: {},
 
   has(key) { return !!this.entries[key]; },
   parts(key) { return this.entries[key] || null; },
@@ -34,7 +35,10 @@ const Assets = {
       for (let i = 0; i < bin.length; i++) buf[i] = bin.charCodeAt(i);
       try {
         loader.parse(buf.buffer, kit + '/', gltf => {
-          try { this.entries[key] = this._bake(gltf.scene, kit); } catch (e) { this.failed++; }
+          try {
+            if (key.includes('/character-')) this.scenes[key] = this._prepChar(gltf.scene, kit);
+            else this.entries[key] = this._bake(gltf.scene, kit);
+          } catch (e) { this.failed++; }
           tick(); resolve();
         }, () => { this.failed++; tick(); resolve(); });
       } catch (e) { this.failed++; tick(); resolve(); }
@@ -95,6 +99,32 @@ const Assets = {
     for (const p of parts) { p.geo.computeBoundingBox(); box.union(p.geo.boundingBox); }
     parts.size = box.getSize(new THREE.Vector3());
     return parts;
+  },
+
+  // Hareketli karakter (parçalı düğümler: bacak / kol / gövde / kafa): sahne korunur, materyaller Lambert'e çevrilir
+  _prepChar(root, kit) {
+    root.traverse(o => {
+      if (!o.isMesh) return;
+      const m = o.material;
+      if (m.map) { m.map.encoding = THREE.LinearEncoding; m.map.needsUpdate = true; }
+      o.material = new THREE.MeshLambertMaterial({ map: m.map || null, color: m.map ? 0xffffff : (m.color ? m.color.getHex() : 0xcccccc), transparent: m.transparent, opacity: m.opacity });
+      o.castShadow = true;
+    });
+    root.updateMatrixWorld(true);
+    const box = new THREE.Box3().setFromObject(root);
+    root.userData.h = box.max.y - box.min.y || 1;
+    return root;
+  },
+  hasChar(key) { return !!this.scenes[key]; },
+  // Klon: { group, legL, legR, armL, armR, head, torso } — h: hedef boy
+  charModel(key, h, tint) {
+    const src = this.scenes[key];
+    const s = src.clone(true);
+    s.traverse(o => { if (o.isMesh) { o.material = o.material.clone(); if (tint) o.material.color.setHex(tint); } });
+    const g = new THREE.Group(); g.add(s);
+    s.scale.setScalar(h / src.userData.h);
+    const f = n => s.getObjectByName(n) || null;
+    return { group: g, legL: f('leg-left'), legR: f('leg-right'), armL: f('arm-left'), armR: f('arm-right'), head: f('head'), torso: f('torso') };
   },
 
   // Kit başına tek ortak doku/materyal. Eski renk uzayında (gama) çalıştığımız için çözme yapılmaz.

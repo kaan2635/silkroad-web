@@ -17,11 +17,11 @@ class WorldMap {
     x.fillStyle = '#c9a468'; x.fillRect(0, 0, S, S);
     // bölge halkaları (dıştan içe)
     const ring = (r, col) => { x.fillStyle = col; x.beginPath(); x.arc(S / 2, S / 2, r * k, 0, 6.283); x.fill(); };
-    ring(420, '#c98a5a');     // Kızıl Kum Denizi
-    ring(195, '#d8b878');     // Akrep Çölü
-    ring(110, '#e3cb92');     // Kurt Vadisi
+    const RC = ['#e3cb92', '#d8b878', '#c98a5a', '#b8704a'];
+    const rings = ZONE.rings.map((r, i) => ({ ...r, c: RC[i] })).reverse();
+    for (const r of rings) ring(Math.min(r.r, 420), r.c);
     x.strokeStyle = 'rgba(80,50,20,.35)'; x.lineWidth = 1; x.setLineDash([4, 4]);
-    for (const r of [110, 195]) { x.beginPath(); x.arc(S / 2, S / 2, r * k, 0, 6.283); x.stroke(); }
+    for (const r of ZONE.rings) if (r.r < 400) { x.beginPath(); x.arc(S / 2, S / 2, r.r * k, 0, 6.283); x.stroke(); }
     x.setLineDash([]);
     // dünya sınırı
     x.strokeStyle = 'rgba(60,30,10,.7)'; x.lineWidth = 2;
@@ -52,14 +52,16 @@ class WorldMap {
       x.font = 'bold ' + size + 'px sans-serif'; x.lineWidth = 3; x.strokeStyle = 'rgba(40,24,8,.85)';
       x.strokeText(t, px, py); x.fillStyle = col; x.fillText(t, px, py);
     };
-    txt('JANGAN', S / 2, S / 2 - 4, 11, '#fff3c0');
+    txt(ZONE.name.toLocaleUpperCase('tr-TR'), S / 2, S / 2 - 4, 11, '#fff3c0');
     txt('Şehri', S / 2, S / 2 + 8, 9, '#fff3c0');
     PONDS.forEach((p, i) => txt(POND_NAMES[i], this._px(p.x), this._px(p.z) - 13, 9, '#bfefff'));
-    RUINS.forEach(r => txt('Harabe', this._px(r.x), this._px(r.z) - 12, 9, '#ffb8a8'));
-    txt('KURT VADİSİ', S / 2, this._px(-95), 10, '#f5e6b8');
-    txt('AKREP ÇÖLÜ', S / 2, this._px(-165), 10, '#f5e6b8');
-    txt('KIZIL KUM DENİZİ', S / 2, this._px(-250), 11, '#ffd9c0');
-    txt('KIZIL KUM DENİZİ', S / 2, this._px(250), 11, '#ffd9c0');
+    RUINS.forEach(r => txt('Haydut', this._px(r.x), this._px(r.z) - 12, 9, '#ffb8a8'));
+    let prev = 0;
+    for (const r of ZONE.rings) { const mid = Math.min(285, r.r > 400 ? prev + 45 : (prev + r.r) / 2 + 10); txt(r.name.toLocaleUpperCase('tr-TR') + ' · ' + r.lv, S / 2, this._px(-mid), 9.5, '#f5e6b8'); prev = r.r; }
+    // geçiş kapıları ve unique yerleri
+    if (ZONE.next) txt('↑ ' + ZONES[ZONE.next].name, this._px(roadCenterX(-284)), this._px(-280) + 8, 10, '#7fe3ff');
+    if (ZONE.prev) txt('↓ ' + ZONES[ZONE.prev].name, this._px(roadCenterX(284)), this._px(280) - 8, 10, '#7fe3ff');
+    for (const u of ZONE.uniques) { x.fillStyle = '#ff4ad8'; x.beginPath(); x.arc(this._px(u.x), this._px(u.z), 5, 0, 6.283); x.fill(); txt('★ ' + MONSTER_TYPES[u.id].name, this._px(u.x), this._px(u.z) - 11, 9, '#ff9ae8'); }
     this.base = c;
   }
 
@@ -75,10 +77,13 @@ class WorldMap {
       if (!targets.includes(POND_NAMES[i])) return;
       x.strokeStyle = '#ffd23a'; x.lineWidth = 3; x.beginPath(); x.arc(this._px(p.x), this._px(p.z), 12 + Math.sin(performance.now() * 0.005) * 2, 0, 6.283); x.stroke();
     });
-    if (targets.includes('Kızıl Kum Denizi')) {
+    const outer = ZONE.rings[ZONE.rings.length - 1];
+    for (const r of ZONE.rings) if (targets.includes(r.name)) {
       x.fillStyle = '#ffd23a'; x.font = 'bold 12px sans-serif'; x.textAlign = 'center';
-      x.fillText('★ Görev hedefi', S / 2, this._px(-232)); x.fillText('★ Görev hedefi', S / 2, this._px(268));
+      const rr = r === outer ? 262 : r.r - 20;
+      x.fillText('★ Görev hedefi', S / 2, this._px(-rr)); x.fillText('★ Görev hedefi', S / 2, this._px(rr));
     }
+    for (let i = 0; i < RUINS.length && targets.includes(ZONE.ruinName); i++) { x.strokeStyle = '#ffd23a'; x.lineWidth = 3; x.strokeRect(this._px(RUINS[i].x) - 9, this._px(RUINS[i].z) - 9, 18, 18); }
     // oyuncu oku
     x.save();
     x.translate(this._px(pl.pos.x), this._px(pl.pos.z)); x.rotate(Math.PI - pl.heading);

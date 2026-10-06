@@ -158,8 +158,9 @@ class HUD {
     e.zerk.classList.toggle('full', s.zerk >= ZERK_MAX);
     e.zerk.classList.toggle('on', pl.zerkT > 0);
 
-    this.frames++; this.fpsT += dt;
-    if (this.fpsT >= 0.5) { e.fps.textContent = Math.round(this.frames / this.fpsT) + ' FPS'; this.frames = 0; this.fpsT = 0; }
+    this.frames++;
+    const now = performance.now(); if (!this._fps0) this._fps0 = now;
+    if (now - this._fps0 >= 500) { e.fps.textContent = Math.round(this.frames * 1000 / (now - this._fps0)) + ' FPS'; this.frames = 0; this._fps0 = now; }
 
     if (c) {
       // hedef çerçevesi

@@ -2,7 +2,7 @@
 // Görev günlüğü (L), Dünya haritası (M). Hepsi dokunmatik için büyük hedeflerle tasarlandı.
 
 // Şehir dükkânlarının satış listesi (derece aralığı bölgeye göre)
-const SHOP_DEGREES = [1, 2, 3];
+const SHOP_DEGREES = ZONE.shop;
 function shopStock(kind) {
   const out = [];
   if (kind === 'herb') {
@@ -27,7 +27,8 @@ const NPC_TABS = {
   armor: [['buy:armor', 'Zırhlar'], ['sell', 'Sat'], ['repair', 'Tamir'], ['quests', 'Görevler']],
   acc: [['buy:acc', 'Takılar'], ['sell', 'Sat'], ['quests', 'Görevler']],
   storage: [['storage', 'Depo'], ['quests', 'Görevler']],
-  captain: [['quests', 'Görevler']]
+  captain: [['quests', 'Görevler'], ['unique', 'Unique']],
+  tele: [['tele', 'Işınlan'], ['quests', 'Görevler']]
 };
 
 class UI {
@@ -42,7 +43,8 @@ class UI {
     this.sel = null; this.confirmDrop = false; this.sellConfirm = null;
     this.npc = null; this.tab = null; this.msg = null;
     this.skTab = 'bicheon';
-    this.filter = { at: 'protector', d: 1 };
+    this.filter = { at: 'protector', d: SHOP_DEGREES[0] };
+    this.onTravel = null; this.mm = null;
     this.alc = { sel: null, lucky: false, astral: false, msg: null, stone: null };
 
     this.inv.onChange = () => this.refresh();
@@ -413,7 +415,7 @@ class UI {
     this.npcTabs.innerHTML = tabs.map(t => '<button data-tab="' + t[0] + '" class="' + (t[0] === this.tab ? 'on' : '') + '">' + t[1] + (t[0] === 'quests' && mk ? ' ' + mk : '') + '</button>').join('');
     const t = this.tab;
     this.npcBody.innerHTML = t.startsWith('buy:') ? this._buyHTML(t.slice(4)) : t === 'sell' ? this._sellHTML() : t === 'repair' ? this._repairHTML() :
-      t === 'storage' ? this._storageHTML() : this._questHTML();
+      t === 'storage' ? this._storageHTML() : t === 'tele' ? this._teleHTML() : t === 'unique' ? this._uniqueHTML() : this._questHTML();
     this.npcFoot.innerHTML = '💰 <b>' + s.gold.toLocaleString('tr-TR') + '</b> &nbsp; 🎒 ' + (INV_SIZE - this.inv.freeCount()) + '/' + INV_SIZE;
     this.npcMsgEl.innerHTML = this.msg ? '<span style="color:' + this.msg.color + '">' + this.msg.text + '</span>' : '';
   }
@@ -484,6 +486,17 @@ class UI {
       '<div class="srow"><span class="ic">🔨</span><div class="nm">Tümünü tamir et<small>Kuşanılı ve envanterdeki tüm ekipman</small></div><b class="pr">' + c.toLocaleString('tr-TR') + ' 💰</b><button data-act="repair"' + (c ? '' : ' disabled') + '>Tamir Et</button></div>';
   }
 
+  _teleHTML() {
+    const lv = { jangan: 'Sv. 1–20', donwhang: 'Sv. 20–40', hotan: 'Sv. 40–80' };
+    return '<div class="hint">Kervan yollarını aşmak uzun sürer. Ücreti öde, anında diğer şehre geç. (Yolun ucundaki kapılardan yürüyerek de gidebilirsin.)</div>' +
+      ZONE.tele.map(t => { const z = ZONES[t.zone]; return this._row('🌀', z.town, 'Önerilen ' + lv[t.zone], '<b class="pr">' + t.cost.toLocaleString('tr-TR') + ' 💰</b><button data-act="travel" data-z="' + t.zone + '" data-c="' + t.cost + '">Işınlan</button>'); }).join('');
+  }
+  _uniqueHTML() {
+    const st = this.mm ? this.mm.uniqueStatus() : [];
+    return '<div class="hint">Bölgenin efsanevi canavarları. Ortaya çıktıklarında bütün bölgeye duyurulur. Çok güçlüdürler; iyi hazırlan!</div>' +
+      st.map(u => this._row(u.live ? '🔴' : '⏳', u.name + ' <small>Sv. ' + u.level + '</small>', u.region, '<span class="qs">' + (u.live ? 'ŞU AN ORTADA!' : '~' + u.mins + ' dk sonra') + '</span>', u.live ? '#ff8ae8' : null)).join('');
+  }
+
   _storageHTML() {
     const inv = this.inv;
     return '<div class="hint">Eşyaya dokun: envanterden depoya / depodan envantere taşınır. Depo tüm karakterlerinde ortaktır.</div>' +
@@ -518,6 +531,12 @@ class UI {
       if (s.gold < c) { SFX.play('error'); return this._say('Yeterli altının yok.', '#ff8a7a'); }
       s.gold -= c; inv.repairAll(); SFX.play('upgrade');
       this._say('Tüm eşyalar tamir edildi.', '#a8f0a0');
+    } else if (act === 'travel') {
+      const c = +btn.dataset.c;
+      if (s.gold < c) { SFX.play('error'); return this._say('Yeterli altının yok.', '#ff8a7a'); }
+      if (this.p.dead) return;
+      s.gold -= c; SFX.play('cast');
+      if (this.onTravel) this.onTravel(btn.dataset.z, 'T');
     } else if (act === 'dep' || act === 'wd') {
       const i = +btn.dataset.i;
       const ok = act === 'dep' ? inv.deposit(i) : inv.withdraw(i);

@@ -5,7 +5,7 @@ const DROP_LIFE = 120;        // saniye
 const PICKUP_RANGE = 2.4;
 
 // Canavar türü → görev eşyası (yalnızca ilgili görev aktifken düşer)
-const QUEST_DROPS = { wolf: 'q_fang', scorpion: 'q_tail' };
+const QUEST_DROPS = { wolf: 'q_fang', scorpion: 'q_tail', snake: 'q_scale', bear: 'q_fur' };
 
 class LootManager {
   constructor(world, player, hud) {
@@ -88,6 +88,16 @@ class LootManager {
     for (let i = 0; i < Math.min(4, rolls); i++) this.spawn('gold', ...spot(), { amount: Math.max(1, Math.round((5 + 4 * L + 0.15 * L * L) * (0.7 + Math.random() * 0.6))) });
     // ekipman
     for (let i = 0; i < rolls; i++) if (Math.random() < 0.13 * (k > 1 ? 1.6 : 1)) item(randomGear(L, Math.random, m.rank === 'unique' ? 12 : m.rank === 'giant' ? 5 : m.rank === 'champion' ? 2.5 : 1));
+    // Unique: garantili mühürlü eşya + simya malzemesi
+    if (m.rank === 'unique') {
+      for (let i = 0; i < 2; i++) {
+        const g = randomGear(L + 4), q = Math.random();
+        g.rarity = q < 0.06 ? 3 : q < 0.32 ? 2 : 1; g.blues = rollBlues(g.base, g.rarity); g.dur = maxDur(g);
+        item(g);
+      }
+      item(makeStack('elx_w', 2)); item(makeStack('elx_a', 3)); item(makeStack('luck', 2));
+      if (Math.random() < 0.5) item(makeStack('astral', 1));
+    }
     // iksirler
     if (chance(0.22)) item(makeStack(potFor(L, Math.random() < 0.6 ? 'hp' : 'mp'), 1 + Math.floor(Math.random() * 3)));
     if (chance(0.03)) item(makeStack('pill', 1));

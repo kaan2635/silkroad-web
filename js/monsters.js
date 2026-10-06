@@ -7,10 +7,32 @@ const RESPAWN_TIME = 18;
 
 // Canavar türleri: çarpanlar (seviyeye göre formülle ölçeklenir). magic: büyü saldırısı. status: oyuncuya etki.
 const MONSTER_TYPES = {
-  wolf:     { name: 'Kurt',       hpM: 1.1, dmgM: 0.9, defM: 0.8, expM: 1.0, speed: 6.5, aggro: 11, range: 2.0, atkInt: 1.4, hit: 1.2, scale: 1.0, labelY: 2.5 },
-  scorpion: { name: 'Dev Akrep',  hpM: 1.3, dmgM: 1.0, defM: 1.2, expM: 1.15, speed: 4.6, aggro: 8, range: 2.3, atkInt: 1.8, hit: 1.5, scale: 1.25, labelY: 3.3, status: { kind: 'poison', chance: 0.15, dur: 6 } },
-  golem:    { name: 'Kum Devi',   hpM: 1.8, dmgM: 1.25, defM: 1.5, expM: 1.5, speed: 3.8, aggro: 9, range: 2.8, atkInt: 2.0, hit: 2.0, scale: 1.5, labelY: 3.6, status: { kind: 'stun', chance: 0.08, dur: 1.2 } },
-  bandit:   { name: 'Haydut',     hpM: 1.2, dmgM: 1.1, defM: 1.0, expM: 1.2, speed: 5.5, aggro: 12, range: 2.4, atkInt: 1.6, hit: 1.3, scale: 1.0, labelY: 3.3 }
+  // --- Jangan ---
+  wolf:      { name: 'Kurt', model: 'quad', look: { fur: 0x7a7a82, dark: 0x3a3a42 }, hpM: 1.1, dmgM: 0.9, defM: 0.8, expM: 1.0, speed: 6.5, aggro: 11, range: 2.0, atkInt: 1.4, hit: 1.2, scale: 1.0, labelY: 2.5 },
+  boar:      { name: 'Yaban Domuzu', model: 'quad', look: { fur: 0x6a4a32, dark: 0x3a2818, tusks: true, legH: 0.5, body: [0.85, 0.75, 1.5] }, hpM: 1.3, dmgM: 0.95, defM: 1.0, expM: 1.1, speed: 5.2, aggro: 7, range: 2.0, atkInt: 1.6, hit: 1.3, scale: 1.0, labelY: 2.4 },
+  scorpion:  { name: 'Dev Akrep', model: 'scorpion', look: { shell: 0x8a3a1c, dark: 0x4a1e0e }, hpM: 1.3, dmgM: 1.0, defM: 1.2, expM: 1.15, speed: 4.6, aggro: 8, range: 2.3, atkInt: 1.8, hit: 1.5, scale: 1.25, labelY: 3.3, status: { kind: 'poison', chance: 0.15, dur: 6 } },
+  tiger:     { name: 'Kaplan', model: 'quad', look: { fur: 0xd8822a, dark: 0x2a1a10, stripes: true, body: [0.8, 0.7, 1.8] }, hpM: 1.25, dmgM: 1.2, defM: 1.0, expM: 1.25, speed: 7, aggro: 12, range: 2.3, atkInt: 1.3, hit: 1.4, scale: 1.2, labelY: 2.8, status: { kind: 'bleed', chance: 0.1, dur: 4 } },
+  golem:     { name: 'Kum Devi', model: 'golem', look: { c: 0xa07a4c }, hpM: 1.8, dmgM: 1.25, defM: 1.5, expM: 1.5, speed: 3.8, aggro: 9, range: 2.8, atkInt: 2.0, hit: 2.0, scale: 1.5, labelY: 3.6, status: { kind: 'stun', chance: 0.08, dur: 1.2 } },
+  bandit:    { name: 'Haydut', model: 'human', look: { robe: 0x3a3a44, dark: 0x24242c, hat: 'band', weapon: 'blade' }, hpM: 1.2, dmgM: 1.1, defM: 1.0, expM: 1.2, speed: 5.5, aggro: 12, range: 2.4, atkInt: 1.6, hit: 1.3, scale: 1.0, labelY: 3.3 },
+  // --- Donwhang ---
+  jackal:    { name: 'Çakal', model: 'quad', look: { fur: 0xc8a068, dark: 0x6a4a2a, body: [0.6, 0.55, 1.35] }, hpM: 1.0, dmgM: 1.0, defM: 0.9, expM: 1.0, speed: 7.2, aggro: 12, range: 2.0, atkInt: 1.2, hit: 1.2, scale: 0.95, labelY: 2.4 },
+  sandscorp: { name: 'Kum Akrebi', model: 'scorpion', look: { shell: 0xc8a050, dark: 0x6a4a1a }, hpM: 1.3, dmgM: 1.05, defM: 1.3, expM: 1.15, speed: 4.8, aggro: 8, range: 2.3, atkInt: 1.7, hit: 1.5, scale: 1.3, labelY: 3.3, status: { kind: 'poison', chance: 0.2, dur: 6 } },
+  snake:     { name: 'Dev Yılan', model: 'snake', look: { c: 0x5a7a2a, belly: 0xc8b878 }, hpM: 1.25, dmgM: 1.15, defM: 1.0, expM: 1.2, speed: 5.0, aggro: 10, range: 2.6, atkInt: 1.5, hit: 1.6, scale: 1.2, labelY: 2.6, status: { kind: 'poison', chance: 0.22, dur: 7 } },
+  mummy:     { name: 'Mumya', model: 'char', char: 'zombie', look: { tint: 0xd8c8a0, h: 2.3, plain: true }, hpM: 1.5, dmgM: 1.15, defM: 1.2, expM: 1.3, speed: 3.6, aggro: 9, range: 2.3, atkInt: 1.8, hit: 1.3, scale: 1.1, labelY: 3.2, status: { kind: 'slow', chance: 0.15, dur: 3 } },
+  skeleton:  { name: 'İskelet Asker', model: 'char', char: 'skeleton', look: { h: 2.3 }, hpM: 1.3, dmgM: 1.25, defM: 1.1, expM: 1.3, speed: 5.2, aggro: 11, range: 2.4, atkInt: 1.5, hit: 1.3, scale: 1.1, labelY: 3.2, status: { kind: 'bleed', chance: 0.1, dur: 4 } },
+  dbandit:   { name: 'Çöl Haydudu', model: 'human', look: { robe: 0xb89058, dark: 0x6a4a2a, hat: 'band', weapon: 'glaive' }, hpM: 1.25, dmgM: 1.15, defM: 1.05, expM: 1.25, speed: 5.6, aggro: 12, range: 2.6, atkInt: 1.6, hit: 1.3, scale: 1.05, labelY: 3.3 },
+  // --- Hotan ---
+  icewolf:   { name: 'Buz Kurdu', model: 'quad', look: { fur: 0xe8eef4, dark: 0x8aa8c8, eye: 0x3ad8ff }, hpM: 1.15, dmgM: 1.0, defM: 0.9, expM: 1.05, speed: 7, aggro: 12, range: 2.0, atkInt: 1.3, hit: 1.2, scale: 1.1, labelY: 2.6, status: { kind: 'slow', chance: 0.15, dur: 3 } },
+  bear:      { name: 'Dağ Ayısı', model: 'quad', look: { fur: 0x4a3222, dark: 0x2a1a10, body: [1.2, 1.1, 1.9], legH: 0.75, noTail: true }, hpM: 1.7, dmgM: 1.3, defM: 1.3, expM: 1.45, speed: 4.6, aggro: 8, range: 2.6, atkInt: 1.9, hit: 1.9, scale: 1.35, labelY: 3.4, status: { kind: 'stun', chance: 0.08, dur: 1.2 } },
+  ghost:     { name: 'Hayalet Savaşçı', model: 'char', char: 'ghost', look: { h: 2.4, ghost: true }, magic: true, hpM: 1.2, dmgM: 1.25, defM: 1.0, expM: 1.3, speed: 5.5, aggro: 12, range: 7, atkInt: 1.8, hit: 1.3, scale: 1.15, labelY: 3.3, status: { kind: 'freeze', chance: 0.07, dur: 1.5 } },
+  stonegolem:{ name: 'Taş Dev', model: 'golem', look: { c: 0x8a8a92 }, hpM: 1.9, dmgM: 1.3, defM: 1.6, expM: 1.55, speed: 3.8, aggro: 9, range: 2.9, atkInt: 2.0, hit: 2.0, scale: 1.6, labelY: 3.7, status: { kind: 'stun', chance: 0.1, dur: 1.3 } },
+  hbandit:   { name: 'Tepe Haydudu', model: 'human', look: { robe: 0x2a4a2a, dark: 0x14240f, hat: 'band', weapon: 'spear' }, hpM: 1.3, dmgM: 1.2, defM: 1.1, expM: 1.3, speed: 5.8, aggro: 12, range: 2.8, atkInt: 1.5, hit: 1.3, scale: 1.05, labelY: 3.3 },
+  demon:     { name: 'Şeytan Muhafız', model: 'char', char: 'vampire', look: { tint: 0xff6a5a, h: 2.6, horns: true }, magic: true, hpM: 1.5, dmgM: 1.35, defM: 1.3, expM: 1.5, speed: 5.0, aggro: 12, range: 6, atkInt: 1.7, hit: 1.4, scale: 1.2, labelY: 3.6, status: { kind: 'burn', chance: 0.15, dur: 4 } },
+  // --- Unique'ler ---
+  u_tiger:   { name: 'Kaplan Kız', model: 'human', look: { robe: 0xe07a1a, dark: 0x2a1a10, hat: 'ears', weapon: 'blade', stripes: true }, unique: { hp: 10, dmg: 1.7, exp: 40, drop: 1 }, hpM: 1.3, dmgM: 1.2, defM: 1.2, expM: 1.3, speed: 6.8, aggro: 16, range: 2.8, atkInt: 1.2, hit: 1.8, scale: 1.6, labelY: 3.6, status: { kind: 'bleed', chance: 0.2, dur: 5 } },
+  u_uruchi:  { name: 'Uruchi', model: 'human', look: { robe: 0x8a1010, dark: 0x1a0606, hat: 'horns', weapon: 'glaive', skin: 0xb83a2a }, unique: { hp: 14, dmg: 1.8, exp: 40, drop: 1 }, hpM: 1.4, dmgM: 1.25, defM: 1.3, expM: 1.3, speed: 6, aggro: 16, range: 3.4, atkInt: 1.4, hit: 2.4, scale: 2.5, labelY: 3.5, status: { kind: 'burn', chance: 0.25, dur: 5 } },
+  u_isyutaru:{ name: 'Isyutaru', model: 'char', char: 'vampire', look: { tint: 0xb08aff, h: 2.6, horns: true, glow: 0x8a4aff }, magic: true, unique: { hp: 15, dmg: 1.9, exp: 40, drop: 1 }, hpM: 1.4, dmgM: 1.3, defM: 1.3, expM: 1.3, speed: 6, aggro: 16, range: 8, atkInt: 1.5, hit: 2.4, scale: 2.4, labelY: 3.6, status: { kind: 'freeze', chance: 0.18, dur: 2 } },
+  u_yarkan:  { name: 'Lord Yarkan', model: 'quad', look: { fur: 0x5a1010, dark: 0x1a0606, horns: true, eye: 0xffd23a, body: [1.2, 1.1, 2.2] }, unique: { hp: 16, dmg: 2.0, exp: 40, drop: 1.2 }, hpM: 1.5, dmgM: 1.35, defM: 1.4, expM: 1.4, speed: 6.5, aggro: 18, range: 3.6, atkInt: 1.5, hit: 2.6, scale: 3.0, labelY: 3.0, status: { kind: 'stun', chance: 0.2, dur: 1.5 } }
 };
 // Rütbe: normal / şampiyon / dev (Silkroad'daki Champion ve Giant canavarlar). Unique'ler ayrıca tanımlanır.
 const MOB_RANKS = {
@@ -25,36 +47,83 @@ const mobDef = M => 2 + 4 * M;
 const mobExp = M => 10 + 6 * M + 0.4 * M * M;
 function rollRank() { const r = Math.random(); return r < 0.012 ? 'giant' : r < 0.06 ? 'champion' : 'normal'; }
 
-function buildWolf() {
+function buildQuad(o = {}) {
   const g = new THREE.Group();
-  const fur = new THREE.MeshLambertMaterial({ color: 0x7a7a82 });
-  const dark = new THREE.MeshLambertMaterial({ color: 0x3a3a42 });
-  const eye = new THREE.MeshBasicMaterial({ color: 0xff3a2a });
+  const fur = new THREE.MeshLambertMaterial({ color: o.fur || 0x7a7a82 });
+  const dark = new THREE.MeshLambertMaterial({ color: o.dark || 0x3a3a42 });
+  const eye = new THREE.MeshBasicMaterial({ color: o.eye || 0xff3a2a });
   const box = (w, h, d, mat, x, y, z, parent = g) => {
     const m = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), mat);
     m.position.set(x, y, z); m.castShadow = true; parent.add(m); return m;
   };
-  box(0.7, 0.65, 1.5, fur, 0, 0.95, 0);
-  box(0.5, 0.45, 0.6, fur, 0, 1.12, 0.95);
-  box(0.26, 0.2, 0.4, dark, 0, 1.0, 1.4);
-  box(0.12, 0.2, 0.12, fur, -0.17, 1.45, 0.85);
-  box(0.12, 0.2, 0.12, fur, 0.17, 1.45, 0.85);
-  box(0.08, 0.08, 0.05, eye, -0.14, 1.2, 1.24);
-  box(0.08, 0.08, 0.05, eye, 0.14, 1.2, 1.24);
-  const tail = box(0.15, 0.15, 0.8, dark, 0, 1.05, -1.1); tail.rotation.x = 0.6;
+  const [bw, bh, bl] = o.body || [0.7, 0.65, 1.5], lh = o.legH || 0.7, by = lh + bh * 0.4;
+  box(bw, bh, bl, fur, 0, by, 0);
+  const hz = bl / 2 + 0.25, hy = by + bh * 0.25;
+  box(bw * 0.72, bh * 0.7, 0.6, fur, 0, hy, hz);
+  box(bw * 0.38, bh * 0.3, 0.4, dark, 0, hy - 0.12, hz + 0.45);
+  box(0.12, 0.2, 0.12, fur, -bw * 0.25, hy + bh * 0.45, hz - 0.1);
+  box(0.12, 0.2, 0.12, fur, bw * 0.25, hy + bh * 0.45, hz - 0.1);
+  box(0.08, 0.08, 0.05, eye, -bw * 0.2, hy + 0.08, hz + 0.29);
+  box(0.08, 0.08, 0.05, eye, bw * 0.2, hy + 0.08, hz + 0.29);
+  if (o.tusks) for (const sx of [-1, 1]) { const t = box(0.06, 0.06, 0.3, new THREE.MeshLambertMaterial({ color: 0xf0e8d0 }), sx * 0.15, hy - 0.2, hz + 0.6); t.rotation.x = -0.6; }
+  if (o.horns) for (const sx of [-1, 1]) { const h = new THREE.Mesh(new THREE.ConeGeometry(0.1, 0.6, 6), new THREE.MeshLambertMaterial({ color: 0xe8d8b0 })); h.position.set(sx * bw * 0.3, hy + bh * 0.6, hz - 0.1); h.rotation.z = -sx * 0.5; h.rotation.x = -0.4; g.add(h); }
+  if (o.stripes) for (let i = 0; i < 5; i++) box(bw + 0.02, 0.08, 0.12, dark, 0, by + bh * 0.1, -bl / 2 + 0.25 + i * (bl - 0.4) / 4);
+  if (!o.noTail) { const tail = box(0.15, 0.15, 0.8, dark, 0, by + 0.1, -bl / 2 - 0.35); tail.rotation.x = 0.6; }
   const legs = [];
-  for (const [lx, lz] of [[-0.25, 0.55], [0.25, 0.55], [-0.25, -0.55], [0.25, -0.55]]) {
-    const pivot = new THREE.Group(); pivot.position.set(lx, 0.7, lz);
-    box(0.18, 0.7, 0.18, dark, 0, -0.35, 0, pivot);
+  for (const [lx, lz] of [[-bw * 0.36, bl * 0.36], [bw * 0.36, bl * 0.36], [-bw * 0.36, -bl * 0.36], [bw * 0.36, -bl * 0.36]]) {
+    const pivot = new THREE.Group(); pivot.position.set(lx, lh, lz);
+    box(0.18 * (bw / 0.7), lh, 0.18 * (bw / 0.7), dark, 0, -lh / 2, 0, pivot);
     g.add(pivot); legs.push(pivot);
   }
-  return { group: g, legs };
+  return { group: g, legs, kind: 'quad' };
+}
+function buildWolf() { return buildQuad(); }
+
+function buildSnake(o = {}) {
+  const g = new THREE.Group(), mat = new THREE.MeshLambertMaterial({ color: o.c || 0x5a7a2a }), belly = new THREE.MeshLambertMaterial({ color: o.belly || 0xc8b878 });
+  const segs = [];
+  for (let i = 0; i < 9; i++) {
+    const r = 0.42 - i * 0.03, m = new THREE.Mesh(new THREE.SphereGeometry(r, 10, 8), i % 2 ? mat : belly);
+    m.scale.set(1, 0.8, 1.2); m.position.set(0, r * 0.8, -i * 0.55); m.castShadow = true; g.add(m); segs.push(m);
+  }
+  const head = new THREE.Group(); head.position.set(0, 1.0, 0.45); g.add(head);
+  const hm = new THREE.Mesh(new THREE.BoxGeometry(0.55, 0.35, 0.7), mat); hm.castShadow = true; head.add(hm);
+  for (const sx of [-1, 1]) { const e = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.08, 0.05), new THREE.MeshBasicMaterial({ color: 0xffd23a })); e.position.set(sx * 0.18, 0.1, 0.33); head.add(e); }
+  const neck = new THREE.Mesh(new THREE.CylinderGeometry(0.3, 0.38, 0.9, 8), mat); neck.position.set(0, 0.55, 0.2); neck.rotation.x = 0.5; g.add(neck);
+  return { group: g, legs: [], segs, head, kind: 'snake' };
 }
 
-function buildScorpion() {
+// Kenney karakter modeli (parçalı) ya da yoksa insansı yedek
+function buildCharMob(t) {
+  const L = t.look || {}, key = 'graveyard/character-' + t.char;
+  if (typeof Assets !== 'undefined' && Assets.hasChar(key)) {
+    const c = Assets.charModel(key, L.h || 2.3, L.tint);
+    if (L.plain) c.group.traverse(o => { if (o.isMesh) { o.material.map = null; o.material.needsUpdate = true; } });
+    if (L.ghost) c.group.traverse(o => { if (o.isMesh) { o.material.transparent = true; o.material.opacity = 0.72; o.material.emissive = new THREE.Color(0x1a3a6a); } });
+    if (L.glow) c.group.traverse(o => { if (o.isMesh) o.material.emissive = new THREE.Color(L.glow).multiplyScalar(0.25); });
+    if (L.horns) for (const sx of [-1, 1]) { const h = new THREE.Mesh(new THREE.ConeGeometry(0.08, 0.45, 6), new THREE.MeshLambertMaterial({ color: 0x2a1a1a })); h.position.set(sx * 0.22, (L.h || 2.3) * 0.98, 0); h.rotation.z = -sx * 0.4; c.group.add(h); }
+    return { group: c.group, legs: [c.legL, c.legR].filter(Boolean), arms: [c.armL, c.armR].filter(Boolean), armR: c.armR, kind: L.ghost ? 'float' : 'char' };
+  }
+  const h = buildHumanoid({ robe: L.tint || 0x8a8a8a, robeDark: 0x3a3a3a, hat: null, weapon: null });
+  return { group: h.group, legs: [h.legL, h.legR], arms: [h.armL, h.armR], armR: h.armR, kind: 'biped' };
+}
+
+function buildHumanMob(L) {
+  const h = buildHumanoid({ robe: L.robe, robeDark: L.dark, hat: L.hat === 'band' ? 'band' : null, weapon: L.weapon || 'blade', skin: L.skin });
+  if (L.hat === 'ears' || L.hat === 'horns') {
+    for (const sx of [-1, 1]) {
+      const m = L.hat === 'ears' ? new THREE.Mesh(new THREE.ConeGeometry(0.1, 0.25, 4), new THREE.MeshLambertMaterial({ color: 0xe07a1a })) : new THREE.Mesh(new THREE.ConeGeometry(0.09, 0.5, 6), new THREE.MeshLambertMaterial({ color: 0x1a1010 }));
+      m.position.set(sx * 0.18, L.hat === 'ears' ? 2.28 : 2.35, 0); m.rotation.z = -sx * (L.hat === 'ears' ? 0.2 : 0.5); h.group.add(m);
+    }
+  }
+  if (L.stripes) for (let i = 0; i < 3; i++) { const st = new THREE.Mesh(new THREE.CylinderGeometry(0.46 + i * 0.02, 0.48 + i * 0.02, 0.07, 10), new THREE.MeshLambertMaterial({ color: 0x1a1008 })); st.position.y = 1.15 + i * 0.25; h.group.add(st); }
+  return { group: h.group, legs: [h.legL, h.legR], arms: [h.armL, h.armR], armR: h.armR, kind: 'biped' };
+}
+
+function buildScorpion(o = {}) {
   const g = new THREE.Group();
-  const shell = new THREE.MeshLambertMaterial({ color: 0x8a3a1c });
-  const dark = new THREE.MeshLambertMaterial({ color: 0x4a1e0e });
+  const shell = new THREE.MeshLambertMaterial({ color: o.shell || 0x8a3a1c });
+  const dark = new THREE.MeshLambertMaterial({ color: o.dark || 0x4a1e0e });
   const sphere = (r, mat, x, y, z, sx = 1, sy = 1, sz = 1) => {
     const m = new THREE.Mesh(new THREE.SphereGeometry(r, 10, 8), mat);
     m.position.set(x, y, z); m.scale.set(sx, sy, sz); m.castShadow = true; g.add(m); return m;
@@ -77,13 +146,13 @@ function buildScorpion() {
     const leg = new THREE.Mesh(new THREE.BoxGeometry(0.7, 0.08, 0.08), dark);
     leg.position.set(sx * 0.85, 0.3, lz); leg.rotation.z = sx * -0.5; g.add(leg);
   }
-  return { group: g, legs: [] };
+  return { group: g, legs: [], kind: 'scorpion' };
 }
 
-function buildGolem() {
-  const h = buildHumanoid({ robe: 0xb08a58, robeDark: 0x7a5c36, hat: null });
-  h.group.traverse(o => { if (o.material && o.material.color) { o.material = o.material.clone(); o.material.color.lerp(new THREE.Color(0xa07a4c), 0.55); } });
-  return { group: h.group, legs: [h.legL, h.legR], arms: [h.armL, h.armR], armR: h.armR };
+function buildGolem(o = {}) {
+  const h = buildHumanoid({ robe: 0xb08a58, robeDark: 0x7a5c36, hat: null, weapon: null });
+  h.group.traverse(o2 => { if (o2.material && o2.material.color) { o2.material = o2.material.clone(); o2.material.color.lerp(new THREE.Color(o.c || 0xa07a4c), 0.65); } });
+  return { group: h.group, legs: [h.legL, h.legR], arms: [h.armL, h.armR], armR: h.armR, kind: 'biped' };
 }
 
 function pushOut(p, radius, obstacles) {
@@ -121,14 +190,11 @@ class Monster {
     this.moving = false;
 
     this.group = new THREE.Group();
-    let parts;
-    if (typeKey === 'wolf') parts = buildWolf();
-    else if (typeKey === 'scorpion') parts = buildScorpion();
-    else if (typeKey === 'golem') parts = buildGolem();
-    else {
-      const h = buildHumanoid({ robe: 0x3a3a44, robeDark: 0x24242c, hat: 'band' });
-      parts = { group: h.group, legs: [h.legL, h.legR], arms: [h.armL, h.armR], armR: h.armR };
-    }
+    const t = this.type, L = t.look || {};
+    const parts = t.model === 'quad' ? buildQuad(L) : t.model === 'scorpion' ? buildScorpion(L) : t.model === 'golem' ? buildGolem(L) :
+      t.model === 'snake' ? buildSnake(L) : t.model === 'char' ? buildCharMob(t) : buildHumanMob(L);
+    this.kind = parts.kind;
+    this.segs = parts.segs || null; this.headPart = parts.head || null;
     this.body = parts.group;
     this.legs = parts.legs;
     this.arms = parts.arms || [];
@@ -191,6 +257,27 @@ class Monster {
     const c = s.freeze ? 0x2a5aa8 : s.burn ? 0x6a2200 : s.stun || s.knock ? 0x4a4a00 : s.slow ? 0x1a3a5a : s.bleed ? 0x5a0000 : 0x000000;
     for (const m of this.mats) m.emissive.setHex(c);
   }
+  // Unique özel saldırısı: oyuncunun altında kırmızı halka, 1.3 sn sonra alan hasarı
+  _slam(dt, player, combat) {
+    this.slamCd = (this.slamCd === undefined ? 6 : this.slamCd) - dt;
+    if (this.tele) {
+      this.tele.t -= dt;
+      const k = 1 - this.tele.t / 1.3;
+      this.tele.mesh.scale.setScalar(4.5 * (0.4 + 0.6 * k)); this.tele.mesh.material.opacity = 0.3 + 0.5 * k;
+      if (this.tele.t <= 0) {
+        const { x, z } = this.tele; this.world.scene.remove(this.tele.mesh); this.tele = null;
+        combat.vfx.burst(x, z, 0xff3a1a, 5, 0.6);
+        if (!player.dead && Math.hypot(player.pos.x - x, player.pos.z - z) < 4.7) combat.damagePlayer(this.dmg * 2.2, this, this.type.magic ? 'mag' : 'phys');
+      }
+    } else if (this.slamCd <= 0) {
+      this.slamCd = 8 + Math.random() * 3;
+      const m = new THREE.Mesh(new THREE.CircleGeometry(1, 32), new THREE.MeshBasicMaterial({ color: 0xff2a1a, transparent: true, opacity: 0.3, depthWrite: false }));
+      m.rotation.x = -Math.PI / 2; m.position.set(player.pos.x, terrainHeight(player.pos.x, player.pos.z) + 0.12, player.pos.z);
+      this.world.scene.add(m);
+      this.tele = { t: 1.3, x: player.pos.x, z: player.pos.z, mesh: m };
+    }
+  }
+
   _updateStatus(dt, combat) {
     let changed = false;
     for (const k in this.status) {
@@ -212,6 +299,7 @@ class Monster {
     this.dead = true; this.state = 'dead'; this.deadT = 0; this.moving = false;
     this.label.visible = false;
     this.status = {}; this._tint();
+    if (this.tele) { this.world.scene.remove(this.tele.mesh); this.tele = null; }
   }
 
   respawn() {
@@ -282,6 +370,7 @@ class Monster {
         }
       }
     } else if (this.state === 'chase') {
+      if (this.rank === 'unique') this._slam(dt, player, combat);
       if (playerSafe || homeDist > LEASH) { this.state = 'return'; this.provoked = false; }
       else if (dp > this.type.range * 0.85) {
         this._moveToward(player.pos.x, player.pos.z, this.type.speed * slow, dt);
@@ -308,17 +397,24 @@ class Monster {
   _animate(dt) {
     if (this.moving) this.walkPhase += dt * (this.state === 'chase' || this.state === 'return' ? 12 : 7);
     const s = this.moving ? Math.sin(this.walkPhase) * 0.8 : 0;
-    if (this.typeKey === 'wolf') {
+    const atk = this.attackAnim > 0 ? Math.sin((1 - this.attackAnim / 0.3) * Math.PI) : 0;
+    if (this.kind === 'quad') {
       this.legs.forEach((l, i) => { l.rotation.x = (i === 0 || i === 3 ? s : -s); });
-    } else if (this.typeKey === 'bandit' || this.typeKey === 'golem') {
-      this.legs[0].rotation.x = s; this.legs[1].rotation.x = -s;
-      this.arms[0].rotation.x = -s * 0.8; this.arms[1].rotation.x = s * 0.8;
-      if (this.attackAnim > 0) this.armR.rotation.x = -2.3 * Math.sin((1 - this.attackAnim / 0.3) * Math.PI);
+    } else if (this.kind === 'biped' || this.kind === 'char') {
+      if (this.legs.length === 2) { this.legs[0].rotation.x = s; this.legs[1].rotation.x = -s; }
+      if (this.arms.length === 2) { this.arms[0].rotation.x = -s * 0.8; this.arms[1].rotation.x = s * 0.8; }
+      if (this.armR && atk) this.armR.rotation.x = -2.3 * atk;
+    } else if (this.kind === 'float') {
+      this.body.position.y = 0.3 + Math.sin(performance.now() * 0.003 + this.walkPhase) * 0.2;
+      if (this.arms.length === 2) { this.arms[0].rotation.x = -1.2 - atk; this.arms[1].rotation.x = -1.2 - atk; }
+    } else if (this.kind === 'snake') {
+      const t = performance.now() * 0.006 + this.walkPhase;
+      this.segs.forEach((m, i) => { m.position.x = Math.sin(t - i * 0.7) * 0.25 * (this.moving ? 1.6 : 0.6); });
+      this.headPart.position.y = 1.0 + atk * 0.4; this.headPart.position.z = 0.45 + atk * 0.6;
     }
-    // saldırı: öne atılma efekti (kurt ve akrep için de)
-    const lunge = this.attackAnim > 0 ? Math.sin((1 - this.attackAnim / 0.3) * Math.PI) * 0.5 : 0;
-    this.body.position.z = lunge;
-    if (this.typeKey === 'scorpion') this.body.rotation.y = Math.sin(this.walkPhase * 0.5) * 0.05;
+    // saldırı: öne atılma efekti
+    this.body.position.z = atk * 0.5;
+    if (this.kind === 'scorpion') this.body.rotation.y = Math.sin(this.walkPhase * 0.5) * 0.05;
   }
 }
 
@@ -351,21 +447,51 @@ class MonsterManager {
         made++;
       }
     };
-    ring('wolf', 20, 40, 105, 1, 4);
-    ring('scorpion', 14, 100, 190, 4, 8);
-    ring('golem', 12, 200, 270, 10, 14);
+    for (const sp of ZONE.spawns) ring(...sp);
     // Harabelerde haydut kampları
+    const [rt, r0, r1] = ZONE.ruinMob;
     for (const c of RUINS) {
       for (let i = 0; i < 4; i++) {
         const a = rng() * 6.283, d = rand(3, 6);
         const x = c.x + Math.cos(a) * d, z = c.z + Math.sin(a) * d;
         if (!freeSpot(x, z)) { i--; if (rng() < 0.2) break; continue; }
-        this.list.push(new Monster(w, 'bandit', 6 + Math.floor(rng() * 5), { x, z }));
+        this.list.push(new Monster(w, rt, r0 + Math.floor(rng() * (r1 - r0 + 1)), { x, z }));
       }
     }
   }
 
+  // --- Unique canavarlar: gerçek zamanlı doğma, duyuru ---
+  _uniques(dt) {
+    this._uT = (this._uT || 0) - dt;
+    if (this._uT > 0) return;
+    this._uT = 1;
+    const now = Date.now(), clk = UniqueClock.get();
+    for (const u of ZONE.uniques) {
+      const live = this.list.find(m => m.typeKey === u.id && !m.removed);
+      if (live) continue;
+      if (clk[u.id] === undefined) { UniqueClock.set(u.id, now + 90000); continue; }      // ilk doğma: 1.5 dk sonra
+      if (now < clk[u.id]) continue;
+      const m = new Monster(this.world, u.id, u.level, { x: u.x, z: u.z }, { rank: 'unique' });
+      m.noRespawn = true; m.respawnTime = 8;
+      m.onKilled = () => {
+        UniqueClock.set(u.id, Date.now() + u.every * 1000);
+        if (this.announce) this.announce(m.type.name + ' yenildi!', 'Bir sonraki ortaya çıkış: ~' + Math.round(u.every / 60) + ' dk', 'kill');
+      };
+      UniqueClock.set(u.id, now + 3600e3);      // yaşarken yeniden doğmasın
+      this.list.push(m);
+      if (this.announce) this.announce(m.type.name + ' ortaya çıktı!', regionAt(u.x, u.z) + ' · Sv. ' + u.level, 'spawn');
+    }
+  }
+  uniqueStatus() {
+    const now = Date.now(), clk = UniqueClock.get();
+    return ZONE.uniques.map(u => {
+      const live = this.list.find(m => m.typeKey === u.id && !m.dead);
+      return { id: u.id, name: MONSTER_TYPES[u.id].name, level: u.level, region: regionAt(u.x, u.z), live: !!live, mins: live ? 0 : Math.max(0, Math.ceil(((clk[u.id] || now) - now) / 60000)) };
+    });
+  }
+
   update(dt, player, combat) {
+    this._uniques(dt);
     for (const m of this.list) m.update(dt, player, combat);
     for (let i = this.list.length - 1; i >= 0; i--) if (this.list[i].removed) { this.world.scene.remove(this.list[i].group); this.list.splice(i, 1); }
   }

@@ -20,8 +20,14 @@ MODELS = {
   'nature': ['cactus_short', 'cactus_tall', 'tree_palm', 'tree_palmTall', 'tree_palmDetailedTall', 'tree_palmBend', 'tree_palmShort', 'plant_bush', 'plant_bushLarge',
              'plant_flatTall', 'plant_flatShort', 'stone_largeA', 'stone_largeB', 'stone_largeC', 'stone_tallA', 'stone_tallB', 'rock_largeA', 'rock_largeB', 'rock_smallA',
              'stump_old', 'log', 'log_stack', 'statue_column', 'statue_columnDamaged', 'statue_obelisk', 'statue_block', 'statue_head', 'campfire_stones',
-             'tent_detailedOpen', 'sign', 'pot_large', 'grass_large'],
+             'tent_detailedOpen', 'sign', 'pot_large', 'grass_large',
+             'tree_pineTallA', 'tree_pineTallB', 'tree_pineRoundA', 'tree_pineRoundC', 'tree_pineSmallA', 'tree_default', 'tree_oak', 'rock_tallA', 'rock_tallC',
+             'flower_redA', 'flower_yellowA', 'mushroom_redGroup'],
+  'graveyard': ['character-ghost', 'character-skeleton', 'character-zombie', 'character-vampire', 'crypt-small', 'crypt', 'gravestone-cross', 'gravestone-round',
+                'gravestone-broken', 'pillar-obelisk', 'urn-round', 'fire-basket', 'coffin-old', 'pine-crooked', 'altar-stone'],
 }
+
+KEEP_COLORS = {'graveyard'}   # bu kitlerin özgün renkleri korunur
 
 def recolor(img):
     """Mavi/mor -> kızıl, yeşil -> koyu kırmızı (çatı), soluk mavi-beyaz -> krem kum."""
@@ -56,7 +62,7 @@ def main():
         tex = os.path.join(SRC, kit, 'Textures', 'colormap.png')
         if os.path.exists(tex):
             os.makedirs(os.path.join(OUT, kit, 'Textures'), exist_ok=True)
-            im = recolor(Image.open(tex))
+            im = recolor(Image.open(tex)) if kit not in KEEP_COLORS else Image.open(tex).convert('RGBA')
             im.save(os.path.join(OUT, kit, 'Textures', 'colormap.png'), optimize=True)
             buf = io.BytesIO(); im.save(buf, 'PNG', optimize=True)
             pack['textures'][kit] = 'data:image/png;base64,' + base64.b64encode(buf.getvalue()).decode()

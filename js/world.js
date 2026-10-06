@@ -1,41 +1,36 @@
 // Dünya: arazi, yol, vahalar, bitki örtüsü, kapı, dağlar, gökyüzü, ışık.
 
-const PONDS = [
-  { x: -90, z: 60 }, { x: 120, z: -80 }, { x: 80, z: 150 },
-  { x: -130, z: -120 }, { x: 170, z: 110 }
-];
+// Bölgeye göre (zones.js): vahalar, harabeler, bölge halkaları
+const PONDS = ZONE.ponds;
 const POND_RADIUS = 9;
-// Harabeler: Faz 2'de haydut kampları da burada
-const RUINS = [{ x: 55, z: -75 }, { x: -75, z: -45 }, { x: -20, z: 110 }];
+const RUINS = ZONE.ruins;
 
-function roadCenterX(z) { return Math.sin(z * 0.012) * 35; }
+const _ZS = ZONE.seed;
+function roadCenterX(z) { return Math.sin(z * 0.012 + _ZS) * 35 - Math.sin(_ZS) * 35; }
 
 // Şehir: Jangan benzeri surlu kare (yarı genişlik 30), orijinde
 const TOWN_HALF = 30;
-const POND_NAMES = ['Yeşim Vahası', 'Ejder Gölü', 'Gümüş Vaha', 'Kervan Vahası', 'Gün Batımı Vahası'];
+const POND_NAMES = ZONE.pondNames;
 
 // Bölge bilgisi: ad ve tavsiye edilen seviye (görev "git" hedefleri ve afiş için)
-const REGION_LEVELS = {
-  'Jangan Şehri': 'Güvenli bölge', 'Kurt Vadisi': 'Sv. 1–3', 'Akrep Çölü': 'Sv. 3–5',
-  'Haydut Harabeleri': 'Sv. 4–7', 'Kızıl Kum Denizi': 'Sv. 7–10'
-};
+const REGION_LEVELS = { [ZONE.town]: 'Güvenli bölge', [ZONE.ruinName]: ZONE.ruinLv };
+ZONE.rings.forEach(r => { REGION_LEVELS[r.name] = r.lv; });
 POND_NAMES.forEach(n => { REGION_LEVELS[n] = 'Vaha'; });
 
 function regionAt(x, z) {
-  if (Math.max(Math.abs(x), Math.abs(z)) < TOWN_HALF + 3) return 'Jangan Şehri';
-  for (const c of RUINS) if (Math.hypot(x - c.x, z - c.z) < 26) return 'Haydut Harabeleri';
+  if (Math.max(Math.abs(x), Math.abs(z)) < TOWN_HALF + 3) return ZONE.town;
+  for (const c of RUINS) if (Math.hypot(x - c.x, z - c.z) < 26) return ZONE.ruinName;
   for (let i = 0; i < PONDS.length; i++) if (Math.hypot(x - PONDS[i].x, z - PONDS[i].z) < 30) return POND_NAMES[i];
   const d = Math.hypot(x, z);
-  if (d < 110) return 'Kurt Vadisi';
-  if (d < 195) return 'Akrep Çölü';
-  return 'Kızıl Kum Denizi';
+  for (const r of ZONE.rings) if (d < r.r) return r.name;
+  return ZONE.rings[ZONE.rings.length - 1].name;
 }
 
 // Arazi yüksekliği: hem zemini kurmak hem karakteri yere basmak için kullanılır
 function terrainHeight(x, z) {
-  let h = Math.sin(x * 0.035) * Math.cos(z * 0.03) * 5
-        + Math.sin(x * 0.011 + z * 0.017) * 9
-        + Math.sin(x * 0.09 + z * 0.07) * 0.9;
+  let h = (Math.sin(x * 0.035 + _ZS) * Math.cos(z * 0.03 - _ZS * 0.7) * 5
+        + Math.sin(x * 0.011 + z * 0.017 + _ZS * 2.1) * 9
+        + Math.sin(x * 0.09 + z * 0.07) * 0.9) * ZONE.amp;
   h *= sstep(TOWN_HALF + 2, TOWN_HALF + 34, Math.max(Math.abs(x), Math.abs(z)));   // şehir düz
   h *= 0.2 + 0.8 * sstep(3, 10, Math.abs(x - roadCenterX(z))); // yol düzleşir
   h *= 1 - sstep(235, 292, Math.max(Math.abs(x), Math.abs(z)));  // dünya kenarı düzleşir
@@ -68,6 +63,7 @@ class World {
     this._buildMountains();
     this._buildMarker();
     this._buildCaravan();
+    this._buildPortals();
     this._buildDayNight();
   }
 
@@ -116,8 +112,8 @@ class World {
     geo.rotateX(-Math.PI / 2);
     const pos = geo.attributes.position;
     const col = new Float32Array(pos.count * 3);
-    const sand = new THREE.Color(0xdcbf86), dark = new THREE.Color(0xc29a5c), road = new THREE.Color(0x9a8260);
-    const rock = new THREE.Color(0xa88a62), paved = new THREE.Color(), grass = new THREE.Color(0x7d9a52), c = new THREE.Color();
+    const C = ZONE.col, sand = new THREE.Color(C.sand), dark = new THREE.Color(C.dark), road = new THREE.Color(C.road);
+    const rock = new THREE.Color(C.rock), paved = new THREE.Color(), grass = new THREE.Color(C.grass), c = new THREE.Color();
 
     for (let i = 0; i < pos.count; i++) {
       const x = pos.getX(i), z = pos.getZ(i);
@@ -125,7 +121,7 @@ class World {
       pos.setY(i, h);
       const n = (Math.sin(x * 0.21 + z * 0.13) + Math.sin(x * 0.07 - z * 0.19)) * 0.25 + 0.5;
       c.copy(sand).lerp(dark, n * 0.7);
-      c.lerp(rock, clamp(h / 12, 0, 1) * 0.8);
+      c.lerp(rock, clamp(h / (12 * ZONE.amp), 0, 1) * 0.8);
       let g = 0;
       for (const p of PONDS) g = Math.max(g, sstep(30, 14, Math.hypot(x - p.x, z - p.z)));
       c.lerp(grass, g * 0.85);
@@ -150,7 +146,7 @@ class World {
     const hole = new THREE.Path();
     hole.moveTo(-half, -half); hole.lineTo(-half, half); hole.lineTo(half, half); hole.lineTo(half, -half); hole.lineTo(-half, -half);
     shape.holes.push(hole);
-    const outer = new THREE.Mesh(new THREE.ShapeGeometry(shape, 24), new THREE.MeshLambertMaterial({ color: 0xc9a468 }));
+    const outer = new THREE.Mesh(new THREE.ShapeGeometry(shape, 24), new THREE.MeshLambertMaterial({ color: ZONE.col.outer }));
     outer.rotation.x = -Math.PI / 2;
     outer.position.y = -0.05;
     this.scene.add(outer);
@@ -213,7 +209,7 @@ class World {
   }
 
   _scatter() {
-    const rng = mulberry32(1337);
+    const rng = mulberry32(1337 + Math.round(ZONE.seed * 100));
     const half = CONFIG.worldSize / 2 - 14;
     const rand = (a, b) => a + rng() * (b - a);
     const free = (x, z, r) => {
@@ -234,7 +230,8 @@ class World {
       }
     };
 
-    const palms = [], cacti = [], rocks = [], pillars = [];
+    const palms = [], cacti = [], rocks = [], pillars = [], pines = [];
+    this._pines = pines;
 
     // Vaha çevresinde palmiyeler
     for (const p of PONDS) {
@@ -243,9 +240,11 @@ class World {
           palms, () => ({ h: rand(6, 10), ry: rng() * 6.283 }));
       }
     }
-    for (let i = 0; i < 50; i++) place('palm', 0.6, () => [rand(-half, half), rand(-half, half)], palms, () => ({ h: rand(5, 8), ry: rng() * 6.283 }));
-    for (let i = 0; i < 90; i++) place('cactus', 0.7, () => [rand(-half, half), rand(-half, half)], cacti, () => ({ h: rand(2, 3.6), ry: rng() * 6.283 }));
-    for (let i = 0; i < 130; i++) place('rock', 1, () => [rand(-half, half), rand(-half, half)], rocks, () => ({ s: rand(0.7, 2.8), ry: rng() * 6.283, rx: rng(), rz: rng() }));
+    for (let i = 0; i < ZONE.flora.palms; i++) place('palm', 0.6, () => [rand(-half, half), rand(-half, half)], palms, () => ({ h: rand(5, 8), ry: rng() * 6.283 }));
+    for (let i = 0; i < ZONE.flora.cacti; i++) place('cactus', 0.7, () => [rand(-half, half), rand(-half, half)], cacti, () => ({ h: rand(2, 3.6), ry: rng() * 6.283 }));
+    for (let i = 0; i < ZONE.flora.rocks; i++) place('rock', 1, () => [rand(-half, half), rand(-half, half)], rocks, () => ({ s: rand(0.7, 2.8), ry: rng() * 6.283, rx: rng(), rz: rng() }));
+
+    for (let i = 0; i < ZONE.flora.pines; i++) place('pine', 0.7, () => [rand(-half, half), rand(-half, half)], pines, () => ({ h: rand(6, 12), ry: rng() * 6.283 }));
 
     // Harabe sütunları
     for (const c of RUINS) {
@@ -300,7 +299,7 @@ class World {
       const h = 45 + rng() * 55, w = 45 + rng() * 25;
       mats.push(this._matrix(Math.cos(a) * r, h / 2 - 8, Math.sin(a) * r, w, h, w, rng() * 6.283));
     }
-    this._instanced(new THREE.ConeGeometry(1, 1, 7), new THREE.MeshLambertMaterial({ color: 0xb89868, flatShading: true }), mats, false);
+    this._instanced(new THREE.ConeGeometry(1, 1, 7), new THREE.MeshLambertMaterial({ color: ZONE.col.mount, flatShading: true }), mats, false);
   }
 
   _buildMarker() {
@@ -332,5 +331,6 @@ class World {
       }
     }
     this.waterMat.opacity = 0.86 + Math.sin(this.time * 1.6) * 0.03;
+    for (const p of this.portals || []) p.glow.material.opacity = 0.28 + Math.sin(this.time * 2.4) * 0.1;
   }
 }
