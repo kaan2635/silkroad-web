@@ -3,7 +3,7 @@
 
 const expToNext = l => Math.round(60 * Math.pow(l, 1.85) + 60);
 const MAX_LEVEL = 80;
-const SP_PER_EXP = 10;           // her 1 EXP = 10 SP-EXP (400 SP-EXP = 1 SP)
+const SP_PER_EXP = 14;           // her 1 EXP = 14 SP-EXP (400 SP-EXP = 1 SP)
 const ZERK_MAX = 5;
 const rnd = (a, b) => a + Math.random() * (b - a);
 

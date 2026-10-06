@@ -60,7 +60,7 @@ Tarayıcıda çalışan, Silkroad Online tarzı (ipek yolu temalı, tıkla-yür�
 **5C — Dünya (TAMAM)**
 - [x] 3 bölge: Jangan (Sv. 1–20), Donwhang (20–40), Hotan (40–80); her birinde tam NPC seti, bölgeye özel arazi, renk, bitki örtüsü
 - [x] Işınlayıcı NPC (ücretli) ve yolun iki ucundaki geçiş kapıları; yükleme ekranıyla bölge geçişi
-- [x] 19 canavar türü (Kenney mezarlık kitinden iskelet, hayalet, mumya, şeytan modelleri dahil), Sv. 1–80
+- [x] 18 canavar türü + meslek NPC'leri (Kenney mezarlık kitinden iskelet, hayalet, mumya, şeytan modelleri dahil), Sv. 1–80
 - [x] Unique'ler: Kaplan Kız (20), Uruchi (40), Isyutaru (60), Lord Yarkan (80) — gerçek zamanlı doğma, duyuru, alan saldırısı, garantili mühürlü eşya
 - [x] Bölge başına yeni görev zincirleri (toplam 25 görev), bölge dükkânlarında 1–8. derece eşyalar
 **5D — Meslekler ve Binekler (TAMAM)**
