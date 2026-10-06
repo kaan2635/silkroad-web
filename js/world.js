@@ -5,6 +5,8 @@ const PONDS = [
   { x: -130, z: -120 }, { x: 170, z: 110 }
 ];
 const POND_RADIUS = 9;
+// Harabeler: Faz 2'de haydut kampları da burada
+const RUINS = [{ x: 55, z: -75 }, { x: -75, z: -45 }, { x: -20, z: 110 }];
 
 function roadCenterX(z) { return Math.sin(z * 0.012) * 35; }
 
@@ -51,7 +53,7 @@ class World {
     this.scene.add(hemi);
     const sun = new THREE.DirectionalLight(0xfff1d0, 0.95);
     sun.castShadow = true;
-    sun.shadow.mapSize.set(2048, 2048);
+    sun.shadow.mapSize.set(CONFIG.isTouch ? 1024 : 2048, CONFIG.isTouch ? 1024 : 2048);
     const s = sun.shadow.camera;
     s.left = -55; s.right = 55; s.top = 55; s.bottom = -55; s.near = 1; s.far = 260;
     sun.shadow.bias = -0.0006;
@@ -209,7 +211,7 @@ class World {
     for (let i = 0; i < 130; i++) place('rock', 1, () => [rand(-half, half), rand(-half, half)], rocks, () => ({ s: rand(0.7, 2.8), ry: rng() * 6.283, rx: rng(), rz: rng() }));
 
     // Harabe sütunları
-    for (const c of [{ x: 55, z: -75 }, { x: -75, z: -45 }, { x: -20, z: 110 }]) {
+    for (const c of RUINS) {
       for (let i = 0; i < 7; i++) {
         const a = (i / 7) * 6.283, x = c.x + Math.cos(a) * 8, z = c.z + Math.sin(a) * 8;
         if (free(x, z, 0.8)) { this.obstacles.push({ x, z, r: 0.85, type: 'pillar' }); pillars.push({ x, z, y: terrainHeight(x, z), h: rand(2, 6.5) }); }

@@ -5,19 +5,25 @@
     document.getElementById('start').classList.add('hidden');
     return;
   }
+  if (CONFIG.isTouch) document.body.classList.add('touch');
 
   const canvas = document.getElementById('game');
-  const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
-  renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+  const renderer = new THREE.WebGLRenderer({ canvas, antialias: !CONFIG.isTouch, powerPreference: 'high-performance' });
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, CONFIG.isTouch ? 1.5 : 2));
   renderer.shadowMap.enabled = true;
-  renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+  renderer.shadowMap.type = CONFIG.isTouch ? THREE.PCFShadowMap : THREE.PCFSoftShadowMap;
 
   const camera = new THREE.PerspectiveCamera(55, 1, 0.3, 1200);
   const input = new Input(canvas);
   const world = new World();
   const player = new Player(world, 'Gezgin');
+  const monsters = new MonsterManager(world);
   const rig = new CameraRig(camera, input);
-  const hud = new HUD(player, world, rig);
+  const hud = new HUD(player, world, rig, camera);
+  const combat = new Combat(player, monsters, world, camera);
+  hud.combat = combat; hud.mm = monsters; combat.hud = hud;
+  input.bindJoystick(document.getElementById('joy-zone'), document.getElementById('joy-knob'));
+
   const raycaster = new THREE.Raycaster();
   const ndc = new THREE.Vector2();
   const clock = new THREE.Clock();
@@ -31,6 +37,7 @@
     camera.updateProjectionMatrix();
   }
   window.addEventListener('resize', resize);
+  window.addEventListener('orientationchange', () => setTimeout(resize, 200));
   resize();
 
   // --- Kayıt (localStorage) ---
@@ -39,7 +46,11 @@
   }
   function save() {
     try {
-      localStorage.setItem(CONFIG.saveKey, JSON.stringify({ name: player.name, x: player.pos.x, z: player.pos.z }));
+      const s = player.stats;
+      localStorage.setItem(CONFIG.saveKey, JSON.stringify({
+        name: player.name, x: player.pos.x, z: player.pos.z,
+        level: s.level, exp: s.exp, hpPots: s.hpPots, mpPots: s.mpPots
+      }));
     } catch (e) { /* özel pencere vb. */ }
   }
 
@@ -51,29 +62,36 @@
   if (saved && saved.name) nameInput.value = saved.name;
 
   function start() {
+    if (started) return;
     const name = (nameInput.value || '').trim() || 'Gezgin';
+    const sameChar = saved && saved.name === name;
+    if (sameChar) combat.applySave(saved);
     player.setName(name);
-    if (saved && saved.name === name && isFinite(saved.x) && isFinite(saved.z)) player.teleport(saved.x, saved.z);
+    if (sameChar && isFinite(saved.x) && isFinite(saved.z)) player.teleport(saved.x, saved.z);
     startScreen.classList.add('hidden');
     hud.show();
     started = true;
     nameInput.blur();
     hud.log('İpek Yolu\'na hoş geldin, ' + name + '!');
-    hud.log('Yürümek için yere sol tıkla.');
+    hud.log(CONFIG.isTouch ? 'Joystick ile yürü, canavara dokun = saldır.' : 'Canavara tıkla = saldır. Yürümek için yere tıkla.');
     save();
   }
   startBtn.addEventListener('click', start);
   nameInput.addEventListener('keydown', e => { if (e.key === 'Enter') start(); });
 
-  // --- Tıklama: zemine ışın at, hedef belirle ---
+  // --- Tıklama / dokunma: önce canavar, sonra zemin ---
   function handleClicks() {
     for (const c of input.clicks) {
+      if (player.dead) continue;
       ndc.set((c.x / window.innerWidth) * 2 - 1, -(c.y / window.innerHeight) * 2 + 1);
       raycaster.setFromCamera(ndc, camera);
+      const m = combat.pick(raycaster);
+      if (m) { combat.select(m, true); continue; }
       const hit = raycaster.intersectObject(world.ground, false)[0];
       if (hit) {
         const lim = CONFIG.worldSize / 2 - 6;
         const p = { x: clamp(hit.point.x, -lim, lim), z: clamp(hit.point.z, -lim, lim) };
+        combat.stopAttack();
         player.target = p;
         world.showMarker(p);
       }
@@ -88,11 +106,14 @@
 
     if (started) {
       handleClicks();
+      combat.update(dt);
       player.update(dt, input, rig.yaw);
+      monsters.update(dt, player, combat);
       saveT += dt;
       if (saveT > 5) { saveT = 0; save(); }
     } else {
       input.clicks.length = 0;
+      monsters.update(dt, player, combat);   // menüde de canavarlar dolaşsın
     }
 
     rig.update(dt, player.pos, !started);
@@ -102,5 +123,6 @@
   }
 
   window.addEventListener('beforeunload', () => { if (started) save(); });
+  document.addEventListener('visibilitychange', () => { if (document.hidden && started) save(); });
   frame();
 })();

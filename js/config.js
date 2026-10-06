@@ -5,6 +5,7 @@ const CONFIG = {
   playerSpeed: 9,          // birim / saniye
   turnSpeed: 12,
   saveKey: 'silkroad-web-save',
+  isTouch: typeof window !== 'undefined' && (('ontouchstart' in window) || (navigator.maxTouchPoints > 0)),
   sky: { horizon: 0xf0d9a8, zenith: 0x5fa4e0 },
   fog: { near: 100, far: 420 },
   camera: {

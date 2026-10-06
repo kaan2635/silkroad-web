@@ -1,8 +1,9 @@
 * { box-sizing: border-box; margin: 0; padding: 0; }
-html, body { width: 100%; height: 100%; overflow: hidden; background: #1a1209; font-family: "Trebuchet MS", "Segoe UI", sans-serif; color: #f3e6c4; user-select: none; }
-#game { position: fixed; inset: 0; width: 100%; height: 100%; display: block; }
+html, body { width: 100%; height: 100%; overflow: hidden; background: #1a1209; font-family: "Trebuchet MS", "Segoe UI", sans-serif; color: #f3e6c4; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; -webkit-tap-highlight-color: transparent; overscroll-behavior: none; touch-action: none; }
+#game { position: fixed; inset: 0; width: 100%; height: 100%; display: block; touch-action: none; }
 .hidden { display: none !important; }
 
+input { -webkit-user-select: text; user-select: text; }
 #hud { position: fixed; inset: 0; pointer-events: none; }
 .panel { background: linear-gradient(#2b1c10ee, #1b1109ee); border: 1px solid #8a6a2f; border-radius: 6px; box-shadow: 0 2px 10px #0008, inset 0 0 0 1px #0006; pointer-events: auto; }
 
@@ -36,9 +37,13 @@ html, body { width: 100%; height: 100%; overflow: hidden; background: #1a1209; f
 #bottom { position: absolute; left: 50%; bottom: 14px; transform: translateX(-50%); width: min(520px, 94vw); }
 #hotbar { display: grid; grid-template-columns: repeat(8, 1fr); gap: 5px; }
 .slot { position: relative; aspect-ratio: 1; background: linear-gradient(#2b1c10, #130b06); border: 1px solid #8a6a2f; border-radius: 5px; display: flex; align-items: center; justify-content: center; font-size: 22px; pointer-events: auto; cursor: pointer; }
-.slot.locked { opacity: .45; }
 .slot .key { position: absolute; top: 2px; left: 4px; font-size: 10px; color: #ffe08a; }
 .slot.flash { box-shadow: 0 0 10px 2px #ffd966; }
+.slot.active { box-shadow: 0 0 8px 2px #ff6a4a; border-color: #ff9a6a; }
+.slot.nomp { filter: grayscale(.8) brightness(.7); }
+.slot .cd { position: absolute; left: 0; right: 0; bottom: 0; height: 0; background: #000b; border-radius: 0 0 4px 4px; pointer-events: none; }
+.slot .cdt { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: bold; text-shadow: 0 1px 3px #000; pointer-events: none; }
+.slot .cnt { position: absolute; right: 4px; bottom: 2px; font-size: 11px; font-weight: bold; color: #fff; text-shadow: 0 1px 2px #000; }
 
 #start, #error { position: fixed; inset: 0; display: flex; align-items: center; justify-content: center; background: radial-gradient(#0000 30%, #000a); z-index: 10; }
 #error { display: none; background: #000d; }
@@ -53,3 +58,56 @@ html, body { width: 100%; height: 100%; overflow: hidden; background: #1a1209; f
 #start-btn:hover { filter: brightness(1.1); }
 
 @media (max-width: 720px) { #help { display: none; } #player-panel { width: 170px; } #minimap-wrap, #minimap { width: 120px; height: 120px; } }
+
+/* --- Faz 2: hedef çerçevesi, büyü çubuğu, buff, hasar yazıları, ölüm --- */
+#buffs { display: flex; gap: 8px; margin-top: 5px; min-height: 16px; font-size: 12px; }
+#target-frame { position: absolute; top: 58px; left: 50%; transform: translateX(-50%); width: 240px; padding: 7px 10px; border-color: #b04a3a; }
+#target-frame .row { display: flex; justify-content: space-between; font-weight: bold; }
+#tf-name { color: #ffb0a0; }
+#tf-lvl { color: #ffd9a0; font-size: 13px; }
+#cast { position: absolute; left: 50%; bottom: 120px; transform: translateX(-50%); width: 220px; height: 16px; background: #0d0805; border: 1px solid #8a6a2f; border-radius: 3px; overflow: hidden; }
+#cast-fill { height: 100%; width: 0; background: linear-gradient(#8fd0ff, #3a7ac8); }
+#cast-text { position: absolute; inset: 0; text-align: center; font-size: 11px; line-height: 16px; text-shadow: 0 1px 2px #000; }
+#fx { position: absolute; inset: 0; overflow: hidden; pointer-events: none; }
+.ft { position: absolute; left: 0; top: 0; font-weight: bold; font-size: 20px; color: #fff; text-shadow: 0 2px 4px #000, 0 0 3px #000; white-space: nowrap; will-change: transform; }
+.ft.hit { color: #ffe9a8; }
+.ft.crit { color: #ffd23a; font-size: 28px; }
+.ft.player { color: #ff5a4a; }
+.ft.heal { color: #6aff8a; }
+.ft.mana { color: #6ab4ff; }
+.ft.buff { color: #9fe3ff; font-size: 18px; }
+.ft.exp { color: #ffe08a; font-size: 16px; }
+.ft.lvl { color: #ffd23a; font-size: 34px; letter-spacing: 2px; }
+#log .dmg { color: #ff8a7a; }
+#log .exp { color: #a8f0a0; }
+#log .lvl { color: #ffd23a; font-weight: bold; }
+#death { position: fixed; inset: 0; z-index: 9; display: flex; align-items: center; justify-content: center; background: #4a0000aa; }
+#death h1 { color: #ff5a4a; }
+#btn-respawn { padding: 11px 22px; font-size: 17px; font-weight: bold; cursor: pointer; color: #2b1400; background: linear-gradient(#ffd966, #c9942a); border: 1px solid #5a3a08; border-radius: 5px; }
+
+/* --- Mobil kontroller --- */
+#joy-zone, #btn-target { display: none; }
+.hint-touch { display: none; margin-top: 12px; font-size: 13px; opacity: .8; }
+
+body.touch .hint-touch { display: block; }
+body.touch #help { display: none; }
+body.touch #joy-zone { display: block; position: absolute; left: max(18px, env(safe-area-inset-left)); bottom: max(40px, calc(env(safe-area-inset-bottom) + 28px)); width: 150px; height: 150px; pointer-events: auto; touch-action: none; }
+body.touch #joy-base { position: absolute; inset: 15px; border-radius: 50%; background: #0005; border: 2px solid #ffffff55; }
+body.touch #joy-knob { position: absolute; left: 50%; top: 50%; width: 62px; height: 62px; border-radius: 50%; transform: translate(-50%, -50%); background: radial-gradient(#ffe9a8cc, #c9942acc); border: 2px solid #fff8; }
+body.touch #btn-target { display: flex; position: absolute; right: max(14px, env(safe-area-inset-right)); bottom: 190px; width: 58px; height: 58px; align-items: center; justify-content: center; font-size: 28px; border-radius: 50%; background: #2b1c10dd; border: 2px solid #ff9a6a; pointer-events: auto; }
+
+/* Mobil yerleşim: yetenekler sağ altta 4x2 ızgara, EXP çubuğu en altta */
+body.touch #bottom { left: auto; right: max(10px, env(safe-area-inset-right)); bottom: max(8px, env(safe-area-inset-bottom)); transform: none; width: 232px; }
+body.touch #hotbar { grid-template-columns: repeat(4, 1fr); gap: 5px; margin-bottom: 6px; }
+body.touch .slot { font-size: 24px; border-radius: 8px; }
+body.touch .slot .key { display: none; }
+body.touch #player-panel { top: max(8px, env(safe-area-inset-top)); left: max(8px, env(safe-area-inset-left)); width: 170px; padding: 6px 8px; }
+body.touch #minimap-wrap { top: max(8px, env(safe-area-inset-top)); right: max(8px, env(safe-area-inset-right)); width: 116px; }
+body.touch #minimap { width: 116px; height: 116px; }
+body.touch #fps { display: none; }
+body.touch #log { left: max(8px, env(safe-area-inset-left)); bottom: 205px; width: 46vw; }
+body.touch #log div { font-size: 11px; }
+body.touch #target-frame { top: max(8px, env(safe-area-inset-top)); width: 190px; }
+body.touch #cast { bottom: 190px; }
+body.touch .start-box { padding: 22px 26px; }
+body.touch .start-box h1 { font-size: 30px; }
