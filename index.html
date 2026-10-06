@@ -18,13 +18,14 @@
       <div class="row"><span id="pname">Gezgin</span><span id="plvl">Sv. 1</span></div>
       <div class="bar hp"><div id="hp-fill" class="fill"></div><span id="hp-text"></span></div>
       <div class="bar mp"><div id="mp-fill" class="fill"></div><span id="mp-text"></span></div>
+      <div class="prow"><div id="zerk" title="Berserk (Z)"></div><div id="pgold">💰 0</div></div>
       <div id="buffs"></div>
-      <div id="pgold">💰 0</div>
     </div>
 
     <div id="target-frame" class="panel hidden">
       <div class="row"><span id="tf-name"></span><span id="tf-lvl"></span></div>
       <div class="bar hp"><div id="tf-fill" class="fill"></div><span id="tf-text"></span></div>
+      <div id="tf-st"></div>
     </div>
 
     <div id="minimap-wrap">
@@ -39,14 +40,15 @@
     <div id="tracker" class="panel hidden"></div>
 
     <div id="help" class="panel">
-      <b>Sol tık</b> yürü / saldır &nbsp;·&nbsp; <b>Sağ tık + sürükle</b> kamera &nbsp;·&nbsp; <b>Tekerlek</b> zoom &nbsp;·&nbsp;
-      <b>WASD</b> yürü &nbsp;·&nbsp; <b>Tab</b> hedef &nbsp;·&nbsp; <b>Space</b> saldır &nbsp;·&nbsp; <b>1–8</b> yetenek &nbsp;·&nbsp; <b>I</b> envanter &nbsp;·&nbsp; <b>L</b> görevler &nbsp;·&nbsp; <b>M</b> harita
+      <b>Sol tık</b> yürü / saldır &nbsp;·&nbsp; <b>Sağ tık</b> kamera &nbsp;·&nbsp; <b>1–8</b> hotbar (<b>Shift</b> / <b>F1-F2</b> sayfa) &nbsp;·&nbsp;
+      <b>I</b> envanter &nbsp;·&nbsp; <b>C</b> karakter &nbsp;·&nbsp; <b>K</b> yetenek &nbsp;·&nbsp; <b>L</b> görev &nbsp;·&nbsp; <b>M</b> harita &nbsp;·&nbsp; <b>Z</b> berserk
     </div>
 
     <div id="cast" class="hidden"><div id="cast-fill"></div><span id="cast-text"></span></div>
 
     <div id="bottom">
-      <div id="hotbar"></div>
+      <div id="place-hint">📌 Bir yuvaya dokun <button id="place-cancel">İptal</button></div>
+      <div class="hbwrap"><div id="hotbar"></div><button id="hb-page" title="Hotbar sayfası (F1/F2)">1/2</button></div>
       <div class="bar exp"><div id="exp-fill" class="fill"></div><span id="exp-text"></span></div>
     </div>
 
@@ -54,7 +56,15 @@
     <div id="joy-zone"><div id="joy-base"></div><div id="joy-knob"></div></div>
     <div id="btn-target">🎯</div>
 
-    <div id="menu-btns"><button id="btn-inv" title="Envanter (I)">🎒</button><button id="btn-quest" title="Görevler (L)">📜</button><button id="btn-map" title="Harita (M)">🗺️</button><button id="btn-settings" title="Ayarlar (Esc)">⚙️</button></div>
+    <div id="menu-btns">
+      <button id="btn-menu" title="Menü">☰</button>
+      <button id="btn-inv" title="Envanter (I)">🎒</button>
+      <button id="btn-char" title="Karakter (C)">👤<i id="badge-c" class="badge hidden">0</i></button>
+      <button id="btn-skill" title="Yetenekler (K)">📖<i id="badge-k" class="badge hidden">!</i></button>
+      <button id="btn-quest" title="Görevler (L)">📜</button>
+      <button id="btn-map" title="Harita (M)">🗺️</button>
+      <button id="btn-settings" title="Ayarlar (Esc)">⚙️</button>
+    </div>
 
     <div id="inv" class="win hidden">
       <div class="win-head"><span>🎒 Envanter</span><button class="x">✕</button></div>
@@ -64,6 +74,21 @@
         <div id="inv-info"></div>
       </div>
       <div id="inv-foot"></div>
+    </div>
+
+    <div id="charw" class="win hidden">
+      <div class="win-head"><span>👤 Karakter</span><button class="x">✕</button></div>
+      <div id="char-body"></div>
+    </div>
+
+    <div id="skillw" class="win hidden">
+      <div class="win-head"><span>📖 Ustalık ve Yetenekler</span><button class="x">✕</button></div>
+      <div id="skill-body"></div>
+    </div>
+
+    <div id="alchw" class="win hidden">
+      <div class="win-head"><span>⚗️ Simya</span><button class="x">✕</button></div>
+      <div id="alch-body"></div>
     </div>
 
     <div id="npc-win" class="win hidden">
@@ -105,11 +130,23 @@
       <h1>SILKROAD <span>WEB</span></h1>
       <p class="sub">İpek Yolu'nda yolculuğun başlıyor</p>
       <input id="name-input" maxlength="16" placeholder="Karakter adın" autocomplete="off" spellcheck="false">
+      <div id="create">
+        <div class="cl">Başlangıç silahı</div>
+        <div class="chips" id="pick-w">
+          <button data-w="blade" class="on">🗡️ Bıçak+Kalkan</button><button data-w="sword">⚔️ Kılıç+Kalkan</button>
+          <button data-w="spear">🔱 Mızrak</button><button data-w="glaive">🪓 Pala</button><button data-w="bow">🏹 Yay</button>
+        </div>
+        <div class="cl">Zırh türü</div>
+        <div class="chips" id="pick-a">
+          <button data-a="garment">Kumaş <small>(büyücü)</small></button><button data-a="protector" class="on">Hafif</button><button data-a="armor">Ağır <small>(savaşçı)</small></button>
+        </div>
+      </div>
+      <p id="continue-note"></p>
       <div id="loadbar"><div id="loadfill"></div></div>
       <p id="loadtxt">Varlıklar yükleniyor…</p>
       <button id="start-btn" disabled>Oyuna Başla</button>
       <p class="hint-touch">📱 Telefonu yatay tut</p>
-      <p class="ver">Faz 4 · Şehir, görevler, gün/gece</p>
+      <p class="ver">Faz 5 · Ustalıklar, yetenekler, simya</p>
     </div>
   </div>
 
@@ -126,6 +163,7 @@
   <script src="js/audio.js"></script>
   <script src="js/settings.js"></script>
   <script src="js/items.js"></script>
+  <script src="js/skills.js"></script>
   <script src="js/inventory.js"></script>
   <script src="js/input.js"></script>
   <script src="js/world.js"></script>
@@ -134,12 +172,14 @@
   <script src="js/assetpack.js"></script>
   <script src="js/assets.js"></script>
   <script src="js/town3d.js"></script>
+  <script src="js/fx.js"></script>
   <script src="js/player.js"></script>
   <script src="js/npc.js"></script>
   <script src="js/monsters.js"></script>
   <script src="js/loot.js"></script>
   <script src="js/combat.js"></script>
   <script src="js/camera.js"></script>
+  <script src="js/hotbar.js"></script>
   <script src="js/hud.js"></script>
   <script src="js/quests.js"></script>
   <script src="js/worldmap.js"></script>

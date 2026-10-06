@@ -1,34 +1,36 @@
 // Görev sistemi: öldür / topla / ulaş / teslim et. Görev vericiler: Kaptan Lee, Tüccar Ali, Demirci Wen.
 
 // type: 'kill' (target = canavar türü) | 'collect' (target = 'stone') | 'visit' (target = bölge adı) | 'deliver' (to = NPC id)
+// type: 'kill' (target = canavar türü) | 'collect' (target = görev eşyası) | 'visit' (target = bölge adı) | 'deliver' (to = NPC id)
+// reward: { exp, gold, items: [[base, adet]], gear: { base, rarity } } — base 'WEAPON_d' / 'CHEST_d' oyuncunun silah / zırh türüne göre seçilir
 const QUEST_DEFS = [
   { id: 'wolves', name: 'Kurt Sürüsü', giver: 'captain', minLevel: 1, type: 'kill', target: 'wolf', n: 6, noun: 'Kurt',
     desc: 'Vadideki kurtlar kervanlara saldırıyor. Şehrin dışındaki 6 kurdu avla.',
-    reward: { exp: 70, gold: 50, hpPots: 3 } },
-  { id: 'stones', name: 'Demirci İçin Taş', giver: 'merchant', minLevel: 1, type: 'collect', target: 'stone', n: 3, noun: 'Yükseltme Taşı',
-    desc: 'Demirciler hep taş istiyor. Canavarlardan 3 Yükseltme Taşı topla (taşlar sende kalır).',
-    reward: { gold: 100, item: { base: 'b2', rarity: 1 } } },
+    reward: { exp: 70, gold: 50, items: [['hp1', 10]] } },
+  { id: 'fangs', name: 'Kurt Dişleri', giver: 'merchant', minLevel: 1, type: 'collect', target: 'q_fang', n: 5, noun: 'Kurt Dişi',
+    desc: 'Şifacılar ilaç için kurt dişi istiyor. Kurtlardan 5 Kurt Dişi topla.',
+    reward: { gold: 100, gear: { base: 'necklace_1', rarity: 0 } } },
   { id: 'parcel', name: 'Kaptanın Mektubu', giver: 'captain', minLevel: 2, type: 'deliver', to: 'smith',
-    desc: 'Bu mektubu Demirci Wen\'e ulaştır. Kendisi surların yanında, meydanın batısında.',
-    reward: { exp: 40, gold: 40 } },
+    desc: 'Bu mektubu Demirci Wen\'e ulaştır. Kendisi meydanın batısında.',
+    reward: { exp: 60, gold: 40, items: [['arrow', 500]] } },
   { id: 'oasis', name: 'Yeşim Vahası', giver: 'merchant', minLevel: 2, type: 'visit', target: 'Yeşim Vahası',
     desc: 'Kervanlar su için Yeşim Vahası\'na uğrar. Yolu keşfet: vahayı bul (şehrin batı-güneybatısı).',
-    reward: { exp: 120, gold: 80, mpPots: 3 } },
-  { id: 'scorp', name: 'Çöl Zehri', giver: 'captain', minLevel: 3, after: 'wolves', type: 'kill', target: 'scorpion', n: 8, noun: 'Dev Akrep',
-    desc: 'Akrep Çölü\'nde dev akrepler yolu kapattı. 8 akrebi temizle.',
-    reward: { exp: 220, gold: 150, item: { base: 'w2', rarity: 1 } } },
-  { id: 'smith', name: 'Ocak İçin Taş', giver: 'smith', minLevel: 3, type: 'collect', target: 'stone', n: 5, noun: 'Yükseltme Taşı',
-    desc: 'Ocağım için taş lazım. 5 Yükseltme Taşı topla; karşılığında sana bir miğfer vereyim.',
-    reward: { stones: 2, gold: 120, item: { base: 'h2', rarity: 1 } } },
-  { id: 'bandit', name: 'Haydut Kampları', giver: 'captain', minLevel: 4, after: 'scorp', type: 'kill', target: 'bandit', n: 8, noun: 'Haydut',
+    reward: { exp: 150, gold: 80, items: [['mp1', 10]] } },
+  { id: 'scorp', name: 'Çöl Zehri', giver: 'captain', minLevel: 4, after: 'wolves', type: 'kill', target: 'scorpion', n: 8, noun: 'Dev Akrep',
+    desc: 'Akrep Çölü\'nde dev akrepler yolu kapattı. 8 akrebi temizle. Zehirlerine karşı Evrensel Hap taşı.',
+    reward: { exp: 450, gold: 150, gear: { base: 'WEAPON_1', rarity: 1 } } },
+  { id: 'smith', name: 'Ocak İçin İğne', giver: 'smith', minLevel: 4, type: 'collect', target: 'q_tail', n: 5, noun: 'Akrep İğnesi',
+    desc: 'Simya iksirlerimde akrep iğnesi kullanıyorum. 5 Akrep İğnesi getir, karşılığında sana güçlendirme iksiri vereyim.',
+    reward: { gold: 120, items: [['elx_w', 2], ['elx_a', 3], ['luck', 1]] } },
+  { id: 'bandit', name: 'Haydut Kampları', giver: 'captain', minLevel: 6, after: 'scorp', type: 'kill', target: 'bandit', n: 8, noun: 'Haydut',
     desc: 'Harabelerdeki haydutlar kervanları soyuyor. 8 haydutu etkisiz hale getir.',
-    reward: { exp: 450, gold: 300, item: { base: 'a2', rarity: 2 } } },
-  { id: 'caravan', name: 'Kızıl Kum Denizi', giver: 'merchant', minLevel: 5, after: 'oasis', type: 'visit', target: 'Kızıl Kum Denizi',
+    reward: { exp: 900, gold: 300, gear: { base: 'CHEST_1', rarity: 2 } } },
+  { id: 'caravan', name: 'Kızıl Kum Denizi', giver: 'merchant', minLevel: 8, after: 'oasis', type: 'visit', target: 'Kızıl Kum Denizi',
     desc: 'Kervan yolunun ucunda, şehirden çok uzakta Kızıl Kum Denizi var. Orayı keşfet ve haber getir. Dikkatli ol!',
-    reward: { exp: 600, gold: 400, stones: 3 } },
-  { id: 'golem', name: 'Kum Devleri', giver: 'captain', minLevel: 7, after: 'bandit', type: 'kill', target: 'golem', n: 8, noun: 'Kum Devi',
+    reward: { exp: 1400, gold: 400, items: [['luck', 2], ['elx_a', 3], ['ms_str', 1]] } },
+  { id: 'golem', name: 'Kum Devleri', giver: 'captain', minLevel: 10, after: 'bandit', type: 'kill', target: 'golem', n: 8, noun: 'Kum Devi',
     desc: 'Kızıl Kum Denizi\'nde kum devleri uyandı. 8 devi yık; şehrin güvenliği sana emanet.',
-    reward: { exp: 1500, gold: 800, item: { base: 'w3', rarity: 2 } } }
+    reward: { exp: 3000, gold: 800, gear: { base: 'WEAPON_2', rarity: 1 }, items: [['astral', 1]] } }
 ];
 
 class QuestManager {
@@ -69,6 +71,7 @@ class QuestManager {
     this.hud.log('Görev alındı: ' + q.name, 'lvl');
     SFX.play('quest');
     if (q.type === 'visit' && this.region === q.target) this._add(q, 1);   // zaten oradaysa
+    if (q.type === 'collect') this._syncCollect();
     this._changed();
     return { ok: true, msg: 'Görev alındı: ' + q.name };
   }
@@ -89,12 +92,38 @@ class QuestManager {
   _npcName(id) { const n = (typeof NPC_DEFS !== 'undefined') && NPC_DEFS.find(d => d.id === id); return n ? n.name : id; }
 
   onKill(typeKey) { for (const q of this.defs) if (q.type === 'kill' && q.target === typeKey) this._add(q, 1); }
-  onCollect(kind) { for (const q of this.defs) if (q.type === 'collect' && q.target === kind) this._add(q, 1); }
+  onCollect() { this._syncCollect(); }
+  // Toplama görevleri: ilerleme = envanterdeki adet
+  _syncCollect() {
+    for (const q of this.defs) {
+      if (q.type !== 'collect') continue;
+      const st = this.state[q.id];
+      if (!st || st.s === 'done') continue;
+      const c = Math.min(q.n, this.p.inv.count(q.target));
+      if (c !== st.p) {
+        const was = st.s;
+        st.p = c; st.s = c >= q.n ? 'ready' : 'active';
+        if (st.s === 'ready' && was !== 'ready') {
+          this.hud.log('Görev tamamlandı: ' + q.name + ' — ödül için ' + this._npcName(this.turnTo(q)) + '\'e dön.', 'lvl');
+          if (this.hud.banner) this.hud.banner('Görev Tamamlandı', q.name, 'quest');
+          SFX.play('questdone');
+        } else if (st.s === 'active') this.hud.log(q.name + ': ' + c + '/' + q.n, 'sys', '#ffe08a');
+        this._changed();
+      }
+    }
+  }
   onVisit(region) { for (const q of this.defs) if (q.type === 'visit' && q.target === region) this._add(q, 1); }
 
-  // Aktif bir taş toplama görevi varsa taş düşme şansı artar
-  wantsStones() {
-    return this.defs.some(q => q.type === 'collect' && q.target === 'stone' && this.state[q.id] && this.state[q.id].s === 'active');
+  // Bu görev eşyasını isteyen aktif görev var mı (düşme için)
+  wantsItem(base) {
+    return this.defs.some(q => q.type === 'collect' && q.target === base && this.state[q.id] && this.state[q.id].s === 'active');
+  }
+  // 'WEAPON_d' / 'CHEST_d' → oyuncunun türüne göre gerçek eşya
+  _gearBase(base) {
+    const m = /^(WEAPON|CHEST)_(\d+)$/.exec(base);
+    if (!m) return base;
+    if (m[1] === 'WEAPON') return (this.p.inv.weaponType() || 'blade') + '_' + m[2];
+    const ch = this.p.inv.equip.chest; return 'chest_' + (ch ? ITEM_BASES[ch.base].atype : 'protector') + '_' + m[2];
   }
 
   // Ödül metni
@@ -102,10 +131,8 @@ class QuestManager {
     const r = q.reward, a = [];
     if (r.exp) a.push(r.exp + ' EXP');
     if (r.gold) a.push(r.gold + ' 💰');
-    if (r.stones) a.push(r.stones + ' 💎');
-    if (r.hpPots) a.push(r.hpPots + ' 🧪');
-    if (r.mpPots) a.push(r.mpPots + ' 💧');
-    if (r.item) a.push(itemInfo(makeItem(r.item.base, r.item.rarity, 0)).name);
+    for (const [b, n] of r.items || []) a.push(ITEM_BASES[b].icon + ' ' + ITEM_BASES[b].name + (n > 1 ? ' x' + n : ''));
+    if (r.gear) { const g = this._gearBase(r.gear.base); a.push((r.gear.rarity ? RARITY[r.gear.rarity].name + ' ' : '') + ITEM_BASES[g].name); }
     return a.join(' · ');
   }
 
@@ -113,13 +140,13 @@ class QuestManager {
     const q = this.def(id), st = this.state[id];
     if (!q || !st || st.s !== 'ready') return { ok: false, msg: 'Teslim edilecek görev yok.' };
     const r = q.reward, s = this.p.stats, inv = this.p.inv;
-    if (r.item && inv.free() < 0) return { ok: false, msg: 'Envanter dolu! Yer aç.' };
+    const need = (r.gear ? 1 : 0) + (r.items || []).length;
+    if (inv.freeCount() < need) return { ok: false, msg: 'Envanterde ' + need + ' boş yer gerekli.' };
+    if (q.type === 'collect' && !inv.take(q.target, q.n)) return { ok: false, msg: 'Görev eşyaları eksik.' };
     st.s = 'done';
     if (r.gold) s.gold += r.gold;
-    if (r.stones) s.stones += r.stones;
-    if (r.hpPots) s.hpPots += r.hpPots;
-    if (r.mpPots) s.mpPots += r.mpPots;
-    if (r.item) inv.add(makeItem(r.item.base, r.item.rarity, 0));
+    for (const [b, n] of r.items || []) inv.add(makeStack(b, n));
+    if (r.gear) { const g = this._gearBase(r.gear.base); inv.add(makeItem(g, r.gear.rarity, 0, rollBlues(g, r.gear.rarity))); }
     if (r.exp && this.combat) { this.combat.fx(this.p, '+' + r.exp + ' EXP', 'exp'); this.combat.gainExp(r.exp); }
     SFX.play('levelup');
     this.hud.log('Görev teslim edildi: ' + q.name + ' (' + this.rewardText(q) + ')', 'lvl');
@@ -169,6 +196,8 @@ class QuestManager {
 
   // Her karede: bölge takibi
   update() {
+    this._syncT = (this._syncT || 0) + 1;
+    if (this._syncT % 20 === 0) this._syncCollect();
     const r = regionAt(this.p.pos.x, this.p.pos.z);
     if (r !== this.region) {
       const first = this.region === null;
@@ -182,6 +211,7 @@ class QuestManager {
   load(data) {
     this.state = {};
     if (!data || typeof data !== 'object') return;
+    if (data.stones && !data.fangs) data.fangs = data.stones;     // eski kayıt
     for (const q of this.defs) {
       const st = data[q.id];
       if (st && ['active', 'ready', 'done'].includes(st.s)) this.state[q.id] = { s: st.s, p: Math.max(0, st.p | 0) };

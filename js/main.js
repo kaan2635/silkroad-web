@@ -1,4 +1,4 @@
-// Giriş noktası: renderer, ana döngü, başlangıç ekranı, kayıt.
+// Giriş noktası: renderer, ana döngü, karakter oluşturma, kayıt (v2).
 (function () {
   if (typeof THREE === 'undefined') {
     document.getElementById('error').style.display = 'flex';
@@ -24,14 +24,16 @@
   const rig = new CameraRig(camera, input);
   const hud = new HUD(player, world, rig, camera);
   const combat = new Combat(player, monsters, world, camera);
-  hud.combat = combat; hud.mm = monsters; combat.hud = hud;
+  const hotbar = new Hotbar(player);
+  hud.combat = combat; hud.mm = monsters; hud.hotbar = hotbar; combat.hud = hud; combat.hotbar = hotbar;
   const loot = new LootManager(world, player, hud);
   combat.loot = loot;
   const quests = new QuestManager(player, hud, world);
   quests.combat = combat; combat.quests = quests; loot.quests = quests; hud.quests = quests;
   const wmap = new WorldMap(player, quests);
-  const ui = new UI(player, hud, quests, wmap);
+  const ui = new UI(player, hud, quests, wmap, combat, hotbar);
   quests.onChange = () => { npcs.refreshMarkers(quests); ui.refresh(); };
+  combat.onLevel = lvl => { hotbar.upgradePots(lvl); ui.refresh(); };
   npcs.refreshMarkers(quests);
   let pendingNpc = null;
   input.bindJoystick(document.getElementById('joy-zone'), document.getElementById('joy-knob'));
@@ -64,37 +66,102 @@
     try {
       const s = player.stats;
       localStorage.setItem(CONFIG.saveKey, JSON.stringify({
-        name: player.name, x: player.pos.x, z: player.pos.z,
-        level: s.level, exp: s.exp, hpPots: s.hpPots, mpPots: s.mpPots,
-        gold: s.gold, stones: s.stones, inv: player.inv.serialize(),
-        tod: world.timeOfDay, quests: quests.serialize()
+        v: 2, name: player.name, x: player.pos.x, z: player.pos.z,
+        level: s.level, exp: s.exp, gold: s.gold, str: s.str, int: s.int, statPts: s.statPts, zerk: s.zerk,
+        hp: Math.round(s.hp), mp: Math.round(s.mp),
+        inv: player.inv.serialize(), book: player.book.serialize(), hotbar: hotbar.serialize(),
+        tod: world.timeOfDay, quests: quests.serialize(), death: combat.deathPos, recall: combat.recallPos
       }));
     } catch (e) { /* özel pencere vb. */ }
   }
 
-  // --- Başlangıç ekranı ---
+  // Kayıttan yükle (v1 → v2 göçü dahil)
+  function applySave(sv) {
+    const s = player.stats;
+    s.level = clamp(sv.level | 0 || 1, 1, MAX_LEVEL);
+    s.maxExp = expToNext(s.level);
+    s.exp = clamp(sv.exp | 0, 0, s.maxExp - 1);
+    s.gold = Math.max(0, sv.gold | 0);
+    if (sv.v === 2) {
+      s.str = Math.max(20, sv.str | 0); s.int = Math.max(20, sv.int | 0);
+      s.statPts = Math.max(0, sv.statPts | 0); s.zerk = clamp(+sv.zerk || 0, 0, ZERK_MAX);
+      player.inv.load(sv.inv || {});
+      player.book.load(sv.book);
+      hotbar.load(sv.hotbar);
+      combat.deathPos = sv.death || null; combat.recallPos = sv.recall || null;
+    } else {
+      // Eski (Faz 2–4) kayıt: seviye, altın ve görevler korunur; yeni sistemlere göre başlangıç seti ve puanlar verilir
+      s.str = 20 + (s.level - 1); s.int = 20 + (s.level - 1); s.statPts = 3 * (s.level - 1);
+      player.inv.starter('blade');
+      s.gold = Math.max(200, sv.gold | 0);
+      if (sv.hpPots) player.inv.addStack('hp1', clamp(sv.hpPots | 0, 0, 250));
+      if (sv.mpPots) player.inv.addStack('mp1', clamp(sv.mpPots | 0, 0, 250));
+      if (sv.stones) player.inv.addStack('elx_w', clamp(Math.ceil(sv.stones / 2), 0, 20));
+      player.book.sp = 20 + 15 * (s.level - 1);
+      hud.log('Kaydın yeni sisteme taşındı: stat puanlarını (C) ve SP\'ni (K) dağıt!', 'lvl');
+    }
+    player.recalc();
+    s.hp = isFinite(sv.hp) && sv.hp > 0 ? Math.min(s.maxHp, sv.hp) : s.maxHp;
+    s.mp = isFinite(sv.mp) ? Math.min(s.maxMp, sv.mp) : s.maxMp;
+    player.refreshLook();
+  }
+
+  // --- Başlangıç ekranı / karakter oluşturma ---
   const startScreen = document.getElementById('start');
   const nameInput = document.getElementById('name-input');
   const startBtn = document.getElementById('start-btn');
+  const note = document.getElementById('continue-note'), create = document.getElementById('create');
   const saved = loadSave();
+  let pickW = 'blade', pickA = 'protector';
+  const chip = (id, attr, set) => document.getElementById(id).addEventListener('click', e => {
+    const b = e.target.closest('button'); if (!b) return;
+    for (const x of b.parentNode.children) x.classList.toggle('on', x === b);
+    set(b.dataset[attr]); SFX.init(); SFX.play('tab');
+  });
+  chip('pick-w', 'w', v => { pickW = v; });
+  chip('pick-a', 'a', v => { pickA = v; });
+  const refreshStart = () => {
+    const same = saved && saved.name && saved.name === (nameInput.value || '').trim();
+    create.classList.toggle('hidden', !!same);
+    note.textContent = same ? 'Kayıtlı karakter: ' + saved.name + ' (Sv. ' + (saved.level || 1) + ') — devam edilecek.' : (saved && saved.name ? 'Yeni ad = yeni karakter (' + saved.name + ' kaydının üzerine yazılır).' : '');
+    startBtn.textContent = same ? 'Devam Et' : 'Karakteri Oluştur';
+  };
   if (saved && saved.name) nameInput.value = saved.name;
+  nameInput.addEventListener('input', refreshStart);
+  refreshStart();
 
   function start() {
     if (started) return;
     const name = (nameInput.value || '').trim() || 'Gezgin';
     const sameChar = saved && saved.name === name;
-    if (sameChar) combat.applySave(saved); else { player.inv.starter(); player.teleport(0, 7); }
+    if (sameChar) applySave(saved);
+    else {
+      player.inv.starter(pickW);
+      if (pickA !== 'protector') {
+        player.inv.equip.chest = makeItem('chest_' + pickA + '_1');
+        player.inv.equip.feet = makeItem('feet_' + pickA + '_1');
+      }
+      player.book.sp = 40;
+      hotbar.reset();
+      player.refreshLook();
+      player.teleport(0, 7);
+    }
     player.setName(name);
     if (sameChar && isFinite(saved.x) && isFinite(saved.z)) player.teleport(saved.x, saved.z);
     if (sameChar) { quests.load(saved.quests); if (isFinite(saved.tod)) world.timeOfDay = clamp(saved.tod, 0, 0.9999); }
+    hotbar.upgradePots(player.stats.level);
     npcs.refreshMarkers(quests);
     SFX.init(); SFX.play('ui');
     startScreen.classList.add('hidden');
     hud.show();
+    setTimeout(() => document.getElementById('help').classList.add('gone'), 30000);
     started = true;
     nameInput.blur();
     hud.log('İpek Yolu\'na hoş geldin, ' + name + '!');
-    hud.log('Kaptan Lee\'nin başındaki ! işaretine bak: görevler seni bekliyor.');
+    if (!sameChar) {
+      hud.log('📖 Yetenek penceresinden (K) SP harcayıp bir ustalık seç, yetenek öğren.', 'lvl');
+      hud.log('Kaptan Lee\'nin başındaki ! işaretine bak: görevler seni bekliyor.');
+    }
     hud.log(CONFIG.isTouch ? 'Joystick ile yürü, canavara dokun = saldır.' : 'Canavara tıkla = saldır. Yürümek için yere tıkla.');
     save();
   }
@@ -140,15 +207,15 @@
       npcs.update(dt, player);
       quests.update();
       ui.update();
-      if (lastP) { stepD += Math.hypot(player.pos.x - lastP.x, player.pos.z - lastP.z); if (stepD > 1.9) { stepD = 0; if (!player.dead) SFX.play('step'); } }
-      lastP = { x: player.pos.x, z: player.pos.z };
-      SFX.update(dt, { combat: player.combatT > 0, night: world.isNight(), inTown: inSafeZone(player.pos.x, player.pos.z) });
       if (wmap.open) wmap.draw();
       if (pendingNpc) {
         const d = Math.hypot(player.pos.x - pendingNpc.x, player.pos.z - pendingNpc.z);
         if (player.manualMove || player.dead) pendingNpc = null;
         else if (d < NPC_RANGE) { player.target = null; ui.openNpc(pendingNpc); pendingNpc = null; }
       }
+      if (lastP) { stepD += Math.hypot(player.pos.x - lastP.x, player.pos.z - lastP.z); if (stepD > 1.9) { stepD = 0; if (!player.dead) SFX.play('step'); } }
+      lastP = { x: player.pos.x, z: player.pos.z };
+      SFX.update(dt, { combat: player.combatT > 0, night: world.isNight(), inTown: inSafeZone(player.pos.x, player.pos.z) });
       saveT += dt;
       if (saveT > 5) { saveT = 0; save(); }
     } else {
@@ -163,7 +230,7 @@
     renderer.render(world.scene, camera);
   }
 
-  window.__game = { world, player, rig, monsters, npcs, combat, quests, hud, ui, loot, input, save };   // hata ayıklama / test
+  window.__game = { world, player, rig, monsters, npcs, combat, quests, hud, ui, loot, input, save, hotbar };   // hata ayıklama / test
   window.addEventListener('beforeunload', () => { if (started) save(); });
   document.addEventListener('visibilitychange', () => { if (document.hidden && started) save(); });
   frame();

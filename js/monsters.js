@@ -5,12 +5,25 @@ function inSafeZone(x, z) { return Math.max(Math.abs(x), Math.abs(z)) < SAFE_HAL
 const LEASH = 45;          // canavar yuvasından bu kadar uzaklaşırsa geri döner
 const RESPAWN_TIME = 18;
 
+// Canavar türleri: çarpanlar (seviyeye göre formülle ölçeklenir). magic: büyü saldırısı. status: oyuncuya etki.
 const MONSTER_TYPES = {
-  wolf:     { name: 'Kurt',       hp: 40,  dmg: 5,  speed: 6.5, aggro: 11, range: 2.0, atkInt: 1.4, exp: 12, hit: 1.2, scale: 1.0, labelY: 2.5 },
-  scorpion: { name: 'Dev Akrep',  hp: 70,  dmg: 8,  speed: 4.6, aggro: 8,  range: 2.3, atkInt: 1.8, exp: 20, hit: 1.5, scale: 1.25, labelY: 3.3 },
-  golem:    { name: 'Kum Devi',   hp: 220, dmg: 18, speed: 3.8, aggro: 9,  range: 2.8, atkInt: 2.0, exp: 60, hit: 2.0, scale: 1.5, labelY: 3.6 },
-  bandit:   { name: 'Haydut',     hp: 120, dmg: 12, speed: 5.5, aggro: 12, range: 2.4, atkInt: 1.6, exp: 35, hit: 1.3, scale: 1.0, labelY: 3.3 }
+  wolf:     { name: 'Kurt',       hpM: 1.1, dmgM: 0.9, defM: 0.8, expM: 1.0, speed: 6.5, aggro: 11, range: 2.0, atkInt: 1.4, hit: 1.2, scale: 1.0, labelY: 2.5 },
+  scorpion: { name: 'Dev Akrep',  hpM: 1.3, dmgM: 1.0, defM: 1.2, expM: 1.15, speed: 4.6, aggro: 8, range: 2.3, atkInt: 1.8, hit: 1.5, scale: 1.25, labelY: 3.3, status: { kind: 'poison', chance: 0.15, dur: 6 } },
+  golem:    { name: 'Kum Devi',   hpM: 1.8, dmgM: 1.25, defM: 1.5, expM: 1.5, speed: 3.8, aggro: 9, range: 2.8, atkInt: 2.0, hit: 2.0, scale: 1.5, labelY: 3.6, status: { kind: 'stun', chance: 0.08, dur: 1.2 } },
+  bandit:   { name: 'Haydut',     hpM: 1.2, dmgM: 1.1, defM: 1.0, expM: 1.2, speed: 5.5, aggro: 12, range: 2.4, atkInt: 1.6, hit: 1.3, scale: 1.0, labelY: 3.3 }
 };
+// Rütbe: normal / şampiyon / dev (Silkroad'daki Champion ve Giant canavarlar). Unique'ler ayrıca tanımlanır.
+const MOB_RANKS = {
+  normal:   { label: '', hp: 1, dmg: 1, exp: 1, scale: 1, zerk: 0.25, drop: 1, color: '#ffb0a0' },
+  champion: { label: 'Şampiyon', hp: 3, dmg: 1.4, exp: 3, scale: 1.2, zerk: 1, drop: 2.5, color: '#ffd23a' },
+  giant:    { label: 'Dev', hp: 12, dmg: 2.2, exp: 14, scale: 1.9, zerk: 2.5, drop: 6, color: '#ff7a3a' },
+  unique:   { label: 'Unique', hp: 1, dmg: 1, exp: 1, scale: 1, zerk: 5, drop: 20, color: '#ff4ad8' }
+};
+const mobHp = M => 30 + 22 * M + 1.6 * M * M;
+const mobDmg = M => 8 + 4 * M + 0.05 * M * M;
+const mobDef = M => 2 + 4 * M;
+const mobExp = M => 10 + 6 * M + 0.4 * M * M;
+function rollRank() { const r = Math.random(); return r < 0.012 ? 'giant' : r < 0.06 ? 'champion' : 'normal'; }
 
 function buildWolf() {
   const g = new THREE.Group();
@@ -86,15 +99,15 @@ function pushOut(p, radius, obstacles) {
 }
 
 class Monster {
-  constructor(world, typeKey, level, home) {
+  constructor(world, typeKey, level, home, opts = {}) {
     this.world = world;
     this.typeKey = typeKey;
     this.type = MONSTER_TYPES[typeKey];
     this.level = level;
-    this.maxHp = Math.round(this.type.hp * (1 + 0.3 * (level - 1)));
-    this.hp = this.maxHp;
-    this.dmg = Math.round(this.type.dmg * (1 + 0.25 * (level - 1)));
     this.home = { x: home.x, z: home.z };
+    this.status = {};
+    this.fixedRank = opts.rank || null;
+    this._stats(this.fixedRank || rollRank());
     this.state = 'idle';
     this.dead = false;
     this.provoked = false;
@@ -106,7 +119,6 @@ class Monster {
     this.wanderT = Math.random() * 4;
     this.wanderTarget = null;
     this.moving = false;
-    this.baseScale = this.type.scale * (1 + 0.04 * (level - 1));
 
     this.group = new THREE.Group();
     let parts;
@@ -122,6 +134,8 @@ class Monster {
     this.arms = parts.arms || [];
     this.armR = parts.armR || null;
     this.group.add(this.body);
+    this.mats = [];
+    this.body.traverse(o => { if (o.material && o.material.emissive) { o.material = o.material.clone(); this.mats.push(o.material); } });
     this.group.scale.setScalar(this.baseScale);
 
     // Tıklama için görünmez, cömert bir vuruş alanı (dokunmatik için de rahat)
@@ -131,13 +145,61 @@ class Monster {
     this.hit.userData.monster = this;
     this.group.add(this.hit);
 
-    this.label = makeLabel(this.type.name, 'Sv. ' + level, '#ffb0a0', '#ffd9a0');
-    this.label.scale.set(3.8, 1.2, 1);
-    this.label.position.y = this.type.labelY / this.baseScale;
-    this.group.add(this.label);
+    this._makeLabel();
 
     this.group.position.set(home.x, terrainHeight(home.x, home.z), home.z);
     world.scene.add(this.group);
+  }
+
+  _stats(rank) {
+    const t = this.type, M = this.level, rk = MOB_RANKS[rank];
+    this.rank = rank;
+    const u = t.unique || {};
+    this.maxHp = Math.round(t.hpM * mobHp(M) * rk.hp * (u.hp || 1));
+    this.hp = this.maxHp;
+    this.dmg = Math.round(t.dmgM * mobDmg(M) * rk.dmg * (u.dmg || 1));
+    this.pdef = Math.round(t.defM * mobDef(M) * (t.magic ? 0.8 : 1.1));
+    this.mdef = Math.round(t.defM * mobDef(M) * (t.magic ? 1.1 : 0.8));
+    this.exp = Math.round(t.expM * mobExp(M) * rk.exp * (u.exp || 1));
+    this.zerkPts = rk.zerk;
+    this.dropMult = rk.drop * (u.drop || 1);
+    this.baseScale = t.scale * (1 + 0.012 * (M - 1)) * rk.scale;
+    this.displayName = (rk.label && rank !== 'unique' ? rk.label + ' ' : '') + t.name;
+  }
+  _makeLabel() {
+    if (this.label) { this.group.remove(this.label); this.label.material.map.dispose(); this.label.material.dispose(); }
+    const rk = MOB_RANKS[this.rank];
+    this.label = makeLabel(this.displayName, 'Sv. ' + this.level + (this.rank !== 'normal' ? ' · ' + rk.label : ''), rk.color, '#ffd9a0');
+    this.label.scale.set(this.rank === 'normal' ? 3.8 : 4.6, this.rank === 'normal' ? 1.2 : 1.45, 1);
+    this.label.position.y = this.type.labelY / this.type.scale / (this.rank === 'giant' ? 1.1 : 1);
+    this.group.add(this.label);
+  }
+
+  // Durum etkisi uygula (yanma, kanama, sersemleme, donma, yere serme, yavaşlatma)
+  applyStatus(kind, dur, hitDmg) {
+    const resist = this.rank === 'unique' ? 0.3 : this.rank === 'giant' ? 0.6 : 1;
+    const st = this.status[kind];
+    const dps = kind === 'burn' ? Math.max(1, Math.round(hitDmg * 0.15)) : kind === 'bleed' ? Math.max(1, Math.round(hitDmg * 0.12)) : 0;
+    const t = (kind === 'stun' || kind === 'freeze' || kind === 'knock') ? dur * resist : dur;
+    if (st) { st.t = Math.max(st.t, t); st.dps = Math.max(st.dps, dps); }
+    else this.status[kind] = { t, dps, tick: 1 };
+    this._tint();
+  }
+  disabled() { return !!(this.status.stun || this.status.freeze || this.status.knock); }
+  _tint() {
+    const s = this.status;
+    const c = s.freeze ? 0x2a5aa8 : s.burn ? 0x6a2200 : s.stun || s.knock ? 0x4a4a00 : s.slow ? 0x1a3a5a : s.bleed ? 0x5a0000 : 0x000000;
+    for (const m of this.mats) m.emissive.setHex(c);
+  }
+  _updateStatus(dt, combat) {
+    let changed = false;
+    for (const k in this.status) {
+      const st = this.status[k];
+      st.t -= dt;
+      if (st.dps) { st.tick -= dt; if (st.tick <= 0) { st.tick = 1; combat.damageMonster(this, st.dps, false, k === 'burn' ? 'fire' : null, true); if (this.dead) return; } }
+      if (st.t <= 0) { delete this.status[k]; changed = true; }
+    }
+    if (changed) this._tint();
   }
 
   get x() { return this.group.position.x; }
@@ -149,9 +211,13 @@ class Monster {
   die() {
     this.dead = true; this.state = 'dead'; this.deadT = 0; this.moving = false;
     this.label.visible = false;
+    this.status = {}; this._tint();
   }
 
   respawn() {
+    const old = this.rank;
+    this._stats(this.fixedRank || rollRank());
+    if (old !== this.rank) this._makeLabel();
     this.dead = false; this.state = 'idle'; this.hp = this.maxHp; this.provoked = false;
     this.group.position.set(this.home.x, terrainHeight(this.home.x, this.home.z), this.home.z);
     this.group.rotation.z = 0; this.group.visible = true; this.group.scale.setScalar(this.baseScale);
@@ -179,7 +245,7 @@ class Monster {
       this.group.rotation.z = k * (Math.PI / 2);
       p.y = terrainHeight(p.x, p.z) + k * 0.35 * this.baseScale;
       if (this.deadT > 4) this.group.visible = false;
-      if (this.deadT >= RESPAWN_TIME) this.respawn();
+      if (this.deadT >= (this.respawnTime || RESPAWN_TIME)) { if (this.noRespawn) { this.removed = true; return; } this.respawn(); }
       return;
     }
 
@@ -188,6 +254,16 @@ class Monster {
     this.label.visible = dp < 48 && Settings.data.names;
     if (this.atkCd > 0) this.atkCd -= dt;
     if (this.attackAnim > 0) this.attackAnim = Math.max(0, this.attackAnim - dt);
+    this._updateStatus(dt, combat);
+    if (this.dead) return;
+    if (this.disabled()) {
+      this.moving = false;
+      if (this.status.knock) this.group.rotation.z = Math.min(1.2, this.group.rotation.z + dt * 8);
+      p.y = terrainHeight(p.x, p.z);
+      return;
+    }
+    if (this.group.rotation.z) this.group.rotation.z = 0;
+    const slow = this.status.slow ? 0.5 : 1;
 
     const playerSafe = player.dead || inSafeZone(player.pos.x, player.pos.z);
     const homeDist = Math.hypot(p.x - this.home.x, p.z - this.home.z);
@@ -208,13 +284,13 @@ class Monster {
     } else if (this.state === 'chase') {
       if (playerSafe || homeDist > LEASH) { this.state = 'return'; this.provoked = false; }
       else if (dp > this.type.range * 0.85) {
-        this._moveToward(player.pos.x, player.pos.z, this.type.speed, dt);
+        this._moveToward(player.pos.x, player.pos.z, this.type.speed * slow, dt);
       } else {
         this.heading = Math.atan2(dpx, dpz);
         if (this.atkCd <= 0) {
-          this.atkCd = this.type.atkInt;
+          this.atkCd = this.type.atkInt / slow;
           this.attackAnim = 0.3;
-          combat.damagePlayer(this.dmg, this);
+          combat.damagePlayer(this.dmg, this, this.type.magic ? 'mag' : 'phys');
         }
       }
     } else if (this.state === 'return') {
@@ -275,22 +351,23 @@ class MonsterManager {
         made++;
       }
     };
-    ring('wolf', 20, 40, 105, 1, 3);
-    ring('scorpion', 14, 100, 190, 3, 5);
-    ring('golem', 12, 200, 270, 7, 10);
+    ring('wolf', 20, 40, 105, 1, 4);
+    ring('scorpion', 14, 100, 190, 4, 8);
+    ring('golem', 12, 200, 270, 10, 14);
     // Harabelerde haydut kampları
     for (const c of RUINS) {
       for (let i = 0; i < 4; i++) {
         const a = rng() * 6.283, d = rand(3, 6);
         const x = c.x + Math.cos(a) * d, z = c.z + Math.sin(a) * d;
         if (!freeSpot(x, z)) { i--; if (rng() < 0.2) break; continue; }
-        this.list.push(new Monster(w, 'bandit', 4 + Math.floor(rng() * 4), { x, z }));
+        this.list.push(new Monster(w, 'bandit', 6 + Math.floor(rng() * 5), { x, z }));
       }
     }
   }
 
   update(dt, player, combat) {
     for (const m of this.list) m.update(dt, player, combat);
+    for (let i = this.list.length - 1; i >= 0; i--) if (this.list[i].removed) { this.world.scene.remove(this.list[i].group); this.list.splice(i, 1); }
   }
 
   nearest(pos, maxDist) {

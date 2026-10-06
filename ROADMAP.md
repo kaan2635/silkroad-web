@@ -39,23 +39,38 @@ Tarayıcıda çalışan, Silkroad Online tarzı (ipek yolu temalı, tıkla-yür�
 - [x] Görev sistemi: öldür, topla, keşfet, teslim et; zincirli 9 görev, ödüller, takipçi, görev günlüğü (L)
 - [x] Gün/gece döngüsü (14 dk), dünya haritası (M), bölge afişleri
 
-## Faz 5 — Çok Oyunculu Altyapı
+## ✅ Faz 4.5 — Asset & UI/UX
+- [x] Kenney CC0 modeller, ses/müzik, ayarlar penceresi, yükleme ekranı
+
+## Faz 5 — Orijinal Silkroad Sistemleri (tek oyunculu)
+**5A — Karakter ve Ustalık (TAMAM)**
+- [x] Karakter oluşturma: başlangıç silahı (kılıç/bıçak+kalkan, mızrak, pala, yay) ve zırh türü
+- [x] GÜÇ/ZEKÂ statları: seviye başına +1/+1 ve 3 serbest puan; türetilmiş can, mana, fiziksel/büyü saldırı-savunma, kritik, blok
+- [x] SP (400 SP-EXP = 1 SP), 7 Çin ustalığı (Bicheon, Heuksal, Pacheon, Soğuk, Şimşek, Ateş, Kuvvet), ustalık sınırı = seviye x3
+- [x] 38 kademeli yetenek: saldırı, alan, büyü, buff, aşılama (imbue), şifa, arınma, ışınlanma, emici kalkan, kalıcı yetenekler
+- [x] Durum etkileri: yanma, kanama, zehir, sersemletme, donma, yere serme, yavaşlatma (canavarda ve oyuncuda)
+- [x] Berserk (5 küre), 2 sayfalık özelleştirilebilir hotbar, Karakter (C) ve Yetenek (K) pencereleri, otomatik iksir
+- [x] Şampiyon ve Dev canavarlar
+**5B — Eşya ve Simya (TAMAM)**
+- [x] 1.–10. derece eşyalar, 5 silah türü + kalkan, 6 parça zırh (kumaş/hafif/ağır), küpe/kolye/2 yüzük
+- [x] Yıldız/Ay/Güneş mühürleri, mavi statlar, dayanıklılık ve tamir
+- [x] Simya: güçlendirme iksiri ile +12, şans tozu, koruma taşı, büyü taşları
+- [x] Yığınlanan iksirler (5 derece), evrensel hap, dönüş / ters dönüş / hız parşömenleri, oklar, depo (48 yuva)
+- [x] Zırhçı, Takıcı, Depocu NPC'leri; dükkân filtreleri; eski kayıtların otomatik taşınması
+**5C — Dünya**
+- [ ] Jangan, Donwhang, Hotan şehirleri; ışınlayıcı NPC ve yükleme ekranı
+- [ ] Bölgeye göre canavarlar (Sv. 1–80); Unique'ler: Kaplan Kız, Uruchi, Isyutaru, Lord Yarkan
+**5D — Meslekler ve Binekler**
+- [ ] Tüccar / Avcı / Hırsız; ticaret malları, kervan devesi, haydut baskınları
+- [ ] At, toplayıcı ve saldırı evcil hayvanları
+
+## Faz 6 — Çok Oyunculu Altyapı
 - [ ] Node.js + WebSocket sunucusu, sunucu otoriteli hareket ve savaş
-- [ ] Hesap/giriş, karakter oluşturma ve kaydetme
+- [ ] Hesap/giriş, karakter kaydı sunucuda
 - [ ] Diğer oyuncuları görme, sohbet (genel/yerel/fısıltı)
+- [ ] Parti, lonca, takas, oyuncu tezgâhı (stall), PvP (pelerin), Kale Savaşı, meslek PvP'si
 
-## Faz 6 — Silkroad'a Özgü Sistemler
-- [ ] Üç sınıf: savaşçı, büyücü, okçu; yetenek ağaçları
-- [ ] Ticaret kervanı (trade route) ve haydutlar (PvP riskli)
-- [ ] Parti sistemi, lonca, takas (trade) penceresi
-- [ ] Alchemy: eşya yükseltme ve elementler
-- [ ] Binek (at/deve)
-
-## Faz 7 — Cila ve Yayın
-- [ ] Gerçek 3D modeller, animasyonlar, ses ve müzik
+## Faz 7 — Avrupa ve Yayın
+- [ ] Avrupa ırkı ve ustalıkları, Konstantinopolis
 - [ ] Performans (LOD, chunk yükleme), gamepad desteği
 - [ ] Sunucu yayını (VPS), yedekleme, anti-hile kontrolleri
-
-
-## ✅ Faz 4.5 — Asset & UI/UX
-Kenney CC0 modeller, ses/müzik, ayarlar penceresi, yükleme ekranı. (Gerçek telefon performansı henüz test edilmedi.)

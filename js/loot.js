@@ -1,14 +1,11 @@
-// Yerdeki ganimet: altın, eşya, iksir, yükseltme taşı. Yaklaşınca otomatik toplanır.
-const MAX_DROPS = 40;
-const DROP_LIFE = 90;        // saniye
+// Yerdeki ganimet: altın ve eşyalar (ekipman, iksir, simya malzemesi, görev eşyası).
+// Yaklaşınca otomatik toplanır; ekipmana tıklayınca yürüyüp alırsın.
+const MAX_DROPS = 50;
+const DROP_LIFE = 120;        // saniye
 const PICKUP_RANGE = 2.4;
 
-const DROP_RATES = {         // [eşya, taş, iksir]
-  wolf: [0.15, 0.12, 0.22],
-  scorpion: [0.22, 0.18, 0.25],
-  bandit: [0.40, 0.30, 0.30],
-  golem: [0.45, 0.35, 0.30]
-};
+// Canavar türü → görev eşyası (yalnızca ilgili görev aktifken düşer)
+const QUEST_DROPS = { wolf: 'q_fang', scorpion: 'q_tail' };
 
 class LootManager {
   constructor(world, player, hud) {
@@ -29,18 +26,18 @@ class LootManager {
     if (kind === 'gold') {
       mesh = new THREE.Mesh(this.geo.coin, new THREE.MeshLambertMaterial({ color: 0xffd23a, emissive: 0x554400 }));
       color = '#ffd23a'; text = data.amount + ' Altın';
-    } else if (kind === 'stone') {
-      mesh = new THREE.Mesh(this.geo.gem, new THREE.MeshLambertMaterial({ color: 0x5ad8ff, emissive: 0x1a5a70 }));
-      color = '#7fe3ff'; text = 'Yükseltme Taşı';
-    } else if (kind === 'hp' || kind === 'mp') {
-      const hp = kind === 'hp';
-      mesh = new THREE.Mesh(this.geo.pot, new THREE.MeshLambertMaterial({ color: hp ? 0xe0483a : 0x3a7ae0, emissive: hp ? 0x501410 : 0x102a50 }));
-      color = hp ? '#ff8a7a' : '#8ab4ff'; text = hp ? 'Can İksiri' : 'Mana İksiri';
     } else {
-      const n = itemInfo(data.item);
-      mesh = new THREE.Mesh(this.geo.box, new THREE.MeshLambertMaterial({ color: n.hex, emissive: n.hex, emissiveIntensity: 0.25 }));
-      color = n.color; text = n.name; sub = n.rarityName;
-      beam = data.item.rarity >= 2 ? n.hex : 0;
+      const it = data.item, n = itemInfo(it), b = ITEM_BASES[it.base];
+      if (n.stack) {
+        const c = b.use === 'hp' ? 0xe0483a : b.use === 'mp' ? 0x3a7ae0 : b.cat === 'mat' ? 0x5ad8ff : b.cat === 'quest' ? 0xffd23a : 0xd8c8a0;
+        mesh = new THREE.Mesh(b.cat === 'mat' ? this.geo.gem : this.geo.pot, new THREE.MeshLambertMaterial({ color: c, emissive: c, emissiveIntensity: 0.3 }));
+        text = n.name + (it.n > 1 ? ' x' + it.n : ''); color = n.color;
+        if (it.base === 'astral') beam = 0x5ab4ff;
+      } else {
+        mesh = new THREE.Mesh(this.geo.box, new THREE.MeshLambertMaterial({ color: n.hex, emissive: n.hex, emissiveIntensity: 0.25 }));
+        color = n.color; text = n.name; sub = (it.rarity ? n.rarityName + ' · ' : '') + b.d + '. derece';
+        beam = it.rarity >= 1 ? n.hex : 0;
+      }
     }
     mesh.castShadow = true;
     return { mesh, color, text, sub, beam };
@@ -80,16 +77,30 @@ class LootManager {
     if (i >= 0) this.drops.splice(i, 1);
   }
 
-  // Canavar öldüğünde ganimet saç
+  // Canavar öldüğünde ganimet saç (seviye ve rütbeye göre)
   dropFrom(m) {
-    const lvl = m.level, rates = (DROP_RATES[m.typeKey] || [0.15, 0.1, 0.2]).slice();
-    if (this.quests && this.quests.wantsStones()) rates[1] = Math.min(0.6, rates[1] * 2.5);   // taş görevi varsa daha sık düşer
-    const spot = () => { const a = Math.random() * 6.283, r = 0.6 + Math.random() * 1.4; return [m.x + Math.cos(a) * r, m.z + Math.sin(a) * r]; };
-    const gold = Math.max(1, Math.round((4 + 5 * lvl) * (0.7 + Math.random() * 0.6)));
-    this.spawn('gold', ...spot(), { amount: gold });
-    if (Math.random() < rates[0]) this.spawn('item', ...spot(), { item: randomDrop(lvl) });
-    if (Math.random() < rates[1]) this.spawn('stone', ...spot(), { amount: 1 });
-    if (Math.random() < rates[2]) this.spawn(Math.random() < 0.6 ? 'hp' : 'mp', ...spot(), { amount: 1 });
+    const L = m.level, k = m.dropMult || 1;
+    const spot = () => { const a = Math.random() * 6.283, r = 0.6 + Math.random() * (1.4 + Math.min(4, k * 0.3)); return [m.x + Math.cos(a) * r, m.z + Math.sin(a) * r]; };
+    const item = it => this.spawn('item', ...spot(), { item: it });
+    const chance = p => Math.random() < Math.min(0.95, p * k);
+    const rolls = Math.min(8, Math.max(1, Math.round(k)));
+    // altın
+    for (let i = 0; i < Math.min(4, rolls); i++) this.spawn('gold', ...spot(), { amount: Math.max(1, Math.round((5 + 4 * L + 0.15 * L * L) * (0.7 + Math.random() * 0.6))) });
+    // ekipman
+    for (let i = 0; i < rolls; i++) if (Math.random() < 0.13 * (k > 1 ? 1.6 : 1)) item(randomGear(L, Math.random, m.rank === 'unique' ? 12 : m.rank === 'giant' ? 5 : m.rank === 'champion' ? 2.5 : 1));
+    // iksirler
+    if (chance(0.22)) item(makeStack(potFor(L, Math.random() < 0.6 ? 'hp' : 'mp'), 1 + Math.floor(Math.random() * 3)));
+    if (chance(0.03)) item(makeStack('pill', 1));
+    if (chance(0.015)) item(makeStack(Math.random() < 0.7 ? 'ret' : 'spd', 1));
+    // simya
+    if (chance(0.045)) item(makeStack(['elx_w', 'elx_a', 'elx_a', 'elx_s', 'elx_c'][Math.floor(Math.random() * 5)], 1));
+    if (chance(0.02)) item(makeStack('luck', 1));
+    if (chance(0.012)) item(makeStack('ms_' + Object.keys(BLUES)[Math.floor(Math.random() * 6)], 1));
+    if (chance(0.003)) item(makeStack('astral', 1));
+    if (chance(0.006)) item(makeStack('zerk', 1));
+    // görev eşyası
+    const q = QUEST_DROPS[m.typeKey];
+    if (q && this.quests && this.quests.wantsItem(q) && Math.random() < 0.45) item(makeStack(q, 1));
   }
 
   pick(raycaster) {
@@ -105,20 +116,16 @@ class LootManager {
       this.hud.floatText(pos, '+' + d.amount + ' 💰', 'exp');
       this.hud.log('+' + d.amount + ' altın', 'gold');
       SFX.play('coin');
-    } else if (d.kind === 'stone') {
-      s.stones += d.amount;
-      if (this.quests) this.quests.onCollect('stone');
-      this.hud.log('Yükseltme Taşı aldın.', 'sys', '#7fe3ff');
-      SFX.play('gem');
-    } else if (d.kind === 'hp' || d.kind === 'mp') {
-      s[d.kind === 'hp' ? 'hpPots' : 'mpPots'] += d.amount;
-      this.hud.log((d.kind === 'hp' ? 'Can' : 'Mana') + ' İksiri aldın.', 'sys');
-      SFX.play('potion');
     } else {
-      if (!this.player.inv.add(d.item)) { d.cool = 4; this.hud.log('Envanter dolu!', 'dmg'); return; }
-      const n = itemInfo(d.item);
-      this.hud.log(n.name + ' aldın. (' + n.rarityName + ')', 'sys', n.color);
-      SFX.play('item');
+      const it = d.item, n = itemInfo(it), cnt = it.n || 1;
+      if (!this.player.inv.add(it)) {
+        d.cool = 4; this.hud.log('Envanter dolu!', 'dmg'); SFX.play('error');
+        if (n.stack && it.n !== cnt) { d.label.visible = true; }
+        return;
+      }
+      this.hud.log(n.name + (n.stack && cnt > 1 ? ' x' + cnt : '') + ' aldın.' + (it.rarity ? ' (' + n.rarityName + ')' : ''), 'sys', n.color);
+      SFX.play(n.stack ? (ITEM_BASES[it.base].cat === 'mat' ? 'gem' : 'potion') : 'item');
+      if (ITEM_BASES[it.base].cat === 'quest' && this.quests) this.quests.onCollect(it.base, cnt);
     }
     this.remove(d);
   }
@@ -134,7 +141,8 @@ class LootManager {
       d.mesh.position.y = 0.8 + Math.sin(d.bob) * 0.15;
       const dist = Math.hypot(d.x - p.pos.x, d.z - p.pos.z);
       d.label.visible = dist < 30;
-      if (!p.dead && d.cool <= 0 && dist < PICKUP_RANGE) this._collect(d);
+      const range = PICKUP_RANGE + (p.pickRange || 0);
+      if (!p.dead && d.cool <= 0 && dist < range) this._collect(d);
     }
   }
 }

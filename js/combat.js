@@ -1,72 +1,27 @@
-// Savaş: hedefleme, otomatik saldırı, yetenekler, hasar, EXP / seviye, ölüm.
+// Savaş: hedefleme, otomatik saldırı (yakın / yay), yetenekler (ustalık sistemi), aşılama, durum etkileri,
+// hasar formülleri, EXP + SP, berserk, ölüm ve yeniden doğma, sarf malzemesi kullanımı.
 
-const MELEE_RANGE = 2.7;
-const expToNext = l => Math.round(60 * l * l + 40);
-
-// Hotbar yetenekleri. use(c) false dönerse yetenek kullanılmamış sayılır (mana/bekleme harcanmaz).
-const SKILLS = [
-  { key: '1', icon: '⚔️', name: 'Temel Saldırı', mp: 0, cd: 0, tip: 'Hedefe otomatik saldırır',
-    use: c => { c.startAttack(); return true; } },
-  { key: '2', icon: '💨', name: 'Hızlı Adım', sfx: 'buff', mp: 10, cd: 14, tip: '4 sn hız artışı',
-    use: c => { c.player.buffs.haste = 4; c.fx(c.player, 'Hızlı Adım!', 'buff'); return true; } },
-  { key: '3', icon: '🔥', name: 'Ateş Darbesi', sfx: 'fire', mp: 15, cd: 4, tip: 'Uzaktan ateş topu (2.4x hasar)',
-    use: c => {
-      const t = c.requireTarget(14); if (!t) return false;
-      c.faceTarget(t); c.player.swingT = 0.3;
-      c.spawnProjectile(t, () => c.hitWithSkill(t, 2.4));
-      return true;
-    } },
-  { key: '4', icon: '❄️', name: 'Buz Kalkanı', sfx: 'buff', mp: 20, cd: 22, tip: '8 sn boyunca hasarı yarıya indirir',
-    use: c => { c.player.buffs.shield = 8; c.fx(c.player, 'Buz Kalkanı!', 'buff'); return true; } },
-  { key: '5', icon: '🗡️', name: 'Çifte Kesik', sfx: 'swing', mp: 12, cd: 6, tip: 'Yakın dövüş, 2 vuruş (1.5x)',
-    use: c => {
-      const t = c.requireTarget(MELEE_RANGE + 0.8); if (!t) return false;
-      c.faceTarget(t); c.player.swingT = 0.3;
-      c.hitWithSkill(t, 1.5);
-      c.later(0.25, () => { if (!t.dead && !c.player.dead) { c.player.swingT = 0.3; c.hitWithSkill(t, 1.5); } });
-      return true;
-    } },
-  { key: '6', icon: '🧪', name: 'Can İksiri', sfx: 'potion', mp: 0, cd: 8, tip: 'Can yeniler', potion: 'hpPots',
-    use: c => {
-      const s = c.player.stats;
-      if (s.hpPots <= 0) { c.hud.log('Can iksirin kalmadı.'); return false; }
-      if (s.hp >= s.maxHp) { c.hud.log('Canın zaten dolu.'); return false; }
-      s.hpPots--; const h = 60 + s.level * 8; s.hp = Math.min(s.maxHp, s.hp + h);
-      c.fx(c.player, '+' + h, 'heal'); return true;
-    } },
-  { key: '7', icon: '💧', name: 'Mana İksiri', sfx: 'potion', mp: 0, cd: 8, tip: 'Mana yeniler', potion: 'mpPots',
-    use: c => {
-      const s = c.player.stats;
-      if (s.mpPots <= 0) { c.hud.log('Mana iksirin kalmadı.'); return false; }
-      if (s.mp >= s.maxMp) { c.hud.log('Manan zaten dolu.'); return false; }
-      s.mpPots--; const m = 40 + s.level * 5; s.mp = Math.min(s.maxMp, s.mp + m);
-      c.fx(c.player, '+' + m + ' MP', 'mana'); return true;
-    } },
-  { key: '8', icon: '📜', name: 'Şehre Dönüş', sfx: 'cast', mp: 0, cd: 60, tip: '3 sn kıpırdamadan bekle, şehre ışınlan',
-    use: c => {
-      if (c.casting) return false;
-      c.casting = { t: 3, total: 3, name: 'Şehre dönüş' };
-      c.hud.log('Şehre dönülüyor... 3 saniye kıpırdama.');
-      return true;
-    } }
-];
+const expToNext = l => Math.round(60 * Math.pow(l, 1.85) + 60);
+const MAX_LEVEL = 80;
+const SP_PER_EXP = 10;           // her 1 EXP = 10 SP-EXP (400 SP-EXP = 1 SP)
+const ZERK_MAX = 5;
+const rnd = (a, b) => a + Math.random() * (b - a);
 
 class Combat {
   constructor(player, mm, world, camera) {
     this.player = player; this.mm = mm; this.world = world; this.camera = camera;
-    this.hud = null;
-    this.quests = null;
+    this.hud = null; this.quests = null; this.loot = null; this.hotbar = null;
     this.target = null;
     this.attacking = false;
-    this.cds = new Array(SKILLS.length).fill(0);
-    this.cdMax = new Array(SKILLS.length).fill(1);
+    this.cd = {}; this.cdMax = {};     // anahtar: yetenek id veya eşya bekleme grubu
+    this.gcd = 0;
     this.casting = null;
-    this.loot = null;        // main.js bağlar
-    this.projectiles = [];
+    this.queued = null;               // menzile yürüyüp kullanılacak yetenek
     this.timers = [];
     this.inSafe = true;
-    this.pGeo = new THREE.SphereGeometry(0.35, 10, 8);
-    this.pMat = new THREE.MeshBasicMaterial({ color: 0xff7a1a });
+    this.deathPos = null; this.recallPos = null;
+    this.vfx = new VFX(world.scene);
+    this.potT = 0;
 
     this.ring = new THREE.Mesh(new THREE.RingGeometry(1.0, 1.3, 32),
       new THREE.MeshBasicMaterial({ color: 0xff4a3a, transparent: true, opacity: 0.85, depthTest: false, side: THREE.DoubleSide }));
@@ -81,7 +36,12 @@ class Combat {
       if (e.code === 'Tab') { e.preventDefault(); this.targetNearest(); }
       else if (e.code === 'Space') { e.preventDefault(); this.toggleAttack(); }
       else if (e.code === 'Escape') { this.clearTarget(); }
-      else { const m = /^Digit([1-8])$/.exec(e.code); if (m) this.useSkill(parseInt(m[1], 10) - 1); }
+      else if (e.code === 'KeyZ') this.activateZerk();
+      else if (e.code === 'F1' || e.code === 'F2') { e.preventDefault(); if (this.hotbar) this.hotbar.setPage(e.code === 'F1' ? 0 : 1); }
+      else {
+        const m = /^Digit([1-8])$/.exec(e.code);
+        if (m && this.hotbar) { const i = parseInt(m[1], 10) - 1; this.useSlot(this.hotbar.get(e.shiftKey ? 1 - this.hotbar.page : this.hotbar.page, i), i); }
+      }
     });
   }
 
@@ -90,128 +50,174 @@ class Combat {
     const hit = raycaster.intersectObjects(this.mm.hitMeshes(), false)[0];
     return hit ? hit.object.userData.monster : null;
   }
-  select(m, attack) {
-    this.target = m;
-    if (attack) this.startAttack();
-  }
-  clearTarget() { this.target = null; this.attacking = false; }
+  select(m, attack) { this.target = m; if (attack) this.startAttack(); }
+  clearTarget() { this.target = null; this.attacking = false; this.queued = null; }
   startAttack() {
     if (!this.target) { const t = this.mm.nearest(this.player.pos, 20); if (t) this.target = t; }
     if (!this.target) { this.hud.log('Hedef yok. Bir canavara dokun / tıkla.'); return; }
     this.attacking = true;
   }
-  stopAttack() { this.attacking = false; }
+  stopAttack() { this.attacking = false; this.queued = null; }
   toggleAttack() { if (this.attacking) this.stopAttack(); else this.startAttack(); }
   targetNearest() {
-    // Tab: bir sonraki en yakın canavar
     const p = this.player.pos;
     const cands = this.mm.list.filter(m => !m.dead && Math.hypot(m.x - p.x, m.z - p.z) < 40 && m !== this.target)
       .sort((a, b) => Math.hypot(a.x - p.x, a.z - p.z) - Math.hypot(b.x - p.x, b.z - p.z));
     if (cands.length) this.target = cands[0];
     else if (!this.target) this.hud.log('Yakında canavar yok.');
   }
-  requireTarget(range) {
-    let t = this.target && !this.target.dead ? this.target : null;
-    if (!t) { t = this.mm.nearest(this.player.pos, range); if (t) this.target = t; }
-    if (!t) { this.hud.log('Hedef yok.'); return null; }
-    if (this.dist(t) > range) { this.hud.log('Hedef çok uzak.'); return null; }
-    return t;
-  }
   dist(m) { return Math.hypot(m.x - this.player.pos.x, m.z - this.player.pos.z); }
   faceTarget(m) { this.player.heading = Math.atan2(m.x - this.player.pos.x, m.z - this.player.pos.z); }
+  _target(maxAuto = 22) {
+    let t = this.target && !this.target.dead ? this.target : null;
+    if (!t) { t = this.mm.nearest(this.player.pos, maxAuto); if (t) this.target = t; }
+    return t;
+  }
 
   // ---------- Hasar ----------
-  rollDamage(mult) {
-    const lvl = this.player.stats.level;
-    let d = (10 + lvl * 4 + this.player.inv.bonus.atk) * mult * (0.85 + Math.random() * 0.3);
-    const crit = Math.random() < 0.12;
-    if (crit) d *= 1.8;
-    return { dmg: Math.max(1, Math.round(d)), crit };
-  }
-  hitWithSkill(m, mult) {
+  _K() { return 40 + 10 * this.player.stats.level; }
+  _lvlPenalty(m) { const diff = m.level - this.player.stats.level; return diff > 0 ? Math.max(0.4, 1 - 0.04 * diff) : 1; }
+  _elemM(elem) { return this.player.book.mastery[elem] || 0; }
+
+  hitPhys(m, mult, o = {}) {
     if (m.dead) return;
-    const r = this.rollDamage(mult);
-    this.damageMonster(m, r.dmg, r.crit);
+    const pl = this.player, d = pl.d, K = this._K();
+    let raw = rnd(d.phyMin, d.phyMax) * mult;
+    const crit = Math.random() * 100 < d.crit;
+    if (crit) raw *= 2;
+    let dmg = raw * K / (K + m.pdef);
+    let elem = null;
+    if (pl.imbue) {
+      const im = pl.imbue;
+      dmg += rnd(d.magMin, d.magMax) * im.val * mult * (1 + this._elemM(im.elem) * 0.012) * K / (K + m.mdef);
+      elem = im.elem;
+      if (im.status && Math.random() < im.chance) m.applyStatus(im.status, im.sdur, dmg);
+    }
+    dmg *= this._lvlPenalty(m) * (m.dmgTakenMult || 1);
+    if (o.status && Math.random() < o.chance) m.applyStatus(o.status, o.sdur, dmg);
+    if (Math.random() < 1 / 30) pl.inv.wear('weapon');
+    this.damageMonster(m, Math.max(1, Math.round(dmg)), crit, elem);
   }
-  damageMonster(m, dmg, crit) {
+  hitMag(m, mult, elem, o = {}) {
+    if (m.dead) return;
+    const pl = this.player, d = pl.d, K = this._K();
+    let raw = rnd(d.magMin, d.magMax) * mult * (1 + this._elemM(elem) * 0.012);
+    const crit = Math.random() * 100 < d.crit * 0.5;
+    if (crit) raw *= 1.8;
+    let dmg = raw * K / (K + m.mdef) * this._lvlPenalty(m) * (m.dmgTakenMult || 1);
+    if (o.status && Math.random() < o.chance) m.applyStatus(o.status, o.sdur, dmg);
+    this.damageMonster(m, Math.max(1, Math.round(dmg)), crit, elem);
+  }
+  damageMonster(m, dmg, crit, elem, dot) {
     if (m.dead) return;
     m.hp -= dmg;
     m.provoke();
     this.player.combatT = 5;
-    this.fx(m, String(dmg), crit ? 'crit' : 'hit');
-    SFX.play(crit ? 'crit' : 'hit');
+    this.fx(m, String(dmg), crit ? 'crit' : dot ? 'dot' : (elem ? ELEM_CLS[elem] : 'hit'));
+    if (!dot) SFX.play(crit ? 'crit' : 'hit');
     if (m.hp <= 0) { m.hp = 0; this.killMonster(m); }
   }
   killMonster(m) {
     m.die();
-    if (this.target === m) { this.target = null; this.attacking = false; }
-    const p = this.player.stats;
-    const base = m.type.exp * (1 + 0.25 * (m.level - 1));
-    const exp = Math.max(1, Math.round(base * clamp(1 + 0.2 * (m.level - p.level), 0.1, 1.6)));
-    this.hud.log(m.type.name + ' öldürüldü. +' + exp + ' EXP', 'exp');
+    if (this.target === m) { this.target = null; this.attacking = false; this.queued = null; }
+    const pl = this.player, s = pl.stats;
+    const exp = Math.max(1, Math.round(m.exp * clamp(1 + 0.15 * (m.level - s.level), 0.05, 1.5)));
+    this.hud.log(m.displayName + ' öldürüldü. +' + exp + ' EXP', 'exp');
     SFX.play('kill');
-    this.fx(this.player, '+' + exp + ' EXP', 'exp');
+    this.fx(pl, '+' + exp + ' EXP', 'exp');
     this.gainExp(exp);
+    const sp = pl.book.gainSpExp(exp * SP_PER_EXP);
+    if (sp) this.fx(pl, '+' + sp + ' SP', 'sp');
+    if (pl.zerkT <= 0 && s.zerk < ZERK_MAX) {
+      const before = Math.floor(s.zerk);
+      s.zerk = Math.min(ZERK_MAX, s.zerk + m.zerkPts);
+      if (s.zerk >= ZERK_MAX && before < ZERK_MAX) { this.hud.log('Berserk hazır! (Z veya 😤)', 'lvl'); SFX.play('gem'); }
+    }
     if (this.loot) this.loot.dropFrom(m);
     if (this.quests) this.quests.onKill(m.typeKey);
+    if (m.onKilled) m.onKilled(this);
   }
-  damagePlayer(amount, m) {
-    const pl = this.player;
+
+  // Canavar oyuncuya vurur. kind: 'phys' | 'mag'
+  damagePlayer(amount, m, kind = 'phys') {
+    const pl = this.player, d = pl.d;
     if (pl.dead) return;
-    const def = pl.stats.level * 2 + pl.inv.bonus.def;
-    let dmg = amount * (100 / (100 + def * 4)) * (0.9 + Math.random() * 0.2);
-    if (pl.buffs.shield > 0) dmg *= 0.5;
-    dmg = Math.max(1, Math.round(dmg));
-    pl.stats.hp -= dmg;
     pl.combatT = 5;
+    if (kind === 'phys' && d.block && Math.random() * 100 < d.block) { this.fx(pl, 'Blok!', 'buff'); SFX.play('equip'); return; }
+    const K = 40 + 10 * m.level, def = kind === 'mag' ? d.mdef : d.pdef;
+    let dmg = amount * K / (K + def) * (0.9 + Math.random() * 0.2) * d.dmgTaken;
+    dmg = Math.max(1, Math.round(dmg));
+    if (pl.absorb) { const a = Math.min(pl.absorb.amt, dmg); pl.absorb.amt -= a; dmg -= a; if (a) this.fx(pl, 'Emildi ' + a, 'buff'); }
+    if (dmg <= 0) return;
+    pl.stats.hp -= dmg;
     this.fx(pl, '-' + dmg, 'player');
     SFX.play('hurt');
+    if (Math.random() < 1 / 25) pl.inv.wear(ARMOR_PARTS[Math.floor(Math.random() * 6)]);
+    if (Math.random() < 1 / 40) pl.inv.wear('shield');
+    const st = m.type.status;
+    if (st && Math.random() < st.chance) this.statusPlayer(st.kind, st.dur, Math.max(1, Math.round(m.dmg * 0.12)));
     if (this.casting) { this.casting = null; this.hud.log('Büyü bozuldu!'); }
     if (pl.stats.hp <= 0) { pl.stats.hp = 0; this.die(m); }
+  }
+  statusPlayer(kind, dur, dps) {
+    const pl = this.player;
+    pl.status[kind] = { t: dur, dps, tick: 1 };
+    this.fx(pl, STATUS_NAMES[kind] || kind, 'dmg');
+    if (kind === 'slow') pl.recalc();
   }
 
   // ---------- EXP / seviye ----------
   gainExp(n) {
     const s = this.player.stats;
+    if (s.level >= MAX_LEVEL) { s.exp = 0; return; }
     s.exp += n;
     let up = false;
-    while (s.exp >= s.maxExp) { s.exp -= s.maxExp; s.level++; s.maxExp = expToNext(s.level); this.applyLevel(); up = true; }
+    while (s.exp >= s.maxExp && s.level < MAX_LEVEL) {
+      s.exp -= s.maxExp; s.level++; s.str++; s.int++; s.statPts += 3;
+      s.maxExp = expToNext(s.level); up = true;
+    }
+    if (s.level >= MAX_LEVEL) s.exp = 0;
     if (up) {
+      this.player.recalc();
       s.hp = s.maxHp; s.mp = s.maxMp;
       this.player.setName(this.player.name);
-      this.hud.log('SEVİYE ATLADIN! Yeni seviye: ' + s.level, 'lvl');
+      this.hud.log('SEVİYE ATLADIN! Yeni seviye: ' + s.level + ' · +3 stat puanı (C)', 'lvl');
       SFX.play('levelup');
       this.fx(this.player, 'SEVİYE ATLADIN!', 'lvl');
+      this.vfx.column(this.player.pos.x, this.player.pos.z, 0xffd23a, 6, 1.2);
+      if (this.onLevel) this.onLevel(s.level);
     }
   }
-  applyLevel() {
+  allocate(stat, n = 1) {
     const s = this.player.stats;
-    s.maxExp = expToNext(s.level);
-    this.player.inv.recalc();
+    n = Math.min(n, s.statPts);
+    if (n <= 0) return false;
+    s.statPts -= n; s[stat] += n;
+    const hpR = s.hp / s.maxHp, mpR = s.mp / s.maxMp;
+    this.player.recalc();
+    s.hp = Math.round(s.maxHp * hpR); s.mp = Math.round(s.maxMp * mpR);
+    return true;
   }
-  // Kayıttan yükle
-  applySave(sv) {
-    const s = this.player.stats;
-    if (sv && sv.level > 0) {
-      s.level = Math.min(99, sv.level | 0);
-      this.applyLevel();
-      s.exp = clamp(sv.exp | 0, 0, s.maxExp - 1);
-      if (isFinite(sv.hpPots)) s.hpPots = clamp(sv.hpPots | 0, 0, 999);
-      if (isFinite(sv.mpPots)) s.mpPots = clamp(sv.mpPots | 0, 0, 999);
-      if (sv.inv) {
-        s.gold = Math.max(0, sv.gold | 0); s.stones = Math.max(0, sv.stones | 0);
-        this.player.inv.load(sv.inv);
-      } else this.player.inv.starter();      // Faz 2 kaydı: eşya sistemi yok, başlangıç ekipmanı ver
-      s.hp = s.maxHp; s.mp = s.maxMp;
-    } else this.player.inv.starter();
+
+  // ---------- Berserk ----------
+  activateZerk() {
+    const pl = this.player, s = pl.stats;
+    if (pl.dead || pl.zerkT > 0) return;
+    if (s.zerk < ZERK_MAX) { this.hud.log('Berserk küreleri dolu değil (' + Math.floor(s.zerk) + '/5).'); return; }
+    s.zerk = 0; pl.zerkT = 30; pl.recalc();
+    this.hud.banner('BERSERK!', 'Saldırı ve hız arttı', 'zerk');
+    this.fx(pl, 'BERSERK!', 'lvl');
+    this.vfx.burst(pl.pos.x, pl.pos.z, 0xff3a1a, 6, 0.7);
+    SFX.play('buff');
   }
 
   // ---------- Ölüm / yeniden doğma ----------
   die(m) {
     const pl = this.player;
     pl.dead = true;
-    this.attacking = false; this.target = null; this.casting = null;
-    this.hud.log((m ? m.type.name : 'Bir canavar') + ' seni yendi.', 'dmg');
+    this.attacking = false; this.target = null; this.casting = null; this.queued = null;
+    this.deathPos = { x: pl.pos.x, z: pl.pos.z };
+    this.hud.log((m ? m.displayName : 'Bir canavar') + ' seni yendi.', 'dmg');
     this.hud.showDeath(true);
     SFX.play('death');
   }
@@ -220,56 +226,220 @@ class Combat {
     pl.revive();
     pl.teleport(0, 6);
     s.hp = Math.round(s.maxHp * 0.5); s.mp = Math.round(s.maxMp * 0.5);
-    const loss = Math.round(s.maxExp * 0.1);
+    const loss = Math.round(s.maxExp * (s.level < 10 ? 0.02 : 0.05));
     s.exp = Math.max(0, s.exp - loss);
     this.hud.showDeath(false);
     this.hud.log('Şehirde yeniden doğdun. -' + loss + ' EXP', 'dmg');
   }
 
-  // ---------- Yetenekler ----------
-  useSkill(i) {
-    const pl = this.player, s = SKILLS[i];
-    if (!s || pl.dead) return;
-    if (this.cds[i] > 0) { this.hud.log(s.name + ' bekleme süresinde.'); return; }
-    if (pl.stats.mp < s.mp) { this.hud.log('Yeterli mana yok.'); return; }
-    if (s.use(this) === false) { SFX.play('error'); return; }
-    SFX.play(s.sfx || 'ui');
-    pl.stats.mp -= s.mp;
-    this.cds[i] = s.cd; this.cdMax[i] = Math.max(0.01, s.cd);
-    this.hud.flashSlot(i);
+  // ---------- Hotbar ----------
+  slotKey(e) {
+    if (!e) return null;
+    if (e.t === 'sk') return e.id;
+    if (e.t === 'it') { const b = ITEM_BASES[e.base]; return b ? (b.cd === 'pot' ? 'pot_' + b.use : b.cd || e.base) : null; }
+    return null;
   }
+  useSlot(e) {
+    const pl = this.player;
+    if (!e || pl.dead) return;
+    if (e.t === 'atk') return this.toggleAttack();
+    if (e.t === 'zerk') return this.activateZerk();
+    if (e.t === 'sk') return this.castSkill(e.id);
+    if (e.t === 'it') return this.useItem(e.base);
+  }
+  _setCd(key, t) { this.cd[key] = t; this.cdMax[key] = Math.max(0.01, t); }
+
+  // ---------- Sarf malzemeleri ----------
+  useItem(base) {
+    const pl = this.player, s = pl.stats, b = ITEM_BASES[base], inv = pl.inv;
+    if (!b || b.cat !== 'use') return false;
+    const key = b.cd === 'pot' ? 'pot_' + b.use : b.cd;
+    if (this.cd[key] > 0) return false;
+    if (inv.count(base) <= 0) { this.hud.log(b.name + ' kalmadı.'); SFX.play('error'); return false; }
+    if (s.level < (b.req || 1)) { this.hud.log(b.name + ' için ' + b.req + '. seviye gerekli.'); SFX.play('error'); return false; }
+    let ok = true, cd = 1;
+    if (b.use === 'hp') {
+      if (s.hp >= s.maxHp) { this.hud.log('Canın zaten dolu.'); return false; }
+      s.hp = Math.min(s.maxHp, s.hp + b.amount); this.fx(pl, '+' + b.amount, 'heal'); SFX.play('potion');
+    } else if (b.use === 'mp') {
+      if (s.mp >= s.maxMp) { this.hud.log('Manan zaten dolu.'); return false; }
+      s.mp = Math.min(s.maxMp, s.mp + b.amount); this.fx(pl, '+' + b.amount + ' MP', 'mana'); SFX.play('potion');
+    } else if (b.use === 'cure') {
+      if (!Object.keys(pl.status).length) { this.hud.log('Üzerinde kötü etki yok.'); return false; }
+      pl.status = {}; pl.recalc(); this.fx(pl, 'Arındın', 'heal'); SFX.play('potion'); cd = 3;
+    } else if (b.use === 'return' || b.use === 'reverse') {
+      if (this.casting) return false;
+      if (b.use === 'reverse' && !this.deathPos && !this.recallPos) { this.hud.log('Dönülecek bir nokta yok.'); return false; }
+      this.casting = { t: 3, total: 3, name: b.use === 'return' ? 'Şehre dönüş' : 'Ters dönüş', kind: b.use };
+      this.hud.log(b.name + '... 3 saniye kıpırdama.'); SFX.play('cast'); cd = 5;
+    } else if (b.use === 'speed') {
+      pl.speedScrollT = 600; pl.recalc(); this.fx(pl, 'Hız!', 'buff'); SFX.play('buff'); cd = 2;
+    } else if (b.use === 'zerk') {
+      if (s.zerk >= ZERK_MAX || pl.zerkT > 0) { this.hud.log('Berserk zaten dolu.'); return false; }
+      s.zerk = ZERK_MAX; this.fx(pl, 'Berserk dolu!', 'buff'); SFX.play('gem'); cd = 2;
+    }
+    if (ok) { inv.take(base, 1); this._setCd(key, cd); }
+    return ok;
+  }
+
+  // Otomatik iksir (Ayarlar)
+  _autoPot(dt) {
+    this.potT -= dt;
+    if (this.potT > 0 || !Settings.data.autopot) return;
+    this.potT = 0.5;
+    const pl = this.player, s = pl.stats, inv = pl.inv;
+    const best = kind => { for (let g = POT_GRADES.length; g >= 1; g--) { const b = kind + g; if (s.level >= ITEM_BASES[b].req && inv.count(b)) return b; } return null; };
+    if (s.hp / s.maxHp < Settings.data.autohp && !this.cd.pot_hp) { const b = best('hp'); if (b) this.useItem(b); }
+    if (s.mp / s.maxMp < Settings.data.automp && !this.cd.pot_mp) { const b = best('mp'); if (b) this.useItem(b); }
+  }
+
+  // ---------- Yetenekler ----------
+  _checkWeapon(s) {
+    const pl = this.player, wt = pl.inv.weaponType(), M = MASTERIES[s.m];
+    if (!wt) return 'Yetenek kullanmak için silah kuşan.';
+    if (M.kind === 'weapon' && !M.weapons.includes(wt)) return 'Bu yetenek için ' + M.weapons.map(w => WEAPON_TYPES[w].name).join(' / ') + ' gerekli.';
+    if (s.needShield && !pl.inv.equip.shield) return 'Bu yetenek için kalkan gerekli.';
+    return null;
+  }
+  _skillRange(s) {
+    const d = this.player.d;
+    if (s.type === 'atk') return (s.at === 'self') ? 99 : d.range + 0.5;
+    if (s.type === 'nuke') return s.at === 'self' ? 99 : (s.range || 14);
+    return 99;
+  }
+  _needsTarget(s) { return (s.type === 'atk' || s.type === 'nuke') && s.at !== 'self'; }
+
+  castSkill(id) {
+    const pl = this.player, s = SKILLS_BY_ID[id], r = pl.book.r(id);
+    if (!s) return;
+    if (!r) { this.hud.log(s.name + ' henüz öğrenilmedi.'); return; }
+    if (s.type === 'passive') { this.hud.log(s.name + ' kalıcı bir yetenektir.'); return; }
+    if (pl.disabled()) { this.hud.log('Hareket edemiyorsun!'); SFX.play('error'); return; }
+    if (this.cd[id] > 0) { this.hud.log(s.name + ' bekleme süresinde.'); return; }
+    if (this.gcd > 0) return;
+    const err = this._checkWeapon(s);
+    if (err) { this.hud.log(err); SFX.play('error'); return; }
+    if (pl.stats.mp < rankMp(s, r)) { this.hud.log('Yeterli mana yok.'); SFX.play('error'); return; }
+    let t = null;
+    if (this._needsTarget(s)) {
+      t = this._target();
+      if (!t) { this.hud.log('Hedef yok.'); SFX.play('error'); return; }
+      if (s.type === 'atk' && pl.d.ranged && pl.inv.count('arrow') < (s.hits || 1)) { this.hud.log('Okun kalmadı! Demirciden ok al.'); SFX.play('error'); return; }
+      if (this.dist(t) > this._skillRange(s)) {           // önce menzile yürü
+        this.queued = { id, t };
+        pl.target = { x: t.x, z: t.z };
+        return;
+      }
+    } else if (s.type === 'atk' || s.type === 'nuke') {
+      t = this._target(8);
+      if (!t || this.dist(t) > (s.aoe || 5) + 1) { this.hud.log('Yakında düşman yok.'); SFX.play('error'); return; }
+    }
+    this._execute(s, r, t);
+  }
+
+  _execute(s, r, t) {
+    const pl = this.player, st = pl.stats, v = this.vfx, P = pl.pos;
+    st.mp -= rankMp(s, r);
+    this._setCd(s.id, s.cd); this.gcd = 0.4;
+    this.queued = null;
+    if (t) { this.target = t; this.faceTarget(t); this.attacking = true; }
+    const o = { status: s.status, chance: s.chance, sdur: s.sdur };
+    const mult = sval(s.mult, s, r);
+    const aoeTargets = (cx, cz, rad) => this.mm.list.filter(m => !m.dead && Math.hypot(m.x - cx, m.z - cz) <= rad + (m.type.hit || 1) * 0.5).slice(0, 10);
+
+    if (s.type === 'atk') {
+      const ranged = pl.d.ranged;
+      pl.swingKind = ranged ? 'bow' : (pl.d.wtype === 'spear' || pl.d.wtype === 'glaive') ? 'thrust' : 'slash';
+      SFX.play(ranged ? 'swing' : 'swing');
+      const hits = s.hits || 1;
+      const apply = (m) => {
+        if (s.aoe) {
+          const c = s.at === 'self' ? P : m;
+          const list = aoeTargets(c.x, c.z, s.aoe);
+          v.burst(c.x, c.z, pl.imbue ? ELEM_COLOR[pl.imbue.elem] : 0xffe9a8, s.aoe, 0.45);
+          for (const x of list) this.hitPhys(x, mult, o);
+        } else this.hitPhys(m, mult, o);
+      };
+      for (let h = 0; h < hits; h++) {
+        this.later(h * 0.18, () => {
+          if (pl.dead) return;
+          const m = t || this.target;
+          pl.swingT = 0.3;
+          if (!s.aoe || s.at !== 'self') { if (!m || m.dead) return; }
+          if (ranged && s.at !== 'self') {
+            if (!pl.inv.take('arrow', 1)) return;
+            v.projectile({ x: P.x, y: P.y + 1.6, z: P.z }, m, 'arrow', () => apply(m));
+          } else {
+            if (!ranged) v.slash(P.x, P.z, pl.heading, pl.imbue ? ELEM_COLOR[pl.imbue.elem] : 0xffffff);
+            apply(m);
+          }
+        });
+      }
+    } else if (s.type === 'nuke') {
+      pl.swingKind = 'cast'; pl.swingT = 0.3;
+      SFX.play(s.elem === 'fire' ? 'fire' : 'cast');
+      const col = ELEM_COLOR[s.elem];
+      const hitArea = (cx, cz) => {
+        v.burst(cx, cz, col, s.aoe, 0.6);
+        for (const m of aoeTargets(cx, cz, s.aoe)) this.hitMag(m, mult, s.elem, o);
+      };
+      if (s.at === 'self') hitArea(P.x, P.z);
+      else if (s.elem === 'lightning') { v.bolt(t.x, t.z, col); if (s.aoe) hitArea(t.x, t.z); else this.hitMag(t, mult, s.elem, o); }
+      else if (s.id === 'fr_meteor') { this.later(0.4, () => { if (!t.dead || true) hitArea(t.x, t.z); }); v.column(t.x, t.z, col, 12, 0.5); }
+      else if (s.proj || !s.aoe) {
+        v.projectile({ x: P.x, y: P.y + 1.7, z: P.z }, t, s.elem === 'cold' ? 'ice' : 'fire', () => (s.aoe ? hitArea(t.x, t.z) : this.hitMag(t, mult, s.elem, o)));
+      } else hitArea(t.x, t.z);
+    } else if (s.type === 'buff') {
+      const b = {}; for (const k in s.buff) b[k] = sval(s.buff[k], s, r);
+      pl.addBuff(s.id, { t: s.dur, max: s.dur, icon: s.icon, name: s.name, st: b });
+      this.fx(pl, s.name + '!', 'buff'); SFX.play('buff');
+      v.column(P.x, P.z, ELEM_COLOR[MASTERIES[s.m].elem] || 0xffe9a8, 4, 0.6);
+    } else if (s.type === 'imbue') {
+      pl.imbue = { elem: s.elem, val: sval(s.val, s, r), t: s.dur, max: s.dur, status: s.status, chance: s.chance, sdur: s.sdur, icon: s.icon, name: s.name };
+      this.fx(pl, s.name, 'buff'); SFX.play('buff');
+      v.burst(P.x, P.z, ELEM_COLOR[s.elem], 2.2, 0.4);
+    } else if (s.type === 'heal') {
+      const h = Math.round(st.maxHp * sval(s.val, s, r) * (1 + this._elemM('force') * 0.01));
+      st.hp = Math.min(st.maxHp, st.hp + h);
+      this.fx(pl, '+' + h, 'heal'); SFX.play('potion');
+      v.column(P.x, P.z, 0x8aff9a, 5, 0.8);
+    } else if (s.type === 'cure') {
+      pl.status = {}; pl.recalc(); this.fx(pl, 'Arındın', 'heal'); SFX.play('buff');
+      v.column(P.x, P.z, 0xffffff, 5, 0.6);
+    } else if (s.type === 'absorb') {
+      pl.absorb = { amt: Math.round(st.maxHp * sval(s.val, s, r)), t: s.dur };
+      this.fx(pl, s.name, 'buff'); SFX.play('buff');
+    } else if (s.type === 'dash') {
+      const dist = sval(s.dist, s, r), tt = this.target && !this.target.dead ? this.target : null;
+      let ang = pl.heading;
+      if (tt) ang = Math.atan2(tt.x - P.x, tt.z - P.z);
+      const maxD = tt ? Math.max(0, Math.min(dist, this.dist(tt) - 2)) : dist;
+      v.burst(P.x, P.z, 0xd8c8ff, 2, 0.35);
+      const lim = CONFIG.worldSize / 2 - 6;
+      pl.teleport(clamp(P.x + Math.sin(ang) * maxD, -lim, lim), clamp(P.z + Math.cos(ang) * maxD, -lim, lim));
+      pl.heading = ang;
+      v.burst(P.x, P.z, 0xd8c8ff, 2.5, 0.4); SFX.play('cast');
+    }
+    if (this.hud) this.hud.flashKey(s.id);
+  }
+
   fx(entity, text, cls) {
     const p = entity.pos || entity.group.position;
     const h = entity === this.player ? 3.0 : 2.4 * (entity.baseScale || 1);
-    this.hud.floatText({ x: p.x, y: p.y + h, z: p.z }, text, cls);
+    this.hud.floatText({ x: p.x + (Math.random() - 0.5) * 0.6, y: p.y + h, z: p.z }, text, cls);
   }
-  later(sec, fn) { this.timers.push({ t: sec, fn }); }
-
-  spawnProjectile(target, onHit) {
-    const mesh = new THREE.Mesh(this.pGeo, this.pMat);
-    const p = this.player.pos;
-    mesh.position.set(p.x, p.y + 1.7, p.z);
-    this.world.scene.add(mesh);
-    this.projectiles.push({ mesh, target, onHit });
-  }
+  later(sec, fn) { if (sec <= 0) fn(); else this.timers.push({ t: sec, fn }); }
 
   // ---------- Ana güncelleme ----------
   update(dt) {
-    const pl = this.player;
-    for (let i = 0; i < this.cds.length; i++) if (this.cds[i] > 0) this.cds[i] = Math.max(0, this.cds[i] - dt);
+    const pl = this.player, s = pl.stats;
+    for (const k in this.cd) if (this.cd[k] > 0) { this.cd[k] -= dt; if (this.cd[k] <= 0) delete this.cd[k]; }
+    if (this.gcd > 0) this.gcd -= dt;
     for (let i = this.timers.length - 1; i >= 0; i--) {
       this.timers[i].t -= dt;
       if (this.timers[i].t <= 0) { const f = this.timers[i].fn; this.timers.splice(i, 1); f(); }
     }
-    for (let i = this.projectiles.length - 1; i >= 0; i--) {
-      const pr = this.projectiles[i], t = pr.target;
-      const tp = t.group.position;
-      const dx = tp.x - pr.mesh.position.x, dy = tp.y + 1.1 - pr.mesh.position.y, dz = tp.z - pr.mesh.position.z;
-      const d = Math.hypot(dx, dy, dz), step = 22 * dt;
-      if (t.dead) { this.world.scene.remove(pr.mesh); this.projectiles.splice(i, 1); continue; }
-      if (d < 0.9 || d < step) { this.world.scene.remove(pr.mesh); this.projectiles.splice(i, 1); pr.onHit(); }
-      else pr.mesh.position.set(pr.mesh.position.x + dx / d * step, pr.mesh.position.y + dy / d * step, pr.mesh.position.z + dz / d * step);
-    }
+    this.vfx.update(dt);
 
     // Güvenli bölge geçişleri
     const safe = inSafeZone(pl.pos.x, pl.pos.z);
@@ -279,38 +449,66 @@ class Combat {
     }
 
     if (pl.dead) { this.ring.visible = false; return; }
-    if (pl.attackCd > 0) pl.attackCd -= dt;
-    if (pl.manualMove) this.attacking = false;
 
-    // Şehre dönüş büyüsü
+    // oyuncu üzerindeki hasar etkileri (yanma / zehir / kanama)
+    for (const k of ['burn', 'poison', 'bleed']) {
+      const st = pl.status[k]; if (!st) continue;
+      st.tick -= dt;
+      if (st.tick <= 0) { st.tick = 1; s.hp -= st.dps; this.fx(pl, '-' + st.dps, 'dot'); if (s.hp <= 0) { s.hp = 0; this.die(null); return; } }
+    }
+    this._autoPot(dt);
+
+    if (pl.attackCd > 0) pl.attackCd -= dt;
+    if (pl.manualMove) { this.attacking = false; this.queued = null; }
+
+    // Dönüş parşömeni
     if (this.casting) {
       if (pl.moving || pl.manualMove) { this.casting = null; this.hud.log('Büyü bozuldu (hareket ettin).'); }
       else {
         this.casting.t -= dt;
         if (this.casting.t <= 0) {
-          this.casting = null;
-          pl.teleport(0, 6);
-          this.hud.log('Şehre ulaştın.');
+          const kind = this.casting.kind; this.casting = null;
+          if (kind === 'reverse') {
+            const p = this.deathPos || this.recallPos;
+            pl.teleport(p.x, p.z); this.hud.log('Işınlandın.');
+          } else {
+            this.recallPos = { x: pl.pos.x, z: pl.pos.z };
+            pl.teleport(0, 6); this.hud.log('Şehre ulaştın.');
+          }
+          this.target = null; this.attacking = false;
         }
       }
     }
 
     // Hedef doğrulama
-    if (this.target && (this.target.dead || this.dist(this.target) > 60)) { this.target = null; this.attacking = false; }
+    if (this.target && (this.target.dead || this.dist(this.target) > 60)) { this.target = null; this.attacking = false; this.queued = null; }
+
+    // Sıradaki yetenek: menzile girince kullan
+    if (this.queued) {
+      const q = this.queued, sk = SKILLS_BY_ID[q.id];
+      if (q.t.dead) this.queued = null;
+      else if (this.dist(q.t) <= this._skillRange(sk)) { pl.target = null; const r = pl.book.r(q.id); this.queued = null; if (s.mp >= rankMp(sk, r) && !this.cd[q.id]) this._execute(sk, r, q.t); }
+      else pl.target = { x: q.t.x, z: q.t.z };
+    }
 
     // Otomatik saldırı: menzile yürü, vur
-    if (this.attacking && this.target) {
-      const t = this.target, d = this.dist(t);
-      if (d > MELEE_RANGE - 0.3) { pl.target = { x: t.x, z: t.z }; }
+    if (this.attacking && this.target && !this.queued && !pl.disabled()) {
+      const t = this.target, d = this.dist(t), range = pl.d.range;
+      if (d > range - 0.3) { pl.target = { x: t.x, z: t.z }; }
       else {
         pl.target = null;
         this.faceTarget(t);
-        if (pl.attackCd <= 0) {
-          pl.attackCd = 1.0;
+        if (pl.attackCd <= 0 && this.gcd <= 0) {
+          pl.attackCd = pl.d.atkInt * (pl.zerkT > 0 ? 0.7 : 1);
           pl.swingT = 0.3;
-          SFX.play('swing');
-          const r = this.rollDamage(1);
-          this.damageMonster(t, r.dmg, r.crit);
+          if (pl.d.ranged) {
+            if (!pl.inv.take('arrow', 1)) { this.attacking = false; this.hud.log('Okun kalmadı! Demirciden ok al.'); SFX.play('error'); }
+            else { pl.swingKind = 'bow'; SFX.play('swing'); this.vfx.projectile({ x: pl.pos.x, y: pl.pos.y + 1.6, z: pl.pos.z }, t, 'arrow', () => this.hitPhys(t, 1)); }
+          } else {
+            pl.swingKind = (pl.d.wtype === 'spear' || pl.d.wtype === 'glaive') ? 'thrust' : 'slash';
+            SFX.play('swing');
+            this.hitPhys(t, 1);
+          }
         }
       }
     }
