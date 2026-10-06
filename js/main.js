@@ -17,11 +17,16 @@
   const input = new Input(canvas);
   const world = new World();
   const player = new Player(world, 'Gezgin');
+  const npcs = new NPCManager(world);
   const monsters = new MonsterManager(world);
   const rig = new CameraRig(camera, input);
   const hud = new HUD(player, world, rig, camera);
   const combat = new Combat(player, monsters, world, camera);
   hud.combat = combat; hud.mm = monsters; combat.hud = hud;
+  const loot = new LootManager(world, player, hud);
+  combat.loot = loot;
+  const ui = new UI(player, hud);
+  let pendingNpc = null;
   input.bindJoystick(document.getElementById('joy-zone'), document.getElementById('joy-knob'));
 
   const raycaster = new THREE.Raycaster();
@@ -36,6 +41,7 @@
     camera.aspect = w / h;
     camera.updateProjectionMatrix();
   }
+  document.addEventListener('gesturestart', e => e.preventDefault());   // iOS sayfa yakınlaştırmasını engelle
   window.addEventListener('resize', resize);
   window.addEventListener('orientationchange', () => setTimeout(resize, 200));
   resize();
@@ -49,7 +55,8 @@
       const s = player.stats;
       localStorage.setItem(CONFIG.saveKey, JSON.stringify({
         name: player.name, x: player.pos.x, z: player.pos.z,
-        level: s.level, exp: s.exp, hpPots: s.hpPots, mpPots: s.mpPots
+        level: s.level, exp: s.exp, hpPots: s.hpPots, mpPots: s.mpPots,
+        gold: s.gold, stones: s.stones, inv: player.inv.serialize()
       }));
     } catch (e) { /* özel pencere vb. */ }
   }
@@ -65,7 +72,7 @@
     if (started) return;
     const name = (nameInput.value || '').trim() || 'Gezgin';
     const sameChar = saved && saved.name === name;
-    if (sameChar) combat.applySave(saved);
+    if (sameChar) combat.applySave(saved); else player.inv.starter();
     player.setName(name);
     if (sameChar && isFinite(saved.x) && isFinite(saved.z)) player.teleport(saved.x, saved.z);
     startScreen.classList.add('hidden');
@@ -86,12 +93,17 @@
       ndc.set((c.x / window.innerWidth) * 2 - 1, -(c.y / window.innerHeight) * 2 + 1);
       raycaster.setFromCamera(ndc, camera);
       const m = combat.pick(raycaster);
-      if (m) { combat.select(m, true); continue; }
+      if (m) { pendingNpc = null; combat.select(m, true); continue; }
+      const npc = npcs.pick(raycaster);
+      if (npc) { combat.stopAttack(); pendingNpc = npc; player.target = { x: npc.x, z: npc.z }; continue; }
+      const drop = loot.pick(raycaster);
+      if (drop) { pendingNpc = null; combat.stopAttack(); player.target = { x: drop.x, z: drop.z }; world.showMarker({ x: drop.x, z: drop.z }); continue; }
       const hit = raycaster.intersectObject(world.ground, false)[0];
       if (hit) {
         const lim = CONFIG.worldSize / 2 - 6;
         const p = { x: clamp(hit.point.x, -lim, lim), z: clamp(hit.point.z, -lim, lim) };
         combat.stopAttack();
+        pendingNpc = null;
         player.target = p;
         world.showMarker(p);
       }
@@ -109,11 +121,20 @@
       combat.update(dt);
       player.update(dt, input, rig.yaw);
       monsters.update(dt, player, combat);
+      loot.update(dt);
+      npcs.update(dt, player);
+      ui.update();
+      if (pendingNpc) {
+        const d = Math.hypot(player.pos.x - pendingNpc.x, player.pos.z - pendingNpc.z);
+        if (player.manualMove || player.dead) pendingNpc = null;
+        else if (d < NPC_RANGE) { player.target = null; ui.openNpc(pendingNpc); pendingNpc = null; }
+      }
       saveT += dt;
       if (saveT > 5) { saveT = 0; save(); }
     } else {
       input.clicks.length = 0;
       monsters.update(dt, player, combat);   // menüde de canavarlar dolaşsın
+      npcs.update(dt, player);
     }
 
     rig.update(dt, player.pos, !started);

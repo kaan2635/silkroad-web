@@ -60,6 +60,7 @@ class Combat {
     this.cds = new Array(SKILLS.length).fill(0);
     this.cdMax = new Array(SKILLS.length).fill(1);
     this.casting = null;
+    this.loot = null;        // main.js bağlar
     this.projectiles = [];
     this.timers = [];
     this.inSafe = true;
@@ -121,7 +122,7 @@ class Combat {
   // ---------- Hasar ----------
   rollDamage(mult) {
     const lvl = this.player.stats.level;
-    let d = (10 + lvl * 4) * mult * (0.85 + Math.random() * 0.3);
+    let d = (10 + lvl * 4 + this.player.inv.bonus.atk) * mult * (0.85 + Math.random() * 0.3);
     const crit = Math.random() < 0.12;
     if (crit) d *= 1.8;
     return { dmg: Math.max(1, Math.round(d)), crit };
@@ -148,11 +149,12 @@ class Combat {
     this.hud.log(m.type.name + ' öldürüldü. +' + exp + ' EXP', 'exp');
     this.fx(this.player, '+' + exp + ' EXP', 'exp');
     this.gainExp(exp);
+    if (this.loot) this.loot.dropFrom(m);
   }
   damagePlayer(amount, m) {
     const pl = this.player;
     if (pl.dead) return;
-    const def = pl.stats.level * 2;
+    const def = pl.stats.level * 2 + pl.inv.bonus.def;
     let dmg = amount * (100 / (100 + def * 4)) * (0.9 + Math.random() * 0.2);
     if (pl.buffs.shield > 0) dmg *= 0.5;
     dmg = Math.max(1, Math.round(dmg));
@@ -178,9 +180,8 @@ class Combat {
   }
   applyLevel() {
     const s = this.player.stats;
-    s.maxHp = 100 + 20 * (s.level - 1);
-    s.maxMp = 50 + 10 * (s.level - 1);
     s.maxExp = expToNext(s.level);
+    this.player.inv.recalc();
   }
   // Kayıttan yükle
   applySave(sv) {
@@ -189,10 +190,14 @@ class Combat {
       s.level = Math.min(99, sv.level | 0);
       this.applyLevel();
       s.exp = clamp(sv.exp | 0, 0, s.maxExp - 1);
-      if (isFinite(sv.hpPots)) s.hpPots = clamp(sv.hpPots | 0, 0, 99);
-      if (isFinite(sv.mpPots)) s.mpPots = clamp(sv.mpPots | 0, 0, 99);
+      if (isFinite(sv.hpPots)) s.hpPots = clamp(sv.hpPots | 0, 0, 999);
+      if (isFinite(sv.mpPots)) s.mpPots = clamp(sv.mpPots | 0, 0, 999);
+      if (sv.inv) {
+        s.gold = Math.max(0, sv.gold | 0); s.stones = Math.max(0, sv.stones | 0);
+        this.player.inv.load(sv.inv);
+      } else this.player.inv.starter();      // Faz 2 kaydı: eşya sistemi yok, başlangıç ekipmanı ver
       s.hp = s.maxHp; s.mp = s.maxMp;
-    }
+    } else this.player.inv.starter();
   }
 
   // ---------- Ölüm / yeniden doğma ----------

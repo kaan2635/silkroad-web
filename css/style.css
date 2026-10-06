@@ -1,5 +1,5 @@
 * { box-sizing: border-box; margin: 0; padding: 0; }
-html, body { width: 100%; height: 100%; overflow: hidden; background: #1a1209; font-family: "Trebuchet MS", "Segoe UI", sans-serif; color: #f3e6c4; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; -webkit-tap-highlight-color: transparent; overscroll-behavior: none; touch-action: none; }
+html, body { width: 100%; height: 100%; overflow: hidden; background: #1a1209; font-family: "Trebuchet MS", "Segoe UI", sans-serif; color: #f3e6c4; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; -webkit-tap-highlight-color: transparent; overscroll-behavior: none; touch-action: manipulation; }
 #game { position: fixed; inset: 0; width: 100%; height: 100%; display: block; touch-action: none; }
 .hidden { display: none !important; }
 
@@ -111,3 +111,54 @@ body.touch #target-frame { top: max(8px, env(safe-area-inset-top)); width: 190px
 body.touch #cast { bottom: 190px; }
 body.touch .start-box { padding: 22px 26px; }
 body.touch .start-box h1 { font-size: 30px; }
+
+/* --- Faz 3: pencereler, envanter, dükkân --- */
+#pgold { margin-top: 4px; font-size: 12px; color: #ffd23a; font-weight: bold; }
+#menu-btns { position: absolute; right: 14px; top: 236px; display: flex; gap: 6px; }
+#menu-btns button { width: 44px; height: 44px; font-size: 22px; border-radius: 8px; background: linear-gradient(#2b1c10, #130b06); border: 1px solid #8a6a2f; cursor: pointer; pointer-events: auto; }
+#log .gold { color: #ffd23a; }
+
+.win { position: fixed; left: 50%; top: 50%; transform: translate(-50%, -50%); z-index: 8; width: min(700px, 96vw); max-height: 94vh; overflow: auto; padding: 10px 12px; background: linear-gradient(#2b1c10f7, #150d07f7); border: 2px solid #8a6a2f; border-radius: 8px; box-shadow: 0 10px 40px #000c; pointer-events: auto; touch-action: pan-y; }
+.win-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; font-weight: bold; color: #ffe08a; font-size: 16px; }
+.win button { font-family: inherit; cursor: pointer; color: #2b1400; background: linear-gradient(#ffd966, #c9942a); border: 1px solid #5a3a08; border-radius: 4px; padding: 6px 10px; font-weight: bold; font-size: 13px; }
+.win button.x { background: #3a2a18; color: #f3e6c4; border-color: #8a6a2f; padding: 4px 10px; }
+.win button.warn { background: linear-gradient(#ff8a6a, #c0402a); color: #fff; }
+.win button:active { filter: brightness(1.2); }
+
+.inv-body { display: flex; gap: 10px; align-items: flex-start; flex-wrap: wrap; }
+#equip { display: flex; flex-direction: column; gap: 5px; width: 50px; }
+#inv-grid { display: grid; grid-template-columns: repeat(6, 1fr); gap: 5px; flex: 1; min-width: 270px; }
+#inv-info { width: 190px; min-height: 130px; font-size: 13px; display: flex; flex-direction: column; gap: 4px; }
+#inv-info .hint, .hint { color: #b9a77c; font-size: 13px; padding: 8px 2px; }
+#inv-info button { margin-top: 4px; }
+.in-name { font-weight: bold; font-size: 15px; }
+.in-sub { color: #b9a77c; font-size: 12px; }
+.in-st { color: #a8f0a0; }
+.in-req.bad { color: #ff8a7a; }
+.in-cmp { color: #b9a77c; font-size: 12px; }
+.islot { position: relative; aspect-ratio: 1; min-width: 40px; background: #130b06; border: 2px solid #4a3a20; border-radius: 6px; display: flex; align-items: center; justify-content: center; font-size: 22px; cursor: pointer; user-select: none; }
+.islot.empty { opacity: .4; }
+.islot.sel { box-shadow: 0 0 8px 2px #ffd966; }
+.islot .plus { position: absolute; right: 3px; bottom: 0; font-size: 10px; font-style: normal; font-weight: bold; color: #ffd23a; text-shadow: 0 1px 2px #000; }
+#inv-foot, #npc-foot { margin-top: 10px; padding-top: 8px; border-top: 1px solid #5a4020; font-size: 13px; display: flex; flex-wrap: wrap; gap: 6px 14px; align-items: center; }
+#inv-foot .stt { margin-left: auto; }
+
+.tabs { display: flex; gap: 6px; margin-bottom: 8px; }
+.tabs button { background: #3a2a18; color: #f3e6c4; border-color: #8a6a2f; }
+.tabs button.on { background: linear-gradient(#ffd966, #c9942a); color: #2b1400; }
+#npc-msg { min-height: 20px; font-size: 13px; margin-bottom: 4px; }
+#npc-body { max-height: 52vh; overflow-y: auto; -webkit-overflow-scrolling: touch; }
+.srow { display: flex; align-items: center; gap: 8px; padding: 6px 4px; border-bottom: 1px solid #3a2a18; }
+.srow .ic { font-size: 22px; width: 30px; text-align: center; }
+.srow .nm { flex: 1; font-size: 14px; font-weight: bold; }
+.srow .nm small { display: block; font-weight: normal; color: #b9a77c; font-size: 11px; }
+.srow .pr { color: #ffd23a; font-size: 13px; white-space: nowrap; }
+
+@media (max-width: 720px) { #menu-btns { top: 150px; } }
+body.touch #menu-btns { right: max(8px, env(safe-area-inset-right)); top: 140px; }
+body.touch .win { padding: 8px 10px; max-height: 96vh; }
+body.touch #inv-grid { grid-template-columns: repeat(6, 1fr); min-width: 250px; gap: 4px; }
+body.touch #inv-info { width: 150px; }
+body.touch .islot { min-width: 36px; font-size: 19px; }
+body.touch #equip { width: 44px; }
+body.touch #npc-body { max-height: 46vh; }

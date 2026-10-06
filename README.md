@@ -1,6 +1,6 @@
 # Silkroad Web
 
-Tarayıcıda çalışan, **Silkroad Online** tarzı 3D MMORPG. **Masaüstü ve telefonda** oynanır. Şu an **Faz 2 (savaş ve canavarlar)** hazır. Yol haritası için [ROADMAP.md](ROADMAP.md).
+Tarayıcıda çalışan, **Silkroad Online** tarzı 3D MMORPG. **Masaüstü ve telefonda** oynanır. Şu an **Faz 3 (eşyalar ve envanter)** hazır. Yol haritası için [ROADMAP.md](ROADMAP.md).
 
 ## Çalıştırma
 
@@ -24,6 +24,9 @@ python3 -m http.server 8000   # sonra http://localhost:8000
 | Yakınlaş | Fare tekerleği | İki parmak aç / kapa |
 | Hedef seç | Tab | 🎯 |
 | Yetenekler | 1–8 | Sağ alttaki butonlar |
+| Envanter | I | 🎒 butonu (sağ üst) |
+| NPC ile konuş | NPC'ye tıkla | NPC'ye dokun |
+| Ganimet | Üstünden geç / tıkla | Üstünden geç / dokun |
 
 ## Yetenekler
 
@@ -43,6 +46,9 @@ python3 -m http.server 8000   # sonra http://localhost:8000
 - **Canavarlar:** Kurt (Sv. 1–3), Dev Akrep (Sv. 3–5), Haydut kampları (Sv. 4–7). Dolaşır, kovalar, yuvasına döner, 18 sn sonra yeniden doğar
 - **Güvenli bölge:** şehir kapısı çevresinde canavar saldırmaz
 - **Savaş:** hedef çerçevesi, hasar sayıları, kritik vuruş, bekleme süreleri, EXP ve seviye atlama, ölüm ve yeniden doğma
+- **Eşyalar:** 20 eşya, 4 nadirlik, ekipman statları (saldırı, savunma, can, mana). Canavarlar altın, eşya, iksir ve Yükseltme Taşı düşürür
+- **Envanter:** 24 slot + 5 ekipman slotu. Eşyaya dokun, tekrar dokunursan kuşanır
+- **NPC'ler:** şehir kapısının yanında Tüccar Ali (al/sat) ve Demirci Wen (+7'ye kadar yükseltme)
 - **Mobil:** joystick, dokunmatik kamera, ayrı mobil arayüz yerleşimi
 - Karakter adı, konum, seviye, EXP ve iksirler tarayıcıda kaydedilir (localStorage)
 
@@ -57,6 +63,11 @@ js/world.js       arazi, nesneler, gökyüzü, ışık
 js/player.js      karakter, hareket, çarpışma
 js/monsters.js    canavar modelleri, yapay zeka, spawn
 js/combat.js      hedefleme, hasar, yetenekler, EXP, ölüm
+js/items.js       eşya verileri, nadirlik, düşme tablosu
+js/inventory.js   envanter, ekipman, stat hesabı
+js/loot.js        yerdeki ganimet
+js/npc.js         Tüccar ve Demirci
+js/ui.js          envanter ve dükkân pencereleri
 js/camera.js      yörünge kamerası
 js/hud.js         arayüz, mini harita, hasar yazıları
 js/main.js        renderer, ana döngü, başlangıç ekranı

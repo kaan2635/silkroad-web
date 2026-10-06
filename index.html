@@ -19,6 +19,7 @@
       <div class="bar hp"><div id="hp-fill" class="fill"></div><span id="hp-text"></span></div>
       <div class="bar mp"><div id="mp-fill" class="fill"></div><span id="mp-text"></span></div>
       <div id="buffs"></div>
+      <div id="pgold">💰 0</div>
     </div>
 
     <div id="target-frame" class="panel hidden">
@@ -36,7 +37,7 @@
 
     <div id="help" class="panel">
       <b>Sol tık</b> yürü / saldır &nbsp;·&nbsp; <b>Sağ tık + sürükle</b> kamera &nbsp;·&nbsp; <b>Tekerlek</b> zoom &nbsp;·&nbsp;
-      <b>WASD</b> yürü &nbsp;·&nbsp; <b>Tab</b> hedef &nbsp;·&nbsp; <b>Space</b> saldır &nbsp;·&nbsp; <b>1–8</b> yetenek
+      <b>WASD</b> yürü &nbsp;·&nbsp; <b>Tab</b> hedef &nbsp;·&nbsp; <b>Space</b> saldır &nbsp;·&nbsp; <b>1–8</b> yetenek &nbsp;·&nbsp; <b>I</b> envanter
     </div>
 
     <div id="cast" class="hidden"><div id="cast-fill"></div><span id="cast-text"></span></div>
@@ -49,6 +50,26 @@
     <!-- Mobil kontroller -->
     <div id="joy-zone"><div id="joy-base"></div><div id="joy-knob"></div></div>
     <div id="btn-target">🎯</div>
+
+    <div id="menu-btns"><button id="btn-inv" title="Envanter (I)">🎒</button></div>
+
+    <div id="inv" class="win hidden">
+      <div class="win-head"><span>🎒 Envanter</span><button class="x">✕</button></div>
+      <div class="inv-body">
+        <div id="equip"></div>
+        <div id="inv-grid"></div>
+        <div id="inv-info"></div>
+      </div>
+      <div id="inv-foot"></div>
+    </div>
+
+    <div id="npc-win" class="win hidden">
+      <div class="win-head"><span id="npc-title"></span><button class="x">✕</button></div>
+      <div id="npc-tabs" class="tabs"></div>
+      <div id="npc-msg"></div>
+      <div id="npc-body"></div>
+      <div id="npc-foot"></div>
+    </div>
 
     <div id="fx"></div>
   </div>
@@ -68,7 +89,7 @@
       <input id="name-input" maxlength="16" placeholder="Karakter adın" autocomplete="off" spellcheck="false">
       <button id="start-btn">Oyuna Başla</button>
       <p class="hint-touch">📱 Telefonu yatay tut</p>
-      <p class="ver">Faz 2 · Canavarlar ve savaş</p>
+      <p class="ver">Faz 3 · Eşyalar ve envanter</p>
     </div>
   </div>
 
@@ -82,13 +103,18 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
   <script>window.THREE || document.write('<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.min.js"><\/script>');</script>
   <script src="js/config.js"></script>
+  <script src="js/items.js"></script>
+  <script src="js/inventory.js"></script>
   <script src="js/input.js"></script>
   <script src="js/world.js"></script>
   <script src="js/player.js"></script>
+  <script src="js/npc.js"></script>
   <script src="js/monsters.js"></script>
+  <script src="js/loot.js"></script>
   <script src="js/combat.js"></script>
   <script src="js/camera.js"></script>
   <script src="js/hud.js"></script>
+  <script src="js/ui.js"></script>
   <script src="js/main.js"></script>
 </body>
 </html>

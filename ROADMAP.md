@@ -25,15 +25,17 @@ Tarayıcıda çalışan, Silkroad Online tarzı (ipek yolu temalı, tıkla-yür�
 - [x] Ölüm, şehirde yeniden doğma, EXP ve seviye atlama, güvenli bölge
 - [x] Seviye ve iksirler tarayıcıda kaydedilir
 
-## Faz 3 — Eşyalar ve Envanter
-- [ ] Canavarlardan loot düşmesi, yerden alma, altın
-- [ ] Envanter penceresi (sürükle-bırak / dokunarak), ekipman slotları
-- [ ] Silah/zırh statları, eşya nadirlik seviyeleri (+ yükseltme sistemi)
-- [ ] NPC dükkânı (iksir alma/satma)
+## Faz 3 — Eşyalar ve Envanter (TAMAM)
+- [x] Canavarlardan loot: altın, eşya, iksir, Yükseltme Taşı; yerde ışık hüzmesi, yaklaşınca otomatik toplanır
+- [x] Envanter (24 slot) ve ekipman (silah, miğfer, zırh, çizme, yüzük), seviye şartı
+- [x] 20 eşya, 4 nadirlik (Sıradan, Güzel, Nadir, Destansı), eşya statları savaşa etki eder
+- [x] Tüccar: iksir/taş/ekipman al, eşya sat
+- [x] Demirci: eşyayı +7'ye kadar yükselt (taş + altın, başarı şansı düşer)
+- [x] Envanter, altın ve ekipman tarayıcıda kaydedilir
 
 ## Faz 4 — Dünya ve NPC'ler
 - [ ] Şehir (Jangan benzeri), kervan yolu, birden çok bölge
-- [ ] NPC'ler: tüccar, demirci, görev verici
+- [ ] NPC'ler: tüccar ve demirci hazır (Faz 3); görev verici eksik
 - [ ] Görev sistemi (öldür, topla, teslim et)
 - [ ] Gün/gece döngüsü, dünya haritası
 

@@ -9,7 +9,7 @@ class HUD {
       name: $('pname'), lvl: $('plvl'),
       hp: $('hp-fill'), hpt: $('hp-text'), mp: $('mp-fill'), mpt: $('mp-text'),
       exp: $('exp-fill'), expt: $('exp-text'),
-      coords: $('coords'), fps: $('fps'), log: $('log'), hotbar: $('hotbar'), root: $('hud'),
+      pgold: $('pgold'), coords: $('coords'), fps: $('fps'), log: $('log'), hotbar: $('hotbar'), root: $('hud'),
       tf: $('target-frame'), tfName: $('tf-name'), tfLvl: $('tf-lvl'), tfFill: $('tf-fill'), tfText: $('tf-text'),
       buffs: $('buffs'), cast: $('cast'), castFill: $('cast-fill'), castText: $('cast-text'),
       death: $('death'), fx: $('fx')
@@ -49,9 +49,10 @@ class HUD {
 
   showDeath(v) { this.el.death.classList.toggle('hidden', !v); }
 
-  log(msg, cls = 'sys') {
+  log(msg, cls = 'sys', color) {
     const d = document.createElement('div');
     d.className = cls; d.textContent = msg;
+    if (color) d.style.color = color;
     this.el.log.appendChild(d);
     while (this.el.log.children.length > 6) this.el.log.removeChild(this.el.log.firstChild);
     setTimeout(() => d.remove(), 9000);
@@ -89,6 +90,7 @@ class HUD {
     e.mpt.textContent = Math.floor(s.mp) + ' / ' + s.maxMp;
     e.exp.style.width = (s.exp / s.maxExp * 100) + '%';
     e.expt.textContent = 'EXP ' + s.exp + ' / ' + s.maxExp;
+    e.pgold.textContent = '💰 ' + s.gold + '   💎 ' + s.stones;
     e.coords.textContent = Math.round(pl.pos.x) + ', ' + Math.round(pl.pos.z);
 
     this.frames++; this.fpsT += dt;
@@ -165,7 +167,7 @@ class HUD {
     for (const o of this.world.obstacles) {
       if (Math.abs(o.x - pp.x) > range || Math.abs(o.z - pp.z) > range) continue;
       if (o.type === 'pond') { ctx.fillStyle = '#3aa0c8'; ctx.beginPath(); ctx.arc(o.x, o.z, o.r + 1, 0, 6.283); ctx.fill(); continue; }
-      ctx.fillStyle = o.type === 'palm' ? '#3f7d2a' : o.type === 'cactus' ? '#5a9a3c' : o.type === 'gate' ? '#a8281e' : '#8a7a62';
+      ctx.fillStyle = o.type === 'palm' ? '#3f7d2a' : o.type === 'cactus' ? '#5a9a3c' : o.type === 'gate' ? '#a8281e' : o.type === 'npc' ? '#ffd24a' : '#8a7a62';
       ctx.beginPath(); ctx.arc(o.x, o.z, Math.max(1.6, o.r * 0.8), 0, 6.283); ctx.fill();
     }
 

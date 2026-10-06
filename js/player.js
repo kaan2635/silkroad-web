@@ -82,7 +82,8 @@ class Player {
     this.combatT = 0;
     this.buffs = { haste: 0, shield: 0 };
 
-    this.stats = { level: 1, hp: 100, maxHp: 100, mp: 50, maxMp: 50, exp: 0, maxExp: 100, hpPots: 10, mpPots: 10 };
+    this.stats = { level: 1, hp: 100, maxHp: 100, mp: 50, maxMp: 50, exp: 0, maxExp: 100, hpPots: 10, mpPots: 10, gold: 0, stones: 0 };
+    this.inv = new Inventory(this);
 
     const h = buildHumanoid({ robe: 0xb03a2e, robeDark: 0x5a1d16, hat: 'straw' });
     this.model = h.group;
