@@ -109,6 +109,7 @@
         jobs: jobs.serialize(), pets: pets.serialize()
       }));
     } catch (e) { /* özel pencere vb. */ }
+    Eco.save();
   }
 
   // Kayıttan yükle (v1 → v2 göçü dahil)
@@ -201,6 +202,7 @@
       player.teleport(0, 7);
     }
     player.setName(name);
+    Eco.load(name);
     if (sameChar && isFinite(saved.x) && isFinite(saved.z)) player.teleport(saved.x, saved.z);
     if (sameChar && saved.arrive) {
       const z = saved.arrive === 'S' ? 258 : saved.arrive === 'N' ? -258 : 7;
@@ -275,6 +277,8 @@
       pets.update(dt);
       jobs.update(dt);
       npcs.update(dt, player);
+      Eco.update(dt, hud);
+      if (world.spinners) for (const sp of world.spinners) sp.rotation.z += dt * 0.6;
       quests.update();
       ui.update();
       if (wmap.open) wmap.draw();

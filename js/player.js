@@ -38,6 +38,15 @@ function buildHumanoid(o) {
   const body = add(g, new THREE.Mesh(new THREE.CylinderGeometry(0.4, 0.52, 0.95, 10), robe), 0, 1.28, 0);       // gövde
   add(g, new THREE.Mesh(new THREE.CylinderGeometry(0.43, 0.43, 0.14, 10), robeDark), 0, 1.0, 0);   // kemer
   add(g, new THREE.Mesh(new THREE.SphereGeometry(0.27, 12, 10), skin), 0, 2.0, 0);                  // kafa
+  {                                                                                                  // yüz ve saç
+    const dark = new THREE.MeshLambertMaterial({ color: 0x1a1410 });
+    for (const s of [-1, 1]) {
+      add(g, new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.04, 0.02), dark), s * 0.09, 2.03, 0.25);
+      const br = add(g, new THREE.Mesh(new THREE.BoxGeometry(0.09, 0.022, 0.02), dark), s * 0.095, 2.1, 0.248); br.rotation.z = s * -0.15;
+    }
+    add(g, new THREE.Mesh(new THREE.BoxGeometry(0.045, 0.075, 0.045), new THREE.MeshLambertMaterial({ color: 0xd09a70 })), 0, 1.97, 0.27);
+    const hair = add(g, new THREE.Mesh(new THREE.SphereGeometry(0.285, 12, 8, 0, 6.283, 0, 1.75), dark), 0, 2.03, -0.035); hair.rotation.x = -0.35;
+  }
   let hat = null;
   if (o.hat === 'straw') hat = add(g, new THREE.Mesh(new THREE.ConeGeometry(0.75, 0.42, 14), new THREE.MeshLambertMaterial({ color: 0xd8b66a })), 0, 2.4, 0);
   if (o.hat === 'band') hat = add(g, new THREE.Mesh(new THREE.CylinderGeometry(0.285, 0.285, 0.1, 12), new THREE.MeshLambertMaterial({ color: 0xc0302a })), 0, 2.1, 0);

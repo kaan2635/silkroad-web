@@ -484,3 +484,41 @@ body.touch .start-box .sub { margin-bottom: 10px; }
 .coin { background: radial-gradient(circle at 35% 30%, #fff4b0, #e0a828 45%, #7a5208); box-shadow: inset 0 0 0 1px #5a3a04, 0 0 0 1px #000a; }
 .silkc { border-radius: 2px; transform: rotate(45deg) scale(.85); background: linear-gradient(135deg, #ffc8f0, #c04aa8 55%, #5a0a4a); box-shadow: inset 0 0 0 1px #3a0630, 0 0 4px #ff8ae866; }
 .tg .ico { width: 16px; height: 16px; vertical-align: -3px; }
+/* eşya yuvası: mühür simgesi ve +parlama */
+.islot .ssym { position: absolute; left: 2px; top: -1px; z-index: 2; font-style: normal; font-size: 12px; text-shadow: 0 0 3px #000, 0 0 6px currentColor; }
+.islot.pglow::before { content: ""; position: absolute; inset: -1px; border-radius: 4px; z-index: 1; pointer-events: none; box-shadow: inset 0 0 8px var(--pg), 0 0 6px var(--pg); animation: pglow 1.8s ease-in-out infinite alternate; }
+@keyframes pglow { from { opacity: .45; } to { opacity: 1; } }
+/* ekonomi */
+.eco-head { display: flex; flex-wrap: wrap; gap: 4px 10px; align-items: center; padding: 6px 8px; margin: 0 0 6px; background: #00000040; border: 1px solid #3a2a14; border-radius: 3px; font-size: 12.5px; color: var(--muted); }
+.eco-c { display: inline-flex; align-items: center; gap: 4px; white-space: nowrap; }
+.eco-c .ico { width: 16px; height: 16px; }
+.eco-tax { margin-left: auto; font-size: 11.5px; color: var(--muted); }
+.up { color: #8fe07a !important; } .dn { color: #ff9a7a !important; }
+em.deal, em.sat { font-style: normal; font-size: 10.5px; font-weight: 800; padding: 0 5px; border-radius: 8px; vertical-align: 1px; }
+em.deal { background: #1e4a1a; color: #a8f0a0; border: 1px solid #3a8a3a; }
+em.sat { background: #4a1a14; color: #ffb09a; border: 1px solid #8a3a2a; }
+.srow .ic .islot { width: 34px; min-width: 34px; cursor: default; }
+.srow.hl { background: linear-gradient(90deg, #4a3a1080, transparent); border: 1px solid #8a6a1e; border-radius: 3px; }
+.qs.ok { color: #a8f0a0; }
+.ptable { width: 100%; border-collapse: collapse; font-size: 13px; margin: 4px 0; }
+.ptable th { text-align: left; font: 700 11px var(--f-title); color: var(--gold-2); padding: 4px; border-bottom: 1px solid #4a3418; letter-spacing: .03em; }
+.ptable td { padding: 3px 4px; border-bottom: 1px solid #2a1c0c; vertical-align: middle; }
+.ptable td .ico { width: 20px; height: 20px; display: block; }
+.ptable.led td:last-child { text-align: right; font-weight: 800; }
+.ptable tr.tot td { border-top: 1px solid #6a4a1e; font-weight: 800; }
+.spark { display: block; }
+.mk-grid { grid-template-columns: repeat(auto-fill, minmax(38px, 1fr)); }
+.mk-sel { margin: 0 0 8px; padding: 8px; border: 1px solid #6a4a1e; background: #00000050; border-radius: 3px; display: grid; gap: 6px; }
+.mk-sel .nm small { display: block; color: var(--muted); font-size: 12px; }
+.mk-pct { display: flex; flex-wrap: wrap; gap: 4px; }
+.mk-pct button.on { outline: 1px solid var(--gold); color: var(--gold-2); }
+.mk-sum { font-size: 12.5px; color: var(--text); }
+.led-top { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; margin-bottom: 6px; }
+.led-top div { background: #00000050; border: 1px solid #3a2a14; border-radius: 3px; padding: 5px 7px; }
+.led-top small { display: block; font-size: 10.5px; color: var(--muted); }
+.led-top b { font: 700 15px var(--f-title); color: var(--gold-2); }
+.in-eco { margin-top: 4px; font-size: 12px; color: #e8d090; border-top: 1px solid #3a2a14; padding-top: 3px; }
+button.dis { opacity: .5; }
+body.touch .ptable th:nth-child(n+5):not(:last-child), body.touch .ptable td:nth-child(n+5):not(:last-child) { display: none; }
+body.touch .led-top { grid-template-columns: repeat(2, 1fr); }
+body.touch .eco-tax { margin-left: 0; }

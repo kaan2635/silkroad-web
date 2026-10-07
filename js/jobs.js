@@ -130,7 +130,7 @@ class JobSystem {
     if (n <= 0) return { ok: false, msg: 'Kervan dolu (' + this.capacity() + ').' };
     const cost = this.price(g.base) * n;
     if (s.gold < cost) return { ok: false, msg: 'Yeterli altının yok.' };
-    s.gold -= cost; this.cargo[g.base] = (this.cargo[g.base] || 0) + n; this.cargoCost += cost;
+    s.gold -= cost; Eco.exp('trade', cost); this.cargo[g.base] = (this.cargo[g.base] || 0) + n; this.cargoCost += cost;
     this._trLabel(); this.changed();
     return { ok: true, msg: g.name + ' x' + n + ' yüklendi. -' + cost.toLocaleString('tr-TR') + ' altın' };
   }
@@ -140,7 +140,7 @@ class JobSystem {
     let rev = 0;
     for (const b in this.cargo) rev += this.price(b) * this.cargo[b];
     const profit = rev - this.cargoCost;
-    this.p.stats.gold += rev;
+    this.p.stats.gold += rev; Eco.inc('trade', rev);
     this.cargo = {}; this.cargoCost = 0;
     this._trLabel();
     this.gainJobExp(Math.max(20, profit * 0.6));
@@ -234,7 +234,7 @@ class JobSystem {
     if (!n) return { ok: false, msg: 'Satacak çalıntı malın yok.' };
     if (this.job !== 'thief') return { ok: false, msg: 'Simsar sadece Hırsızlarla iş yapar.' };
     const L = this.p.stats.level, gold = n * (60 + 8 * L) * (1 + 0.1 * (this.level() - 1));
-    this.p.inv.take('sg', n); this.p.stats.gold += Math.round(gold);
+    this.p.inv.take('sg', n); this.p.stats.gold += Math.round(gold); Eco.inc('trade', Math.round(gold));
     this.gainJobExp(n * 45);
     return { ok: true, msg: n + ' Çalıntı Mal satıldı: +' + Math.round(gold).toLocaleString('tr-TR') + ' altın' };
   }
@@ -274,7 +274,7 @@ class JobSystem {
         if (!wp) {
           c.remove(); this.mission = null;
           const L = pl.stats.level, gold = Math.round((300 + 45 * L) * (1 + 0.15 * (this.level() - 1)));
-          pl.stats.gold += gold;
+          pl.stats.gold += gold; Eco.inc('trade', gold);
           this.hud.banner('Kervan Güvende!', '+' + gold.toLocaleString('tr-TR') + ' altın', 'quest'); SFX.play('questdone');
           this.gainJobExp(400 + 25 * L);
           this.changed();

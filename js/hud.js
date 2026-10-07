@@ -274,9 +274,16 @@ class HUD {
 
     // nesneler
     const range = R / scale + 10;
+    if (this.world.cityRects) for (const r of this.world.cityRects) {
+      if (Math.abs(r.x - pp.x) > range || Math.abs(r.z - pp.z) > range) continue;
+      ctx.save(); ctx.translate(r.x, r.z); ctx.rotate(-r.ry);
+      ctx.fillStyle = '#9a6a4a'; ctx.fillRect(-r.w / 2, -r.d / 2, r.w, r.d);
+      ctx.strokeStyle = '#5a3a24'; ctx.lineWidth = 0.6; ctx.strokeRect(-r.w / 2, -r.d / 2, r.w, r.d);
+      ctx.restore();
+    }
     for (const o of this.world.obstacles) {
       if (Math.abs(o.x - pp.x) > range || Math.abs(o.z - pp.z) > range) continue;
-      if (o.type === 'wall' || o.type === 'lamp') continue;
+      if (o.type === 'wall' || o.type === 'lamp' || o.type === 'bld') continue;
       if (o.type === 'pond') { ctx.fillStyle = '#3aa0c8'; ctx.beginPath(); ctx.arc(o.x, o.z, o.r + 1, 0, 6.283); ctx.fill(); continue; }
       ctx.fillStyle = o.type === 'palm' ? '#3f7d2a' : o.type === 'cactus' ? '#5a9a3c' : o.type === 'gate' ? '#a8281e' : o.type === 'npc' ? '#ffd24a' : o.type === 'house' ? '#c9b48a' : o.type === 'wagon' ? '#7a5a36' : '#8a7a62';
       ctx.beginPath(); ctx.arc(o.x, o.z, Math.max(1.6, o.r * 0.8), 0, 6.283); ctx.fill();

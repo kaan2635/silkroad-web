@@ -158,3 +158,82 @@ function dressHumanoid(h, eq) {
     else add(h.group, new THREE.Mesh(new THREE.TorusGeometry(0.55, 0.05, 6, 24), new THREE.MeshBasicMaterial({ color: avA.b.look.c1, transparent: true, opacity: 0.8 })), 0, 1.4, -0.5);
   }
 }
+
+// --- Yerdeki eşya modelleri ---
+// Ganimetin kendisi görünür: silah, kalkan, zırh parçası, takı, şişe, kristal, parşömen, kese.
+const _dropGeo = {};
+const _dg = (k, f) => _dropGeo[k] || (_dropGeo[k] = f());
+function _bottleGeo() {
+  return _dg('bottle', () => {
+    const pts = [[0, 0], [0.2, 0], [0.26, 0.08], [0.27, 0.22], [0.22, 0.34], [0.09, 0.42], [0.08, 0.56], [0.11, 0.6], [0, 0.6]].map(p => new THREE.Vector2(p[0], p[1]));
+    return new THREE.LatheGeometry(pts, 12);
+  });
+}
+function dropModel(it) {
+  const b = ITEM_BASES[it.base], g = new THREE.Group();
+  const add = (geo, mat, x = 0, y = 0, z = 0) => { const m = new THREE.Mesh(geo, mat); m.position.set(x, y, z); m.castShadow = true; g.add(m); return m; };
+  const sealE = it.rarity ? new THREE.Color(RARITY[it.rarity].hex).multiplyScalar(0.25) : null;
+  if (b.cat === 'weapon') {
+    const w = weaponMesh(b.wtype, { d: b.d, tier: b.tier, plus: it.plus || 0, rarity: it.rarity || 0 });
+    const long = b.wtype === 'spear' || b.wtype === 'glaive';
+    w.rotation.set(b.wtype === 'bow' ? 0 : -Math.PI / 2, 0, 0.5);
+    w.position.y = long ? -0.9 : -0.45;
+    w.scale.setScalar(long ? 0.75 : 1.05);
+    g.add(w); g.userData.spinY = true;
+  } else if (b.cat === 'shield') {
+    const s = shieldMesh({ d: b.d, tier: b.tier, plus: it.plus || 0, rarity: it.rarity || 0 });
+    s.rotation.z = Math.PI / 2; s.scale.setScalar(1.3); g.add(s);
+  } else if (b.cat === 'armor') {
+    const c = b.atype === 'armor' ? new THREE.Color(DEG_METAL[b.d - 1]) : armorColor(b.atype, b.d, b.tier);
+    const m = _lm(c, sealE), dk = _lm(c.clone().multiplyScalar(0.6)), trim = _lm(b.d >= 6 ? 0xffd23a : 0x8a6a3a);
+    if (b.slot === 'head') { add(new THREE.SphereGeometry(0.32, 12, 8, 0, 6.283, 0, b.atype === 'garment' ? 1.2 : 1.75), m); if (b.atype === 'armor' && b.d >= 3) add(new THREE.BoxGeometry(0.07, 0.2, 0.5), trim, 0, 0.32, 0); }
+    else if (b.slot === 'shoulder') for (const sx of [-1, 1]) { const p = add(new THREE.SphereGeometry(0.22, 10, 6, 0, 6.283, 0, 1.6), m, sx * 0.24, 0, 0); p.scale.set(1.1, 0.8, 1); }
+    else if (b.slot === 'chest') { add(new THREE.CylinderGeometry(0.32, 0.38, 0.55, 10), m); add(new THREE.CylinderGeometry(0.39, 0.39, 0.08, 10), trim, 0, -0.22, 0); if (b.atype !== 'garment') add(new THREE.BoxGeometry(0.4, 0.3, 0.1), dk, 0, 0.05, 0.33); }
+    else if (b.slot === 'hands') for (const sx of [-1, 1]) { add(new THREE.BoxGeometry(0.18, 0.24, 0.16), m, sx * 0.14, 0, 0); add(new THREE.BoxGeometry(0.2, 0.06, 0.18), trim, sx * 0.14, -0.1, 0); }
+    else if (b.slot === 'legs') for (const sx of [-1, 1]) add(new THREE.BoxGeometry(0.2, 0.55, 0.2), m, sx * 0.13, 0, 0).rotation.z = sx * 0.06;
+    else if (b.slot === 'feet') for (const sx of [-1, 1]) { add(new THREE.BoxGeometry(0.18, 0.28, 0.2), m, sx * 0.14, 0, 0); add(new THREE.BoxGeometry(0.18, 0.1, 0.34), dk, sx * 0.14, -0.12, 0.08); }
+  } else if (b.cat === 'acc') {
+    const gold = _lm(b.d >= 5 ? 0xffd23a : 0xc8c8d0, sealE), gem = new THREE.MeshLambertMaterial({ color: it.rarity ? RARITY[it.rarity].hex : 0xd02a4a, emissive: new THREE.Color(it.rarity ? RARITY[it.rarity].hex : 0xd02a4a).multiplyScalar(0.5) });
+    if (b.slot === 'ring') { add(new THREE.TorusGeometry(0.2, 0.05, 6, 16), gold); add(new THREE.OctahedronGeometry(0.09), gem, 0, 0.24, 0); }
+    else if (b.slot === 'necklace') { add(new THREE.TorusGeometry(0.3, 0.03, 6, 20), gold).rotation.x = 1.2; add(new THREE.OctahedronGeometry(0.11), gem, 0, -0.12, 0.28); }
+    else { for (const sx of [-1, 1]) { add(new THREE.TorusGeometry(0.08, 0.025, 5, 10), gold, sx * 0.15, 0.1, 0); add(new THREE.OctahedronGeometry(0.07), gem, sx * 0.15, -0.06, 0); } }
+  } else {
+    const use = b.use, cat = b.cat, base = it.base;
+    const glassM = (c) => new THREE.MeshLambertMaterial({ color: c, emissive: new THREE.Color(c).multiplyScalar(0.35), transparent: true, opacity: 0.9 });
+    if (use === 'hp' || use === 'mp' || use === 'petpot' || /^elx_/.test(base) || base === 'zerk') {
+      const c = use === 'hp' ? 0xe0302a : use === 'mp' ? 0x2a6ae0 : base === 'elx_w' ? 0xff6a2a : base === 'elx_a' ? 0x4ac8ff : base === 'elx_s' ? 0x6ae07a : base === 'elx_c' ? 0xc06aff : base === 'zerk' ? 0xff3a1a : 0xc8902a;
+      const bt = add(_bottleGeo(), glassM(c), 0, -0.3, 0); bt.scale.setScalar(1.1);
+      add(new THREE.CylinderGeometry(0.07, 0.07, 0.1, 8), _lm(0x8a5a2a), 0, 0.38, 0);
+    } else if (cat === 'mat') {
+      const c = base === 'luck' ? 0xffe066 : base === 'astral' ? 0x5ab4ff : base === 'immortal' ? 0xff8ae8 : /^ms_/.test(base) ? 0x7aa8ff : 0x7ae8ff;
+      const cm = new THREE.MeshLambertMaterial({ color: c, emissive: new THREE.Color(c).multiplyScalar(0.45), transparent: true, opacity: 0.92 });
+      if (base === 'luck') { add(new THREE.SphereGeometry(0.22, 8, 6), _lm(0xd8c49a)); add(new THREE.ConeGeometry(0.12, 0.2, 6), cm, 0, 0.22, 0); }
+      else { add(new THREE.OctahedronGeometry(0.28), cm).scale.set(0.8, 1.3, 0.8); add(new THREE.OctahedronGeometry(0.14), cm, 0.22, -0.12, 0.05); }
+    } else if (use === 'return' || use === 'reverse' || use === 'speed' || /^reset|bless/.test(base)) {
+      add(new THREE.CylinderGeometry(0.1, 0.1, 0.55, 10), _lm(0xe8dcc0)).rotation.z = Math.PI / 2;
+      for (const sx of [-1, 1]) add(new THREE.CylinderGeometry(0.12, 0.12, 0.05, 10), _lm(use === 'reverse' ? 0x6a5aff : use === 'speed' ? 0x3ab45a : 0xc0302a), sx * 0.28, 0, 0).rotation.z = Math.PI / 2;
+    } else if (use === 'cure') { for (let i = 0; i < 3; i++) add(new THREE.SphereGeometry(0.1, 8, 6), _lm([0xffffff, 0x8ad8ff, 0xffd23a][i]), (i - 1) * 0.16, 0, 0).scale.set(1.4, 0.8, 0.8); }
+    else if (base === 'arrow') { for (let i = 0; i < 5; i++) add(new THREE.BoxGeometry(0.03, 0.03, 0.7), _lm(0xc8a878), (i - 2) * 0.05, 0, 0).rotation.y = (i - 2) * 0.08; }
+    else if (base === 'silkbag' || base === 'sg' || cat === 'quest') {
+      add(new THREE.SphereGeometry(0.25, 10, 8), _lm(base === 'silkbag' ? 0xd04aa8 : cat === 'quest' ? 0xc8a060 : 0x6a4a2a)).scale.set(1, 0.9, 1);
+      add(new THREE.CylinderGeometry(0.08, 0.12, 0.12, 8), _lm(0xd9a92e), 0, 0.24, 0);
+    } else {   // kartlar ve diğerleri: altın çerçeveli tablet
+      add(new THREE.BoxGeometry(0.42, 0.56, 0.06), _lm(b.cat === 'use' && b.keep ? 0x8a5a2a : 0x9a3a8a));
+      add(new THREE.BoxGeometry(0.46, 0.6, 0.04), _lm(0xd9a92e), 0, 0, -0.02);
+    }
+  }
+  return g;
+}
+// Altın: miktara göre sikke yığını ya da kese
+function goldModel(amount) {
+  const g = new THREE.Group(), mat = new THREE.MeshLambertMaterial({ color: 0xffd23a, emissive: 0x6a4a00 });
+  const coin = _dg('coin', () => new THREE.CylinderGeometry(0.2, 0.2, 0.05, 12));
+  const n = amount < 50 ? 2 : amount < 300 ? 4 : amount < 1500 ? 6 : 0;
+  if (n) for (let i = 0; i < n; i++) { const c = new THREE.Mesh(coin, mat); c.position.set((i % 2) * 0.12 - 0.06 + Math.sin(i) * 0.05, -0.15 + i * 0.055, Math.cos(i * 2) * 0.06); c.rotation.set(Math.sin(i) * 0.3, 0, Math.cos(i) * 0.3); c.castShadow = true; g.add(c); }
+  else {
+    const bag = new THREE.Mesh(new THREE.SphereGeometry(0.3, 10, 8), new THREE.MeshLambertMaterial({ color: 0x8a5a2a })); bag.scale.set(1, 0.9, 1); bag.castShadow = true; g.add(bag);
+    const tie = new THREE.Mesh(new THREE.CylinderGeometry(0.09, 0.14, 0.14, 8), mat); tie.position.y = 0.28; g.add(tie);
+    for (let i = 0; i < 3; i++) { const c = new THREE.Mesh(coin, mat); c.position.set(-0.3 + i * 0.2, -0.22, 0.3); c.rotation.x = 0.4; g.add(c); }
+  }
+  return g;
+}

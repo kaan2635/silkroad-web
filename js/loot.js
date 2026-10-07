@@ -22,25 +22,24 @@ class LootManager {
   }
 
   _make(kind, data) {
-    let mesh, color = '#ffffff', text = '', sub = '', beam = 0;
+    let mesh, color = '#ffffff', text = '', sub = '', beam = 0, glow = 0;
     if (kind === 'gold') {
-      mesh = new THREE.Mesh(this.geo.coin, new THREE.MeshLambertMaterial({ color: 0xffd23a, emissive: 0x554400 }));
-      color = '#ffd23a'; text = data.amount + ' Altın';
+      mesh = goldModel(data.amount);
+      color = '#ffd23a'; text = data.amount + ' Altın'; glow = data.amount >= 300 ? 0xffd23a : 0;
     } else {
       const it = data.item, n = itemInfo(it), b = ITEM_BASES[it.base];
+      mesh = dropModel(it);
       if (n.stack) {
-        const c = b.use === 'hp' ? 0xe0483a : b.use === 'mp' ? 0x3a7ae0 : b.cat === 'mat' ? 0x5ad8ff : b.cat === 'quest' ? 0xffd23a : 0xd8c8a0;
-        mesh = new THREE.Mesh(b.cat === 'mat' ? this.geo.gem : this.geo.pot, new THREE.MeshLambertMaterial({ color: c, emissive: c, emissiveIntensity: 0.3 }));
         text = n.name + (it.n > 1 ? ' x' + it.n : ''); color = n.color;
-        if (it.base === 'astral') beam = 0x5ab4ff;
+        if (it.base === 'astral' || it.base === 'immortal') beam = 0x5ab4ff;
+        if (b.cat === 'mat') glow = 0x7ae8ff;
       } else {
-        mesh = new THREE.Mesh(this.geo.box, new THREE.MeshLambertMaterial({ color: n.hex, emissive: n.hex, emissiveIntensity: 0.25 }));
-        color = n.color; text = n.name; sub = (it.rarity ? n.rarityName + ' · ' : '') + b.d + '. derece';
+        color = n.color; text = n.name; sub = (it.rarity ? RARITY[it.rarity].tr + ' · ' : '') + b.d + '. derece' + (b.tier ? ' · ' + (b.tier + 1) + '. kademe' : '');
         beam = it.rarity >= 1 ? n.hex : 0;
+        glow = it.rarity ? n.hex : (it.blues && it.blues.length ? 0x6ab4ff : b.d >= 6 ? new THREE.Color(DEG_METAL[b.d - 1]).getHex() : 0);
       }
     }
-    mesh.castShadow = true;
-    return { mesh, color, text, sub, beam };
+    return { mesh, color, text, sub, beam, glow };
   }
 
   spawn(kind, x, z, data = {}) {
@@ -51,8 +50,13 @@ class LootManager {
     m.mesh.position.y = 0.8;
     g.add(m.mesh);
     if (m.beam) {
-      const b = new THREE.Mesh(this.geo.beam, new THREE.MeshBasicMaterial({ color: m.beam, transparent: true, opacity: 0.35, depthWrite: false }));
+      const b = new THREE.Mesh(this.geo.beam, new THREE.MeshBasicMaterial({ color: m.beam, transparent: true, opacity: 0.35, depthWrite: false, blending: THREE.AdditiveBlending }));
       g.add(b);
+    }
+    if (m.glow && typeof vfxSoftTex === 'function') {
+      const ring = new THREE.Mesh(this.geo.plane || (this.geo.plane = new THREE.PlaneGeometry(1, 1)), new THREE.MeshBasicMaterial({ map: vfxSoftTex(), color: m.glow, transparent: true, opacity: 0.85, depthWrite: false, blending: THREE.AdditiveBlending }));
+      ring.rotation.x = -Math.PI / 2; ring.position.y = 0.06; ring.scale.setScalar(m.beam ? 2.6 : 1.8);
+      g.add(ring);
     }
     const label = makeLabel(m.text, m.sub, m.color, '#d8d8d8');
     label.scale.set(3.4, 1.06, 1);
@@ -63,6 +67,10 @@ class LootManager {
     g.add(hit);
     this.world.scene.add(g);
     const d = { kind, group: g, mesh: m.mesh, label, hit, x, z, y, age: 0, cool: 0, bob: Math.random() * 6, ...data };
+    if (data.from) {   // canavardan fırlayarak düşer
+      d.pop = 0.45; d.fx = data.from.x; d.fz = data.from.z; d.cool = 0.5;
+      g.position.set(d.fx, terrainHeight(d.fx, d.fz), d.fz);
+    }
     hit.userData.drop = d;
     this.drops.push(d);
     if (this.drops.length > MAX_DROPS) this.remove(this.drops[0]);
@@ -71,6 +79,8 @@ class LootManager {
 
   remove(d) {
     this.world.scene.remove(d.group);
+    const shared = new Set([...Object.values(_dropGeo), ...Object.values(this.geo)]);
+    d.group.traverse(o => { if (o.isMesh) { if (!shared.has(o.geometry)) o.geometry.dispose(); if (o.material && o.material.dispose) o.material.dispose(); } });
     if (d.label.material.map) d.label.material.map.dispose();
     d.label.material.dispose();
     const i = this.drops.indexOf(d);
@@ -83,12 +93,13 @@ class LootManager {
     const spot = () => { const a = Math.random() * 6.283, r = 0.6 + Math.random() * (1.4 + Math.min(4, k * 0.3)); return [m.x + Math.cos(a) * r, m.z + Math.sin(a) * r]; };
     const item = it => {
       if (it.rarity && this.hud) { const n = itemInfo(it); this.hud.banner(RARITY[it.rarity].name + '!', n.name, 'seal'); this.hud.log(RARITY[it.rarity].name + ' düştü: ' + n.name, 'lvl', n.color); SFX.play('levelup'); }
-      return this.spawn('item', ...spot(), { item: it });
+      return this.spawn('item', ...spot(), { item: it, from: { x: m.x, z: m.z } });
     };
     const chance = p => Math.random() < Math.min(0.95, p * k);
     const rolls = Math.min(8, Math.max(1, Math.round(k)));
     // altın
-    for (let i = 0; i < Math.min(4, rolls); i++) this.spawn('gold', ...spot(), { amount: Math.max(1, Math.round((5 + 4 * L + 0.15 * L * L) * (0.7 + Math.random() * 0.6))) });
+    const from = { x: m.x, z: m.z };
+    for (let i = 0; i < Math.min(4, rolls); i++) this.spawn('gold', ...spot(), { from, amount: Math.max(1, Math.round((5 + 4 * L + 0.15 * L * L) * (0.7 + Math.random() * 0.6))) });
     // ekipman
     for (let i = 0; i < rolls; i++) if (Math.random() < 0.13 * (k > 1 ? 1.6 : 1)) item(randomGear(L, Math.random, m.rank === 'unique' ? 12 : m.rank === 'giant' ? 5 : m.rank === 'champion' ? 2.5 : 1));
     // Unique: garantili mühürlü eşya + simya malzemesi
@@ -125,7 +136,7 @@ class LootManager {
   _collect(d) {
     const s = this.player.stats, pos = { x: this.player.pos.x, y: this.player.pos.y + 2.8, z: this.player.pos.z };
     if (d.kind === 'gold') {
-      s.gold += d.amount;
+      s.gold += d.amount; Eco.inc('mob', d.amount);
       this.hud.floatText(pos, '+' + d.amount + ' altın', 'exp');
       this.hud.log('+' + d.amount + ' altın', 'gold');
       SFX.play('coin');
@@ -150,6 +161,12 @@ class LootManager {
       d.age += dt; d.bob += dt * 3;
       if (d.cool > 0) d.cool -= dt;
       if (d.age > DROP_LIFE) { this.remove(d); continue; }
+      if (d.pop > 0) {
+        d.pop = Math.max(0, d.pop - dt);
+        const k = 1 - d.pop / 0.45, px = d.fx + (d.x - d.fx) * k, pz = d.fz + (d.z - d.fz) * k;
+        d.group.position.set(px, terrainHeight(px, pz) + Math.sin(k * Math.PI) * 1.6, pz);
+        if (d.pop === 0) d.group.position.set(d.x, d.y, d.z);
+      }
       d.mesh.rotation.y += dt * 1.6;
       d.mesh.position.y = 0.8 + Math.sin(d.bob) * 0.15;
       const dist = Math.hypot(d.x - p.pos.x, d.z - p.pos.z);

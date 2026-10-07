@@ -21,7 +21,7 @@ function shopStock(kind) {
   }
   return out;
 }
-const buyPrice = base => { const b = ITEM_BASES[base]; return Math.max(1, Math.round(b.value)); };
+const buyPrice = base => Eco.buyPrice(base);
 
 const NPC_TABS = {
   merchant: [['buy:herb', 'Satın Al'], ['sell', 'Sat'], ['quests', 'Görevler']],
@@ -34,7 +34,8 @@ const NPC_TABS = {
   job: [['job', 'Meslek'], ['quests', 'Görevler']],
   stable: [['buy:stable', 'Ahır'], ['sell', 'Sat']],
   special: [['trade', 'Ticaret']],
-  den: [['den', 'Simsar']]
+  den: [['den', 'Simsar']],
+  market: [['mk:browse', 'Pazar'], ['mk:mine', 'İlanlarım'], ['mk:prices', 'Piyasa'], ['mk:ledger', 'Hesap Defteri'], ['sell', 'Sat']]
 };
 
 class UI {
@@ -248,6 +249,13 @@ class UI {
     if (k === 'sl') { const it = this.inv.slots[+v]; return it ? this.itemCard(it, isGear(it.base) ? this.inv.equip[ITEM_BASES[it.base].slot === 'ring' ? 'ring1' : ITEM_BASES[it.base].slot] : null) : ''; }
     if (k === 'eq') { const it = this.inv.equip[v]; return it ? this.itemCard(it) : '<div class="tn">' + EQUIP_SLOTS[v].name + '</div><div class="tm">Boş</div>'; }
     if (k === 'base') { const b = ITEM_BASES[v]; if (isStack(v)) return '<div class="tn">' + b.name + '</div><div class="te">' + (b.sub || '') + '</div>'; return this.itemCard(makeItem(v)); }
+    if (k === 'mo') { const o = (Eco._off || []).find(o => o.id === +v); return o ? this.itemCard(o.it) + '<div class="in-eco">Satıcı: ' + o.seller + '</div>' : ''; }
+    if (k === 'ml') { const L = Eco.s.list[+v]; const it = L && Inventory.dec(L.e); return it ? this.itemCard(it) : ''; }
+    if (k === 'bb') { const x = Eco.s.bb[+v]; const it = x && Inventory.dec(x.e); return it ? this.itemCard(it) : ''; }
+    if (k === 'eco') {
+      const c = v, ix = Eco.index(c);
+      return '<div class="tn">' + ECO_CATS[c] + ' talebi</div><div class="te">' + ecoSpark(Eco.history(c), 150, 34) + '</div><div class="tm">Şu an %' + Math.round(ix * 100) + ' · NPC alım çarpanı %' + Math.round(Eco.satMult(c) * 100) + '</div><div class="tm">Talep yüksekken NPC\'ler daha çok öder ama daha pahalı satar. Aynı türden çok satmak fiyatı geçici düşürür.</div>';
+    }
     if (k === 'sk') {
       const x = SKILLS_BY_ID[v], r = P.book.r(v);
       return '<div class="tn">' + x.name + '</div><div class="tm">' + MASTERIES[x.m].name + ' · ' + SKILL_TYPE_NAMES[x.type] + ' · kademe ' + r + '/' + x.maxR + (x.mp ? ' · MP ' + rankMp(x, Math.max(1, r)) : '') + '</div><div>' + x.desc + '</div><div class="te">' + skillDetail(x, Math.max(1, r)) + '</div>' +
@@ -354,10 +362,11 @@ class UI {
   // Eşya kartı (bilgi paneli)
   itemCard(it, cmp) {
     const n = itemInfo(it), lvl = this.p.stats.level;
+    const eco = (it) => { if (!Eco.s || !ecoCat(it.base)) return ''; const sp = sellPrice(it); return sp ? '<div class="in-eco">NPC satış: <b>' + sp.toLocaleString('tr-TR') + '</b> · Pazar değeri ~<b>' + (Eco.marketValue(it) * (it.n || 1)).toLocaleString('tr-TR') + '</b> altın</div>' : ''; };
     if (n.stack) {
       return '<div class="in-name" style="color:' + n.color + '">' + n.name + '</div>' +
         '<div class="in-sub">Adet: ' + it.n + ' / ' + n.max + '</div><div class="in-st">' + (n.sub || '') + '</div>' +
-        (n.req > 1 ? '<div class="in-req' + (lvl < n.req ? ' bad' : '') + '">Gerekli seviye: ' + n.req + '</div>' : '');
+        (n.req > 1 ? '<div class="in-req' + (lvl < n.req ? ' bad' : '') + '">Gerekli seviye: ' + n.req + '</div>' : '') + eco(it);
     }
     let h = '<div class="in-name" style="color:' + n.color + '">' + n.name + '</div>' +
       '<div class="in-sub">' + (it.rarity ? '<b style="color:' + n.color + '">' + n.rarityName + '</b> · ' : '') + n.d + '. derece · ' + (n.tier + 1) + '/3 kademe · ' + n.typeName + '</div>' +
@@ -367,14 +376,15 @@ class UI {
     h += '<div class="in-dur' + (n.broken ? ' bad' : '') + '">Dayanıklılık ' + n.dur + ' / ' + n.maxDur + (n.broken ? ' — KIRIK (tamir et)' : '') + '</div>';
     h += '<div class="in-req' + (lvl < n.req ? ' bad' : '') + '">Gerekli seviye: ' + n.req + '</div>';
     if (cmp) h += '<div class="in-cmp">Kuşanılı: ' + itemInfo(cmp).name + '</div>';
-    return h;
+    return h + eco(it);
   }
 
   _slot(item, attrs, sel, emptyIcon) {
     if (!item) return '<div class="islot empty' + (sel ? ' sel' : '') + '" ' + attrs + '>' + (emptyIcon || '') + '</div>';
-    const n = itemInfo(item);
-    return '<div class="islot' + (sel ? ' sel' : '') + (n.broken ? ' broken' : '') + (n.seal ? ' seal' : '') + '" ' + attrs + ' style="--sc:' + n.color + ';border-color:' + n.color + '">' +
+    const n = itemInfo(item), pg = item.plus ? PLUS_GLOW(item.plus) : 0;
+    return '<div class="islot' + (sel ? ' sel' : '') + (n.broken ? ' broken' : '') + (n.seal ? ' seal' : '') + (pg ? ' pglow' : '') + '" ' + attrs + ' style="--sc:' + n.color + ';border-color:' + n.color + (pg ? ';--pg:#' + pg.toString(16).padStart(6, '0') : '') + '">' +
       n.icon + (item.plus ? '<i class="plus">+' + item.plus + '</i>' : '') + (n.stack && item.n > 1 ? '<i class="num">' + item.n + '</i>' : '') +
+      (n.seal ? '<i class="ssym" style="color:' + n.color + '">' + RARITY[n.seal].sym.trim() + '</i>' : '') +
       (!n.stack ? '<i class="deg">' + n.d + (n.tier ? '.' + (n.tier + 1) : '') + '</i>' : '') + '</div>';
   }
 
@@ -655,7 +665,7 @@ class UI {
     this.npcTabs.innerHTML = tabs.map(t => '<button data-tab="' + t[0] + '" class="' + (t[0] === this.tab ? 'on' : '') + '">' + t[1] + (t[0] === 'quests' && mk ? ' ' + mk : '') + '</button>').join('');
     const t = this.tab;
     this.npcBody.innerHTML = t.startsWith('buy:') ? this._buyHTML(t.slice(4)) : t === 'sell' ? this._sellHTML() : t === 'repair' ? this._repairHTML() :
-      t === 'storage' ? this._storageHTML() : t === 'tele' ? this._teleHTML() : t === 'job' ? this._jobHTML() : t === 'trade' ? this._tradeHTML() : t === 'den' ? this._denHTML() : t === 'unique' ? this._uniqueHTML() : this._questHTML();
+      t === 'storage' ? this._storageHTML() : t === 'tele' ? this._teleHTML() : t === 'job' ? this._jobHTML() : t === 'trade' ? this._tradeHTML() : t === 'den' ? this._denHTML() : t === 'unique' ? this._uniqueHTML() : t.startsWith('mk:') ? this._marketHTML(t.slice(3)) : this._questHTML();
     this.npcFoot.innerHTML = '<span>Altın <b>' + s.gold.toLocaleString('tr-TR') + '</b></span><span>Yuva <b>' + (this.inv.slots.length - this.inv.freeCount()) + ' / ' + this.inv.slots.length + '</b></span>';
     this.npcMsgEl.innerHTML = this.msg ? '<span style="color:' + this.msg.color + '">' + this.msg.text + '</span>' : '';
   }
@@ -684,8 +694,18 @@ class UI {
     }).join('');
   }
 
+  _ecoHead(cats, mode) {
+    const deal = Eco.dealCat(), tax = Math.round(Eco.tax() * 100);
+    return '<div class="eco-head">' + cats.map(c => {
+      const ix = Eco.index(c), tr = Eco.trend(c), sat = Eco.satMult(c);
+      return '<span class="eco-c" data-tip="eco:' + c + '">' + icon(ECO_CAT_ICON[c], 'gold') + ECO_CATS[c] + ' <b class="' + (ix >= 1 ? 'up' : 'dn') + '">%' + Math.round(ix * 100) + (tr > 0 ? ' ▲' : tr < 0 ? ' ▼' : '') + '</b>' +
+        (mode === 'sell' && sat < 0.97 ? ' <em class="sat">doygun %' + Math.round(sat * 100) + '</em>' : '') + (c === deal && mode === 'buy' ? ' <em class="deal">Günün indirimi −%20</em>' : '') + '</span>';
+    }).join('') + '<span class="eco-tax">' + ZONE.town + ' vergisi %' + tax + (mode === 'buy' ? ' (fiyatlara dahil)' : '') + '</span></div>';
+  }
+
   _buyHTML(kind) {
     let list = shopStock(kind), filt = '';
+    const ecoCats = { herb: ['pot', 'scroll'], weapon: ['weapon', 'shield'], armor: ['armor'], acc: ['acc', 'mat'], stable: ['pet', 'pot'] }[kind] || [];
     const lvl = this.p.stats.level;
     const degF = SHOP_DEGREES.map(d => '<button data-f="d:' + d + '" class="' + (this.filter.d === d ? 'on' : '') + '">' + d + '. derece</button>').join('');
     if (kind === 'armor') {
@@ -699,7 +719,7 @@ class UI {
       filt = '<div class="filt">' + degF + '</div>';
       list = list.filter(b => !ITEM_BASES[b].d || ITEM_BASES[b].d === this.filter.d);
     }
-    return filt + list.map(base => {
+    return this._ecoHead(ecoCats, 'buy') + filt + list.map(base => {
       const b = ITEM_BASES[base], price = buyPrice(base);
       if (isStack(base)) {
         const ns = base === 'arrow' ? [250, 1000] : [1, 10, 50];
@@ -714,6 +734,13 @@ class UI {
   }
 
   _sellHTML() {
+    const cats = [...new Set(this.inv.slots.filter(Boolean).map(it => ecoCat(it.base)).filter(Boolean))];
+    const bb = Eco.s ? Eco.s.bb : [];
+    const bbHTML = bb.length ? '<h4>Geri al (son satılanlar)</h4>' + bb.map((x, i) => {
+      const it = Inventory.dec(x.e); if (!it) return '';
+      const n = itemInfo(it);
+      return '<div class="srow" data-tip="bb:' + i + '"><span class="ic">' + this._slot(it, '', false) + '</span><div class="nm" style="color:' + n.color + '">' + n.name + (n.stack && it.n > 1 ? ' x' + it.n : '') + '<small>' + (x.z !== ZONE.id ? ZONES[x.z].town + ' · ' : '') + 'satış fiyatına geri alınır</small></div><b class="pr">' + x.p.toLocaleString('tr-TR') + ' <i class="coin"></i></b><button data-act="bb" data-i="' + i + '">Geri Al</button></div>';
+    }).join('') : '';
     const rows = this.inv.slots.map((it, i) => {
       if (!it) return '';
       const n = itemInfo(it), conf = this.sellConfirm === it.uid, b = ITEM_BASES[it.base];
@@ -721,7 +748,7 @@ class UI {
       return this._row(n.icon, n.name + (n.stack && it.n > 1 ? ' x' + it.n : ''), n.stack ? (n.sub || '') : ((it.rarity ? n.rarityName + ' · ' : '') + n.d + '. derece'),
         '<b class="pr">' + sellPrice(it).toLocaleString('tr-TR') + ' <i class="coin"></i></b><button data-act="sell" data-i="' + i + '" class="' + (conf ? 'warn' : '') + '">' + (conf ? 'Emin misin?' : 'Sat') + '</button>', n.color);
     }).join('');
-    return rows || '<div class="hint">Satacak eşyan yok. (Kuşanılı eşyalar satılmaz.)</div>';
+    return this._ecoHead(cats.length ? cats : ['pot'], 'sell') + (rows || '<div class="hint">Satacak eşyan yok. (Kuşanılı eşyalar satılmaz.)</div>') + bbHTML;
   }
 
   _repairHTML() {
@@ -786,6 +813,97 @@ class UI {
       '<div><h4>Depo (' + (inv.storage.length - inv.freeCount(inv.storage)) + '/' + inv.storage.length + ')</h4><div class="st-grid">' + inv.storage.map((it, i) => this._slot(it, 'data-act="wd" data-i="' + i + '"', false, '')).join('') + '</div></div></div>';
   }
 
+  // ---------- Emanet Pazarı ----------
+  _marketHTML(t) {
+    const s = this.p.stats, E = Eco, mk = this.mk = this.mk || { sel: -1, pct: 1 };
+    if (t === 'browse') {
+      const cat = this.filter.mc || 'all', offers = E.offers();
+      const filt = '<div class="filt">' + [['all', 'Hepsi'], ...Object.keys(ECO_CATS).filter(c => offers.some(o => o.cat === c)).map(c => [c, ECO_CATS[c]])].map(([k, n]) => '<button data-f="mc:' + k + '" class="' + (cat === k ? 'on' : '') + '">' + n + '</button>').join('') + '</div>';
+      const list = offers.filter(o => !o.sold && (cat === 'all' || o.cat === cat)).sort((a, b) => (a.p / a.v) - (b.p / b.v));
+      const mins = 60 - new Date().getMinutes();
+      return '<div class="hint">Diğer tüccarların ilanları. NPC dükkânlarında olmayan mühürlü, +\'lı ve mavi statlı eşyalar burada çıkar. İlanlar her saat yenilenir (~' + mins + ' dk).</div>' + filt +
+        (list.map(o => {
+          const n = itemInfo(o.it), r = o.p / o.v, tag = r < 0.85 ? '<em class="deal">Fırsat</em>' : r > 1.2 ? '<em class="sat">Pahalı</em>' : '';
+          return '<div class="srow" data-tip="mo:' + o.id + '"><span class="ic">' + this._slot(o.it, '', false) + '</span><div class="nm" style="color:' + n.color + '">' + n.name + (n.stack && o.it.n > 1 ? ' x' + o.it.n : '') + ' ' + tag +
+            '<small>' + o.seller + ' · adil değer ~' + Math.round(o.v).toLocaleString('tr-TR') + (n.stack ? '' : ' · Sv. ' + n.req) + '</small></div><b class="pr">' + o.p.toLocaleString('tr-TR') + ' <i class="coin"></i></b><button data-act="mkbuy" data-i="' + o.id + '"' + (s.gold < o.p ? ' class="dis"' : '') + '>Al</button></div>';
+        }).join('') || '<div class="hint">Bu kategoride ilan kalmadı.</div>');
+    }
+    if (t === 'mine') {
+      E._settle();
+      const L = E.s.list, ready = L.filter(x => x.st !== 'on');
+      const soldSum = L.filter(x => x.st === 'sold').reduce((a, x) => a + Math.round(x.p * (1 - E.COMMISSION)), 0);
+      let h = '<div class="hint">İlan ücreti %2 (en az 10), satışta %5 komisyon. İlanlar 24 saat durur; oyun kapalıyken de satılabilir. Adil değerin altında fiyat = hızlı satış.</div>';
+      if (ready.length) h += '<div class="srow hl"><span class="ic">' + icon('coinpile', 'gold') + '</span><div class="nm">Tahsil et<small>' + L.filter(x => x.st === 'sold').length + ' satış · ' + L.filter(x => x.st === 'exp').length + ' süresi dolan</small></div><b class="pr">' + soldSum.toLocaleString('tr-TR') + ' <i class="coin"></i></b><button data-act="mkcollect">Tahsil Et</button></div>';
+      h += '<h4>İlanlarım (' + L.length + ' / ' + E.LIST_MAX + ')</h4>' + (L.map((x, i) => {
+        const it = Inventory.dec(x.e); if (!it) return '';
+        const n = itemInfo(it), left = Math.max(0, E.EXPIRE - (Date.now() - x.t));
+        const st = x.st === 'sold' ? '<span class="qs ok">Satıldı · ' + (x.buyer || '') + '</span>' : x.st === 'exp' ? '<span class="qs lock">Süresi doldu</span>' : '<span class="qs">' + Math.floor(left / 3.6e6) + ' sa ' + Math.floor(left % 3.6e6 / 6e4) + ' dk</span><button data-act="mkcancel" data-i="' + i + '" class="small">Geri çek</button>';
+        return '<div class="srow" data-tip="ml:' + i + '"><span class="ic">' + this._slot(it, '', false) + '</span><div class="nm" style="color:' + n.color + '">' + n.name + (n.stack && it.n > 1 ? ' x' + it.n : '') + '<small>Fiyat ' + x.p.toLocaleString('tr-TR') + ' · adil ~' + Math.round(x.v).toLocaleString('tr-TR') + '</small></div>' + st + '</div>';
+      }).join('') || '<div class="hint">Aktif ilanın yok.</div>');
+      // ilan ver
+      h += '<h4>İlana koy</h4>';
+      const grid = '<div class="st-grid mk-grid">' + this.inv.slots.map((it, i) => {
+        const ok = it && ecoCat(it.base) && !ITEM_BASES[it.base].keep;
+        return ok ? this._slot(it, 'data-act="mksel" data-i="' + i + '"', mk.sel === i) : '<div class="islot empty"></div>';
+      }).join('') + '</div>';
+      const it = this.inv.slots[mk.sel];
+      if (!(it && ecoCat(it.base))) h += '<div class="hint">Satmak istediğin eşyaya dokun.</div>';
+      if (it && ecoCat(it.base)) {
+        const v = E.marketValue(it) * (it.n || 1), price = Math.max(1, Math.round(v * mk.pct)), fee = Math.max(10, Math.round(price * E.FEE));
+        const f = Math.pow(clamp(1.65 - mk.pct, 0.01, 1), 2), eta = Math.round(1 / (0.05 * f));
+        h += '<div class="mk-sel"><div class="nm" style="color:' + itemInfo(it).color + '">' + itemInfo(it).name + (it.n > 1 ? ' x' + it.n : '') + '<small>Adil değer ~' + v.toLocaleString('tr-TR') + ' · NPC\'ye satış ' + sellPrice(it).toLocaleString('tr-TR') + '</small></div>' +
+          '<div class="mk-pct">' + [0.7, 0.85, 1, 1.15, 1.3, 1.5].map(p => '<button data-act="mkpct" data-p="' + p + '" class="' + (Math.abs(mk.pct - p) < 0.001 ? 'on' : '') + '">%' + Math.round(p * 100) + '</button>').join('') + '</div>' +
+          '<div class="mk-sum">Fiyat <b>' + price.toLocaleString('tr-TR') + '</b> · ücret ' + fee.toLocaleString('tr-TR') + ' · eline geçecek ~' + Math.round(price * (1 - E.COMMISSION)).toLocaleString('tr-TR') + ' · tahmini satış ' + (eta > 600 ? 'çok yavaş' : eta >= 60 ? '~' + Math.round(eta / 60) + ' sa' : '~' + eta + ' dk') + '</div>' +
+          '<button data-act="mklist"' + (s.gold < fee ? ' class="dis"' : '') + '>İlana Koy</button></div>';
+      }
+      return h + grid;
+    }
+    if (t === 'prices') {
+      const deal = E.dealCat();
+      let h = '<div class="hint">Talep endeksi her saat değişir. Yüksekken sat, düşükken al. Şehirler arası farklarla ticaret yapabilirsin.</div><table class="ptable"><tr><th></th><th>Kategori</th><th>' + ZONE.name + '</th><th>12 saat</th>' + Object.keys(ZONES).filter(z => z !== ZONE.id).map(z => '<th>' + ZONES[z].name + '</th>').join('') + '<th>NPC alım</th></tr>';
+      for (const c of Object.keys(ECO_CATS)) {
+        const ix = E.index(c), tr = E.trend(c);
+        h += '<tr><td>' + icon(ECO_CAT_ICON[c], 'gold') + '</td><td>' + ECO_CATS[c] + (c === deal ? ' <em class="deal">−%20</em>' : '') + '</td><td class="' + (ix >= 1 ? 'up' : 'dn') + '">%' + Math.round(ix * 100) + (tr > 0 ? ' ▲' : tr < 0 ? ' ▼' : '') + '</td><td>' + ecoSpark(E.history(c)) + '</td>' +
+          Object.keys(ZONES).filter(z => z !== ZONE.id).map(z => { const o = E.index(c, z); return '<td class="' + (o >= 1 ? 'up' : 'dn') + '">%' + Math.round(o * 100) + '</td>'; }).join('') + '<td>%' + Math.round(E.satMult(c) * 100) + '</td></tr>';
+      }
+      return h + '</table><div class="eco-tax">' + ZONE.town + ' vergisi %' + Math.round(E.tax() * 100) + ' · ' + Object.keys(ZONES).filter(z => z !== ZONE.id).map(z => ZONES[z].name + ' %' + Math.round(TOWN_TAX[z] * 100)).join(' · ') + '</div>';
+    }
+    if (t === 'ledger') {
+      const L = E.s.led, rows = (o, names, cls) => Object.keys(names).filter(k => o[k]).map(k => '<tr><td>' + names[k] + '</td><td class="' + cls + '">' + Math.round(o[k]).toLocaleString('tr-TR') + '</td></tr>').join('');
+      const ti = Object.values(L.inc).reduce((a, b) => a + b, 0), te = Object.keys(L.exp).filter(k => k !== 'tax').reduce((a, k) => a + L.exp[k], 0);
+      const mins = Math.round((Date.now() - E.session.t0) / 6e4), ph = E.perHour();
+      return '<div class="led-top"><div><small>Bu oturum</small><b>' + mins + ' dk</b></div><div><small>Net</small><b class="' + (E.session.inc - E.session.exp >= 0 ? 'up' : 'dn') + '">' + Math.round(E.session.inc - E.session.exp).toLocaleString('tr-TR') + '</b></div><div><small>Saatlik</small><b class="' + (ph >= 0 ? 'up' : 'dn') + '">' + (mins >= 10 ? ph.toLocaleString('tr-TR') : '—') + '</b></div><div><small>Kasa</small><b>' + s.gold.toLocaleString('tr-TR') + '</b></div></div>' +
+        '<table class="ptable led"><tr><th>Gelir</th><th></th></tr>' + (rows(L.inc, LEDGER_NAMES.inc, 'up') || '<tr><td colspan="2">—</td></tr>') + '<tr class="tot"><td>Toplam</td><td class="up">' + Math.round(ti).toLocaleString('tr-TR') + '</td></tr>' +
+        '<tr><th>Gider</th><th></th></tr>' + (rows(L.exp, LEDGER_NAMES.exp, 'dn') || '<tr><td colspan="2">—</td></tr>') + '<tr class="tot"><td>Toplam</td><td class="dn">' + Math.round(te).toLocaleString('tr-TR') + '</td></tr></table>';
+    }
+    return '';
+  }
+
+  _marketAct(act, btn) {
+    const s = this.p.stats, inv = this.inv, E = Eco, mk = this.mk = this.mk || { sel: -1, pct: 1 };
+    if (act === 'mkbuy') {
+      const r = E.buyOffer(+btn.dataset.i, inv, s);
+      SFX.play(r.ok ? 'coin' : 'error'); this._say(r.msg, r.ok ? '#a8f0a0' : '#ff8a7a');
+    } else if (act === 'mksel') { mk.sel = mk.sel === +btn.dataset.i ? -1 : +btn.dataset.i; mk.pct = 1; SFX.play('tab'); this.refreshNpc(); }
+    else if (act === 'mkpct') { mk.pct = +btn.dataset.p; SFX.play('tab'); this.refreshNpc(); }
+    else if (act === 'mklist') {
+      const it = inv.slots[mk.sel]; if (!it) return;
+      const price = Math.max(1, Math.round(E.marketValue(it) * (it.n || 1) * mk.pct)), fee = Math.max(10, Math.round(price * E.FEE));
+      if (s.gold < fee) { SFX.play('error'); return this._say('İlan ücreti için altının yetmiyor.', '#ff8a7a'); }
+      const r = E.listItem(it, price);
+      if (!r.ok) { SFX.play('error'); return this._say(r.msg, '#ff8a7a'); }
+      s.gold -= fee; inv.remove(mk.sel); mk.sel = -1; SFX.play('coin');
+      this._say('İlan verildi: ' + price.toLocaleString('tr-TR') + ' altın (ücret ' + fee + ').', '#a8f0a0');
+    } else if (act === 'mkcancel') {
+      if (!E.cancel(+btn.dataset.i, inv)) { SFX.play('error'); return this._say('Envanterde yer yok.', '#ff8a7a'); }
+      SFX.play('tab'); this._say('İlan geri çekildi (ücret iade edilmez).', '#ffe9a8');
+    } else if (act === 'mkcollect') {
+      const r = E.collectAll(inv, s);
+      SFX.play('coin');
+      this._say((r.gold ? '+' + r.gold.toLocaleString('tr-TR') + ' altın tahsil edildi. ' : '') + (r.items ? r.items + ' eşya geri alındı. ' : '') + (r.full ? 'Envanter dolu, bazı eşyalar bekliyor.' : ''), '#a8f0a0');
+    }
+  }
+
   _npcAct(btn) {
     const act = btn.dataset.act, s = this.p.stats, inv = this.inv;
     if (act === 'buy') {
@@ -795,6 +913,7 @@ class UI {
       if (!inv.canAdd(base, n)) { SFX.play('error'); return this._say('Envanterde yer yok.', '#ff8a7a'); }
       s.gold -= cost;
       inv.add(isStack(base) ? makeStack(base, n) : makeItem(base));
+      Eco.exp('buy', cost); Eco.exp('tax', Eco.taxPart(cost));
       SFX.play('coin');
       this.hb.upgradePots(s.level);
       this._say(b.name + (n > 1 ? ' x' + n : '') + ' satın alındı. -' + cost.toLocaleString('tr-TR') + ' altın', '#a8f0a0');
@@ -806,12 +925,12 @@ class UI {
       if (!it) return;
       if ((it.rarity >= 1 || (it.plus || 0) >= 3 || it.base === 'astral') && this.sellConfirm !== it.uid) { this.sellConfirm = it.uid; return this.refreshNpc(); }
       const price = sellPrice(it), name = itemInfo(it).name;
-      s.gold += price; this.sellConfirm = null; inv.remove(i); SFX.play('coin');
+      s.gold += price; this.sellConfirm = null; Eco.onSell(it, price); inv.remove(i); SFX.play('coin');
       this._say(name + ' satıldı. +' + price.toLocaleString('tr-TR') + ' altın', '#a8f0a0');
     } else if (act === 'repair') {
       const c = inv.repairCost();
       if (s.gold < c) { SFX.play('error'); return this._say('Yeterli altının yok.', '#ff8a7a'); }
-      s.gold -= c; inv.repairAll(); SFX.play('upgrade');
+      s.gold -= c; inv.repairAll(); Eco.exp('repair', c); SFX.play('upgrade');
       this._say('Tüm eşyalar tamir edildi.', '#a8f0a0');
     } else if (['join', 'leave', 'escort', 'raid', 'tbuy', 'tsell', 'tdismiss', 'sgsell'].includes(act)) {
       const J = this.jobs;
@@ -830,8 +949,16 @@ class UI {
       const c = +btn.dataset.c;
       if (s.gold < c) { SFX.play('error'); return this._say('Yeterli altının yok.', '#ff8a7a'); }
       if (this.p.dead) return;
-      s.gold -= c; SFX.play('cast');
+      s.gold -= c; Eco.exp('travel', c); SFX.play('cast');
       if (this.onTravel) this.onTravel(btn.dataset.z, 'T');
+    } else if (act === 'bb') {
+      const x = Eco.s.bb[+btn.dataset.i]; if (!x) return;
+      if (s.gold < x.p) { SFX.play('error'); return this._say('Yeterli altının yok.', '#ff8a7a'); }
+      const it = Inventory.dec(x.e); if (!it || !inv.add(it)) { SFX.play('error'); return this._say('Envanterde yer yok.', '#ff8a7a'); }
+      s.gold -= x.p; Eco.s.bb.splice(+btn.dataset.i, 1); Eco.inc('sell', -x.p); Eco.save(); SFX.play('coin');
+      this._say(itemInfo(it).name + ' geri alındı.', '#a8f0a0');
+    } else if (act && act.startsWith('mk')) {
+      this._marketAct(act, btn);
     } else if (act === 'dep' || act === 'wd') {
       const i = +btn.dataset.i;
       const ok = act === 'dep' ? inv.deposit(i) : inv.withdraw(i);

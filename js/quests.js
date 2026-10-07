@@ -195,7 +195,7 @@ class QuestManager {
     if (inv.freeCount() < need) return { ok: false, msg: 'Envanterde ' + need + ' boş yer gerekli.' };
     if (q.type === 'collect' && !inv.take(q.target, q.n)) return { ok: false, msg: 'Görev eşyaları eksik.' };
     st.s = 'done';
-    if (r.gold) s.gold += r.gold;
+    if (r.gold) { s.gold += r.gold; Eco.inc('quest', r.gold); }
     s.silk = (s.silk || 0) + 10;
     for (const [b, n] of r.items || []) inv.add(makeStack(b, n));
     if (r.gear) { const g = this._gearBase(r.gear.base); inv.add(makeItem(g, r.gear.rarity, 0, rollBlues(g, r.gear.rarity))); }

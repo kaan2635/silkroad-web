@@ -82,4 +82,5 @@ World.prototype._applyDayNight = function (playerPos, camera) {
 
   // fenerler geceleri parlar
   if (this.lanternMat) this.lanternMat.color.setHex(0x6a5a40).lerp(c.b.setHex(0xffd070), this.night);
+  if (this.lanternRed) this.lanternRed.color.setHex(0xa8322a).lerp(c.b.setHex(0xff8a4a), this.night);
 };

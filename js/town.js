@@ -31,75 +31,10 @@ World.prototype._buildTownProc = function () {
   this._instanced(new THREE.BoxGeometry(3.05, 5, 1.7), stone, wallMats);
   this._instanced(new THREE.BoxGeometry(1.2, 0.9, 1.9), stone, crenMats);
 
-  // doğu/batı kapı direkleri
-  for (const sx of [-1, 1]) for (const sz of [-1, 1]) {
-    const post = new THREE.Mesh(new THREE.CylinderGeometry(0.55, 0.65, 6.5, 8), red);
-    post.position.set(sx * H, 3.25, sz * 5.6); post.castShadow = true; this.scene.add(post);
-    const cap = new THREE.Mesh(new THREE.ConeGeometry(1.1, 1, 8), tile);
-    cap.position.set(sx * H, 7, sz * 5.6); this.scene.add(cap);
-    this.obstacles.push({ x: sx * H, z: sz * 5.6, r: 0.9, type: 'gate' });
-  }
-
-  // --- Köşe kuleleri ---
-  for (const sx of [-1, 1]) for (const sz of [-1, 1]) {
-    const g = new THREE.Group();
-    const body = new THREE.Mesh(new THREE.CylinderGeometry(2.7, 3.0, 8, 12), stone); body.position.y = 4; body.castShadow = true; g.add(body);
-    const ring = new THREE.Mesh(new THREE.CylinderGeometry(3.2, 3.2, 0.5, 12), red); ring.position.y = 8.2; g.add(ring);
-    const roof = new THREE.Mesh(new THREE.ConeGeometry(3.9, 3.2, 8), tile); roof.position.y = 10.1; roof.castShadow = true; g.add(roof);
-    const tip = new THREE.Mesh(new THREE.SphereGeometry(0.35, 8, 6), new THREE.MeshLambertMaterial({ color: 0xd8a830 })); tip.position.y = 11.9; g.add(tip);
-    g.position.set(sx * H, 0, sz * H);
-    this.scene.add(g);
-    this.obstacles.push({ x: sx * H, z: sz * H, r: 3.1, type: 'wall' });
-  }
-
-  // --- Meydan ---
-  const plaza = new THREE.Mesh(new THREE.CircleGeometry(10, 40), new THREE.MeshLambertMaterial({ color: 0xd2c3a0, polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -2 }));
-  plaza.rotation.x = -Math.PI / 2; plaza.position.y = 0.04; plaza.receiveShadow = true; this.scene.add(plaza);
-  const rim = new THREE.Mesh(new THREE.RingGeometry(9.6, 10.4, 40), new THREE.MeshLambertMaterial({ color: 0x8e7e60, polygonOffset: true, polygonOffsetFactor: -3, polygonOffsetUnits: -3 }));
-  rim.rotation.x = -Math.PI / 2; rim.position.y = 0.05; this.scene.add(rim);
-
-  // --- Fenerler: yol boyunca ve meydan çevresinde ---
-  const lampPts = [];
-  for (let z = -H + 3; z <= H - 3; z += 8) { const cx = roadCenterX(z); lampPts.push([cx - 4.5, z], [cx + 4.5, z]); }
-  for (let i = 0; i < 6; i++) { const a = (i / 6) * 6.283 + 0.5; lampPts.push([Math.cos(a) * 11.5, Math.sin(a) * 11.5]); }
-  const postMats = [], headMats = [];
-  for (const [x, z] of lampPts) {
-    postMats.push(this._matrix(x, 1.6, z, 1, 1, 1));
-    headMats.push(this._matrix(x, 3.4, z, 1, 1, 1));
-    this.obstacles.push({ x, z, r: 0.35, type: 'lamp' });
-  }
-  this._instanced(new THREE.CylinderGeometry(0.1, 0.14, 3.2, 6), new THREE.MeshLambertMaterial({ color: 0x3a2a22 }), postMats);
-  const heads = this._instanced(new THREE.BoxGeometry(0.6, 0.8, 0.6), this.lanternMat, headMats, false);
-  heads.receiveShadow = false;
-
-  // --- Evler ---
-  const spots = [];
-  const npcSpots = (typeof NPC_DEFS !== 'undefined' ? NPC_DEFS : []).map(n => [n.x, n.z]);
-  let tries = 0;
-  while (spots.length < 12 && tries++ < 600) {
-    const x = (rng() * 2 - 1) * 25, z = (rng() * 2 - 1) * 25;
-    if (Math.hypot(x, z) < 16) continue;
-    if (Math.abs(x - roadCenterX(z)) < 10.5 || Math.abs(x - roadCenterX(z - 5)) < 10.5 || Math.abs(x - roadCenterX(z + 5)) < 10.5) continue;
-    if (Math.abs(z) < 11) continue;                                         // doğu-batı kapı yolu açık kalsın
-    if (npcSpots.some(p => Math.hypot(x - p[0], z - p[1]) < 8)) continue;
-    if (spots.some(p => Math.hypot(x - p.x, z - p.z) < 10.5)) continue;
-    spots.push({ x, z, w: 5 + rng() * 2.5, d: 5 + rng() * 2.5, h: 3.4 + rng() * 1.2, ry: Math.round(rng() * 3) * Math.PI / 2 });
-  }
-  const bodyMats = [], roofMats = [], doorMats = [], colors = [];
-  for (const s of spots) {
-    bodyMats.push(this._matrix(s.x, s.h / 2, s.z, s.w, s.h, s.d, s.ry));
-    const rw = Math.max(s.w, s.d) * 0.78;
-    roofMats.push(this._matrix(s.x, s.h + 0.9, s.z, rw, 1, rw, s.ry + Math.PI / 4));
-    this.obstacles.push({ x: s.x, z: s.z, r: Math.max(s.w, s.d) * 0.62, type: 'house' });
-    colors.push(rng() < 0.5 ? 0xe2d3b0 : 0xd7c39a);
-  }
-  const bodies = this._instanced(new THREE.BoxGeometry(1, 1, 1), new THREE.MeshLambertMaterial({ color: 0xffffff }), bodyMats);
-  const cc = new THREE.Color();
-  colors.forEach((c, i) => { cc.setHex(c); bodies.setColorAt(i, cc); });
-  if (bodies.instanceColor) bodies.instanceColor.needsUpdate = true;
-  const roofGeo = new THREE.ConeGeometry(1, 1.8, 4);
-  this._instanced(roofGeo, new THREE.MeshLambertMaterial({ color: 0x8a2a20, flatShading: true }), roofMats);
-  this.houses = spots;
+  // şehir içi ve kapılar (arch.js)
+  this._buildCity();
+  for (const sx of [-1, 1]) this.arch.paifang(sx * H, 0, Math.PI / 2, 11.2, '', 6.2);
+  this.arch.finish();
 };
 
 // Kervan yolu: yol kenarında vagonlar ve mil taşları
