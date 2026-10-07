@@ -67,13 +67,14 @@ function itemIcon(base) {
     const glow = b.d >= 8 ? '#' + new THREE.Color(DEG_METAL[b.d - 1]).getHexString() : null;
     return icon(key, _degTint(b.d), { metal: _metalGlyph(b.d), frame: b.tier || 0, glow });
   }
-  if (b.cat === 'avatar') return icon(b.slot === 'av_hat' && b.look.kind === 'crown' ? 'crown' : b.slot, 'mall', { frame: 2 });
+  if (b.cat === 'avatar') return b.slot === 'devil' ? icon('devil_1', 'fire', { frame: Math.min(2, b.look.g - 1) }) : b.slot === 'job' ? icon('job', 'gold', { frame: (JOB_SUITS[base] || { g: 1 }).g - 1 }) : icon(b.slot === 'av_hat' && b.look.kind === 'crown' ? 'crown' : b.slot, 'mall', { frame: 2 });
+  if (b.astone) return icon('as', 'cold', { frame: 1 });
   const map = {
     pill: ['pill', 'buff'], ret: ['ret', 'quest'], rev: ['rev', 'lightning'], spd: ['spd', 'buff'], zerk: ['zerk', 'fire'], arrow: ['arrow', 'phys'],
     luck: ['luck', 'gold'], astral: ['astral', 'cold'], immortal: ['immortal', 'mall'], horse: ['horse', 'pet'], horse2: ['horse', 'mall'], camel: ['camel', 'pet'],
     pet_grab: ['fox', 'pet'], pet_grab2: ['squirrel', 'mall'], pet_atk: ['wolf', 'pet'], pet_pot: ['petpot', 'pet'], sg: ['gold', 'bad'],
     prem: ['prem', 'mall'], bless: ['bless', 'mall'], rez: ['rez', 'mall'], hammer: ['hammer', 'mall'], reset_stat: ['reset', 'mall'], reset_skill: ['reset', 'mall'],
-    inv_exp: ['invexp', 'mall'], st_exp: ['stexp', 'mall'], silkbag: ['silkbag', 'mall'], gchat: ['gchat', 'mall'], arena_coin: ['arena_coin', 'gold'], pumpkin: ['pumpkin', 'fire'], snowflake: ['snowflake', 'cold'], fw_inv1: ['menu_map', 'lightning'], fw_inv3: ['menu_map', 'mall'], fw_inv5: ['menu_map', 'fire'],
+    inv_exp: ['invexp', 'mall'], st_exp: ['stexp', 'mall'], silkbag: ['silkbag', 'mall'], gchat: ['gchat', 'mall'], adv_elx: ['adv_elx', 'mall'], proof: ['proof', 'gold'], ess_atk: ['ess_atk', 'fire'], ess_def: ['ess_def', 'buff'], ess_mag: ['ess_mag', 'lightning'], tab_ms: ['tab_ms', 'mp'], tab_as: ['tab_as', 'buff'], arena_coin: ['arena_coin', 'gold'], pumpkin: ['pumpkin', 'fire'], snowflake: ['snowflake', 'cold'], fw_inv1: ['menu_map', 'lightning'], fw_inv3: ['menu_map', 'mall'], fw_inv5: ['menu_map', 'fire'],
     elx_w: ['elx_w', 'fire'], elx_a: ['elx_a', 'cold'], elx_s: ['elx_s', 'buff'], elx_c: ['elx_c', 'lightning']
   };
   if (map[base]) return icon(map[base][0], map[base][1]);

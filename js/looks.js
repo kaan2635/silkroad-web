@@ -321,6 +321,13 @@ function dressHumanoid(h, eq) {
     else if (k === 'flag') { add(h.group, new THREE.Mesh(new THREE.BoxGeometry(0.05, 2.2, 0.05), _lm(0x5a3a1a)), 0, 2.0, -0.45); add(h.group, new THREE.Mesh(new THREE.BoxGeometry(0.03, 0.8, 0.6), _lm(avA.b.look.c1)), 0, 2.7, -0.75); }
     else add(h.group, new THREE.Mesh(new THREE.TorusGeometry(0.55, 0.05, 6, 24), new THREE.MeshBasicMaterial({ color: avA.b.look.c1, transparent: true, opacity: 0.8 })), 0, 1.4, -0.5);
   }
+  // Şeytan Ruhu: kademesine göre boynuzlar ve kızıl hale
+  const dv = B('devil');
+  if (dv && !avH) {
+    const g = dv.b.look.g, hm = new THREE.MeshPhongMaterial({ color: g >= 3 ? 0x2a0a0a : 0x5a1010, emissive: g >= 3 ? 0x6a0a0a : 0x2a0404, shininess: 60 });
+    for (const sx of [-1, 1]) { const h1 = add(h.group, new THREE.Mesh(new THREE.ConeGeometry(0.06 + g * 0.01, 0.3 + g * 0.06, 7), hm), sx * 0.2, 2.3 + g * 0.02, -0.02); h1.rotation.z = -sx * (0.45 + g * 0.05); }
+    if (g >= 2) { const ring = add(h.group, new THREE.Mesh(new THREE.TorusGeometry(0.62, 0.03, 6, 28), new THREE.MeshBasicMaterial({ color: 0xff2a1a, transparent: true, opacity: 0.55 })), 0, 0.12, 0); ring.rotation.x = Math.PI / 2; ring.castShadow = false; }
+  }
 }
 
 // --- Yerdeki eşya modelleri ---

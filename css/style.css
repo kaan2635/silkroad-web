@@ -650,3 +650,15 @@ body.touch #party-frames .pf { width: 118px; padding: 2px 5px 3px; }
 .pop-res b { color: #ff9ae8 !important; }
 #ev-timer { pointer-events: none; }
 @media (prefers-reduced-motion: reduce) { .pop-wheel.spin span { animation: none; } }
+
+/* ---------- Simya genişlemesi ---------- */
+.alc-modes { margin-bottom: 6px; } .alc-modes button .ico { width: 18px; height: 18px; vertical-align: -4px; }
+.in-white, .alc-ws { color: #f4f0e8; font-size: 12.5px; line-height: 1.5; margin: 4px 0; } .in-white b, .alc-ws b { color: #fff; }
+.in-set { color: #ffd27a; font-size: 12px; margin: 4px 0; line-height: 1.4; }
+.alc-list.wrap { flex-wrap: wrap; overflow-x: visible; }
+.alc-yield { margin: 8px 0; font-size: 13px; color: #9fe3ff; } .alc-yield .ico { width: 20px; height: 20px; vertical-align: -5px; }
+.alc-have { display: flex; gap: 10px; flex-wrap: wrap; margin: 6px 0; } .alc-have .ico { width: 30px; height: 30px; vertical-align: middle; } .alc-have b { margin-left: 3px; color: var(--gold-2); }
+.fus-list { display: flex; flex-wrap: wrap; gap: 4px; max-height: 180px; overflow-y: auto; }
+.fus-list button { font-size: 12px !important; padding: 4px 7px !important; }
+.alc-recipe { display: flex; gap: 10px; align-items: flex-start; margin: 10px 0; padding: 8px; background: #0007; border: 1px solid #3a2814; border-radius: 3px; font-size: 12.5px; }
+.alc-recipe .ico { width: 40px; height: 40px; flex: 0 0 40px; } .alc-recipe b { display: block; color: var(--gold); } .alc-recipe small { display: block; color: var(--dim); margin-bottom: 3px; } .alc-recipe .bad { color: #ff8a7a; }

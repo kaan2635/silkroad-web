@@ -35,7 +35,9 @@ const EQUIP_SLOTS = {
   ring2:    { name: 'Yüzük',   icon: '💍' },
   av_hat:   { name: 'Avatar Şapka', icon: '🎩' },
   av_dress: { name: 'Avatar Giysi', icon: '👘' },
-  av_attach:{ name: 'Avatar Süs',   icon: '🪽' }
+  av_attach:{ name: 'Avatar Süs',   icon: '🪽' },
+  devil:    { name: 'Şeytan Ruhu',  icon: '😈' },
+  job:      { name: 'Meslek Kıyafeti', icon: '🧥' }
 };
 const ARMOR_PARTS = ['head', 'shoulder', 'chest', 'hands', 'legs', 'feet'];
 const PART_W = { head: 0.15, shoulder: 0.12, chest: 0.30, hands: 0.10, legs: 0.22, feet: 0.11 };
@@ -86,12 +88,34 @@ const BLUES = {
   hp:   { name: 'Can',          fmt: v => 'Can %' + v + ' artar', max: () => 15 },
   mp:   { name: 'Mana',         fmt: v => 'Mana %' + v + ' artar', max: () => 15 },
   crit: { name: 'Kritik',       fmt: v => 'Kritik +' + v,         max: () => 8 },
-  dur:  { name: 'Dayanıklılık', fmt: v => 'Dayanıklılık %' + (v * 20) + ' artar', max: () => 8 }
+  dur:  { name: 'Dayanıklılık', fmt: v => 'Dayanıklılık %' + (v * 20) + ' artar', max: () => 8 },
+  // dirençler: durum etkisine yakalanmama şansı
+  rfreeze: { name: 'Donma direnci', fmt: v => 'Donma / yavaşlama direnci %' + v, max: d => 6 + d },
+  rshock:  { name: 'Şok direnci', fmt: v => 'Sersemleme / yere serilme direnci %' + v, max: d => 6 + d },
+  rburn:   { name: 'Yanma direnci', fmt: v => 'Yanma direnci %' + v, max: d => 6 + d },
+  rpoison: { name: 'Zehir direnci', fmt: v => 'Zehir / kanama direnci %' + v, max: d => 6 + d },
+  // özel simya statları (iSRO: Lucky, Steady, Astral)
+  lucky:  { name: 'Şans', fmt: v => 'Şans: simya başarısı +%' + v, max: () => 5, rare: true },
+  steady: { name: 'Sabit', fmt: () => 'Sabit: başarısız simyada en çok 1 seviye düşer', max: () => 1, rare: true },
+  astral: { name: 'Astral', fmt: () => 'Astral: başarısız simyada +4 altına düşmez', max: () => 1, rare: true }
 };
 const BLUE_BY_KIND = {
-  weapon: ['str', 'int', 'crit', 'dur'], shield: ['str', 'int', 'hp', 'dur'],
-  armor: ['str', 'int', 'hp', 'mp', 'dur'], acc: ['str', 'int', 'hp', 'mp'], avatar: []
+  weapon: ['str', 'int', 'crit', 'dur', 'lucky', 'steady', 'astral'], shield: ['str', 'int', 'hp', 'dur', 'rfreeze', 'rshock', 'lucky', 'steady', 'astral'],
+  armor: ['str', 'int', 'hp', 'mp', 'dur', 'rfreeze', 'rshock', 'rburn', 'rpoison', 'lucky', 'steady', 'astral'], acc: ['str', 'int', 'hp', 'mp', 'rfreeze', 'rshock', 'rburn', 'rpoison', 'lucky', 'astral'], avatar: []
 };
+// Beyaz statlar (%0–100): eşyanın temel değerlerini 0.8x – 1.2x arasında belirler; Özellik Taşı ile yükselir
+const WHITES = {
+  patk: { name: 'Fiz. saldırı' }, matk: { name: 'Büyü saldırı' }, crit: { name: 'Kritik' }, pdef: { name: 'Fiz. savunma' },
+  mdef: { name: 'Büyü savunma' }, block: { name: 'Blok' }, dur: { name: 'Dayanıklılık' }
+};
+const WHITE_BY_KIND = { weapon: ['patk', 'matk', 'crit', 'dur'], shield: ['pdef', 'mdef', 'block', 'dur'], armor: ['pdef', 'mdef', 'dur'], acc: ['pdef', 'mdef'], avatar: [] };
+const wsOf = (it, k) => (it.ws && it.ws[k] !== undefined ? it.ws[k] : 50);
+const wf = (it, k) => 0.8 + 0.4 * wsOf(it, k) / 100;
+function rollWhites(base, rarity, rng = Math.random) {
+  const b = ITEM_BASES[base], ws = {};
+  for (const k of WHITE_BY_KIND[b.cat] || []) ws[k] = Math.min(100, Math.round((rarity ? 25 + rarity * 8 : 0) + rng() * (rarity ? 75 - rarity * 8 : 80) * (0.6 + rng() * 0.4)));
+  return ws;
+}
 
 // --- Taban eşyalar (programla üretilir) ---
 const ITEM_BASES = {};
@@ -213,11 +237,36 @@ Object.assign(ITEM_BASES, {
   gchat:    { cat: 'mat', icon: '📢', name: 'Küresel Sohbet Parşömeni', stack: 50, value: 0, sub: 'Sohbette Küresel kanaldan tüm sunucuya mesaj gönderir (/k mesaj)' },
   silkbag:  { cat: 'use', use: 'silkbag', icon: '🧧', name: 'Silk Kesesi', stack: 50, value: 0, sub: 'Açınca 5–15 Silk verir', cd: 'silkbag' }
 });
+// --- Simya genişlemesi: Özellik Taşları, Gelişmiş İksir, Kanıt Taşı, söküm özleri, sentez tabletleri ---
+for (const k in WHITES) ITEM_BASES['as_' + k] = { cat: 'mat', icon: '💎', name: 'Özellik Taşı (' + WHITES[k].name + ')', stack: 50, value: 900, sub: 'Simya: eşyanın ' + WHITES[k].name + ' beyaz statını yükseltir (%65 şans)', astone: k };
+Object.assign(ITEM_BASES, {
+  adv_elx: { cat: 'mat', icon: '🧪', name: 'Gelişmiş Güçlendirme İksiri', stack: 20, value: 0, sub: 'Simya: eşyaya kalıcı +2 verir (başarısız simyada kaybolmaz). Eşya başına bir kez' },
+  proof:   { cat: 'mat', icon: '📜', name: 'Kanıt Taşı', stack: 20, value: 2000, sub: 'Simya: bir sonraki Büyü / Özellik Taşı kesin tutar' },
+  ess_atk: { cat: 'mat', icon: '🔥', name: 'Saldırı Özü', stack: 999, value: 40, sub: 'Söküm ürünü. Sentezde taş yapımında kullanılır' },
+  ess_def: { cat: 'mat', icon: '🛡️', name: 'Savunma Özü', stack: 999, value: 40, sub: 'Söküm ürünü. Sentezde taş yapımında kullanılır' },
+  ess_mag: { cat: 'mat', icon: '✨', name: 'Büyü Özü', stack: 999, value: 60, sub: 'Söküm ürünü. Sentezde taş yapımında kullanılır' },
+  tab_ms:  { cat: 'mat', icon: '📘', name: 'Büyü Taşı Tableti', stack: 50, value: 1500, sub: 'Sentez: istediğin Büyü Taşını (mavi stat) yaptırır' },
+  tab_as:  { cat: 'mat', icon: '📗', name: 'Özellik Taşı Tableti', stack: 50, value: 1800, sub: 'Sentez: istediğin Özellik Taşını (beyaz stat) yaptırır' }
+});
+// Şeytan Ruhu (iSRO Devil's Spirit): ayrı yuvada, seviyeye göre dört kademe
+const DEVILS = [[8, 'Çırak'], [40, 'Savaşçı'], [80, 'Lord'], [110, 'Kadim']];
+DEVILS.forEach(([req, nm], i) => {
+  const g = i + 1;
+  ITEM_BASES['devil_' + g] = { cat: 'avatar', slot: 'devil', d: 1, tier: 0, req, icon: '😈', name: nm + ' Şeytan Ruhu', look: { kind: 'devil', g }, fb: [['str', 2 + g * 3], ['int', 2 + g * 3], ['hp', 3 + g * 2]], value: 0, silk: [60, 120, 200, 300][i] };
+});
+// Meslek kıyafetleri: mesleğine uygunsa görevde meslek EXP'si ve hasar azaltımı
+const JOB_SUITS = {};
+for (const [job, nm] of [['trader', 'Tüccar'], ['hunter', 'Avcı'], ['thief', 'Hırsız']]) [[1, 'Yolcu'], [3, 'Usta'], [5, 'Efsane']].forEach(([jl, adj], i) => {
+  const id = 'js_' + job + '_' + (i + 1);
+  JOB_SUITS[id] = { job, jl, g: i + 1 };
+  ITEM_BASES[id] = { cat: 'avatar', slot: 'job', d: 1, tier: 0, req: 10, icon: '🧥', name: adj + ' ' + nm + ' Kıyafeti', look: { kind: 'jobsuit' }, fb: [], value: [8000, 40000, 150000][i], jobsuit: job, jl, sub: nm + ' görevinde: meslek EXP +%' + (10 * (i + 1)) + ', alınan hasar -%' + (8 * (i + 1)) };
+});
 const MALL = [
   { id: 'prem', name: '🎟️ Premium', items: [['prem', 1, 50], ['bless', 1, 30], ['rez', 3, 20], ['hammer', 3, 15]] },
-  { id: 'alc', name: '⚗️ Simya', items: [['immortal', 1, 25], ['astral', 3, 30], ['luck', 5, 15], ['elx_w', 5, 25], ['elx_a', 5, 20], ['elx_s', 5, 20], ['elx_c', 5, 20], ['ms_str', 1, 15], ['ms_int', 1, 15], ['ms_hp', 1, 15], ['ms_crit', 1, 20]] },
+  { id: 'alc', name: '⚗️ Simya', items: [['adv_elx', 1, 40], ['proof', 1, 15], ['tab_ms', 1, 12], ['tab_as', 1, 15], ['as_patk', 1, 15], ['as_matk', 1, 15], ['as_pdef', 1, 12], ['immortal', 1, 25], ['astral', 3, 30], ['luck', 5, 15], ['elx_w', 5, 25], ['elx_a', 5, 20], ['elx_s', 5, 20], ['elx_c', 5, 20], ['ms_str', 1, 15], ['ms_int', 1, 15], ['ms_hp', 1, 15], ['ms_crit', 1, 20]] },
   { id: 'pet', name: '🐾 Evcil & Binek', items: [['pet_grab2', 1, 150], ['pet_grab', 1, 60], ['pet_atk', 1, 100], ['pet_pot', 20, 10], ['horse2', 1, 120], ['horse', 1, 40]] },
   { id: 'scroll', name: '📜 Parşömen', items: [['gchat', 5, 10], ['fw_inv3', 1, 30], ['rev', 5, 10], ['spd', 5, 10], ['zerk', 3, 20], ['ret', 10, 5], ['reset_stat', 1, 80], ['reset_skill', 1, 120]] },
+  { id: 'devil', name: '😈 Şeytan Ruhu', items: DEVILS.map((x, i) => ['devil_' + (i + 1), 1, ITEM_BASES['devil_' + (i + 1)].silk]) },
   { id: 'avatar', name: '👘 Avatar', items: Object.keys(AVATARS).filter(id => !AVATARS[id].event).map(id => [id, 1, AVATARS[id].silk]) },
   { id: 'exp', name: '🎒 Genişletme', items: [['inv_exp', 1, 100], ['st_exp', 1, 60]] }
 ];
@@ -225,7 +274,7 @@ const MALL = [
 const isStack = b => !!(ITEM_BASES[b] && ITEM_BASES[b].stack);
 const isGear = b => { const c = ITEM_BASES[b] && ITEM_BASES[b].cat; return c === 'weapon' || c === 'shield' || c === 'armor' || c === 'acc' || c === 'avatar'; };
 function elixirFor(base) { const b = ITEM_BASES[base]; return b.cat === 'weapon' ? 'elx_w' : b.cat === 'shield' ? 'elx_s' : b.cat === 'armor' ? 'elx_a' : 'elx_c'; }
-const maxDur = it => { const b = ITEM_BASES[it.base]; const bl = (it.blues || []).find(x => x[0] === 'dur'); return Math.round((20 + b.d * 6) * (1 + (bl ? bl[1] * 0.2 : 0))); };
+const maxDur = it => { const b = ITEM_BASES[it.base]; const bl = (it.blues || []).find(x => x[0] === 'dur'); return Math.round((20 + b.d * 6) * (1 + (bl ? bl[1] * 0.2 : 0)) * (it.ws && it.ws.dur !== undefined ? wf(it, 'dur') : 1)); };
 
 let _itemUid = 1;
 function makeItem(base, rarity = 0, plus = 0, blues = null) {
@@ -238,7 +287,7 @@ function makeItem(base, rarity = 0, plus = 0, blues = null) {
 function makeStack(base, n = 1) { return { uid: _itemUid++, base, n }; }
 
 function rollBlues(base, rarity, rng = Math.random) {
-  const b = ITEM_BASES[base], kind = b.cat, pool = BLUE_BY_KIND[kind].slice(), r = RARITY[rarity];
+  const b = ITEM_BASES[base], kind = b.cat, pool = BLUE_BY_KIND[kind].filter(k => !BLUES[k].rare || (rarity >= 3 && rng() < 0.25)), r = RARITY[rarity];
   let n = r.blues[0] + (rng() < 0.5 ? r.blues[1] - r.blues[0] : 0);
   if (rarity === 0) n = rng() < 0.15 ? 1 : 0;
   const out = [];
@@ -257,17 +306,19 @@ function itemInfo(it) {
     return { name: b.name, baseName: b.name, icon: itemIcon(it.base), color: b.cat === 'quest' ? '#ffd23a' : b.cat === 'mat' ? '#9fe3ff' : '#e8e8e8',
       stack: true, n: it.n, max: b.stack, sub: b.sub || '', req: b.req || 1, value: b.value, cat: b.cat };
   }
-  const r = RARITY[it.rarity] || RARITY[0], pm = PLUS_MULT(it.plus || 0), m = r.mult * pm;
+  const r = RARITY[it.rarity] || RARITY[0], pm = PLUS_MULT((it.plus || 0) + (it.adv || 0)), m = r.mult * pm;
   const broken = it.dur <= 0, k = broken ? 0.3 : 1;
-  const st = v => (v ? Math.max(1, Math.round(v * m * k)) : 0);
+  const st = (v, w) => (v ? Math.max(1, Math.round(v * m * k * (w ? wf(it, w) : 1))) : 0);
+  const ws = {}; for (const w of WHITE_BY_KIND[b.cat] || []) ws[w] = wsOf(it, w);
   const bl = {};
   for (const [kk, v] of it.blues || []) bl[kk] = (bl[kk] || 0) + v;
   const color = it.rarity > 0 ? r.color : (it.blues && it.blues.length ? BLUE_COLOR : r.color);
   const typeName = b.cat === 'avatar' ? EQUIP_SLOTS[b.slot].name : b.cat === 'weapon' ? WEAPON_TYPES[b.wtype].name : b.cat === 'armor' ? ARMOR_TYPES[b.atype].name + ' ' + EQUIP_SLOTS[b.slot].name : (EQUIP_SLOTS[b.slot] || EQUIP_SLOTS.ring1).name;
   return {
-    name: r.sym + b.name + (it.plus ? ' (+' + it.plus + ')' : ''), baseName: b.name, tier: b.tier || 0, cat: b.cat, slot: b.slot, req: b.req, d: b.d,
+    name: r.sym + b.name + (it.plus || it.adv ? ' (+' + (it.plus || 0) + (it.adv ? '+' + it.adv : '') + ')' : ''), baseName: b.name, ws, adv: it.adv || 0, tier: b.tier || 0, cat: b.cat, slot: b.slot, req: b.req, d: b.d,
     wtype: b.wtype, atype: b.atype, typeName, icon: itemIcon(it.base),
-    phy: st(b.phy), mag: st(b.mag), pdef: st(b.pdef), mdef: st(b.mdef), hp: st(b.hp), mp: st(b.mp), block: b.block || 0,
+    phy: st(b.phy, 'patk'), mag: st(b.mag, 'matk'), pdef: st(b.pdef, 'pdef'), mdef: st(b.mdef, 'mdef'), hp: st(b.hp), mp: st(b.mp),
+    block: b.block ? Math.max(0, b.block + Math.round((wsOf(it, 'block') - 50) / 12)) : 0, wcrit: b.cat === 'weapon' ? Math.round(wsOf(it, 'crit') / 25) : 0,
     blues: bl, dur: it.dur, maxDur: maxDur(it), broken,
     value: Math.round(b.value * r.val * (1 + 0.35 * (it.plus || 0))),
     color, hex: parseInt(color.slice(1), 16), rarityName: it.rarity ? r.name + ' (' + r.tr + ')' : r.name, seal: it.rarity || 0
@@ -288,6 +339,10 @@ function itemStatText(n) {
   if (n.hp) p.push('Can +' + n.hp);
   if (n.mp) p.push('Mana +' + n.mp);
   return p.join(' · ');
+}
+function whiteText(n) {
+  if (!n.ws) return '';
+  return Object.keys(n.ws).map(k => WHITES[k].name + ' <b>%' + n.ws[k] + '</b>').join(' · ');
 }
 function blueText(n) {
   if (!n.blues) return '';
@@ -323,6 +378,7 @@ function randomGear(level, rng = Math.random, rareBoost = 1) {
 // Belirli nadirlikte eşya üret (mühürlü eşyalar tam dayanıklı)
 function makeSeal(base, rarity, rng = Math.random, worn = false) {
   const it = makeItem(base, rarity, 0, rollBlues(base, rarity, rng));
+  if (ITEM_BASES[base].cat !== 'avatar') it.ws = rollWhites(base, rarity, rng);
   if (worn && !rarity) it.dur = Math.max(1, Math.round(it.dur * (0.6 + rng() * 0.4)));
   return it;
 }

@@ -134,11 +134,11 @@ class SimPlayer {
     const gname = inGuild ? soc.guild.name : b.g >= 0 ? SOC_GUILDS[b.g] : '';
     const t = HWAN_TITLES[b.race][hwanLevel(botHonor(b))];
     this.label = makeLabel(b.name, (gname ? '[' + gname + '] ' : '') + 'Sv. ' + this.lvl + (t ? ' · ' + t : ''), col, '#d8e8ff');
-    this.label.scale.set(4.2, 1.3, 1); this.label.position.y = 3.0; this.group.add(this.label);
+    this.label.scale.set(3.5, 1.1, 1); this.label.position.y = 2.9; this.group.add(this.label);
     if (this.stallSign) { this.group.remove(this.stallSign); this.stallSign = null; }
     if (this.mode === 'stall') {
       this.stallSign = makeLabel(this.stallTitle || 'Tezgâh', 'tezgâh · dokun', '#ffd23a', '#ffe9a8');
-      this.stallSign.scale.set(4.6, 1.44, 1); this.stallSign.position.y = 4.1; this.group.add(this.stallSign);
+      this.stallSign.scale.set(3.4, 1.06, 1); this.stallSign.position.y = 3.7; this.group.add(this.stallSign);
     }
   }
   hurt(dmg, m) {
@@ -200,7 +200,8 @@ class SimPlayer {
     this.group.visible = !this.engaged && dp < (CONFIG.isTouch ? 110 : 170);
     if (this.engaged) return;
     const party = soc.party.includes(this.bot.id);
-    this.label.visible = Settings.data.names && (dp < 26 || party || (this.mode === 'stall' && dp < 40));
+    this.label.visible = Settings.data.names && (dp < 16 || party && dp < 30);
+    if (this.stallSign) this.stallSign.visible = dp < 28;
     if (this.atkCd > 0) this.atkCd -= dt;
     if (this.swingT > 0) this.swingT -= dt;
     if (this.dead) {

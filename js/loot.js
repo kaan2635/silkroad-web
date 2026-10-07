@@ -118,7 +118,9 @@ class LootManager {
     // simya
     if (chance(0.045)) item(makeStack(['elx_w', 'elx_a', 'elx_a', 'elx_s', 'elx_c'][Math.floor(Math.random() * 5)], 1));
     if (chance(0.02)) item(makeStack('luck', 1));
-    if (chance(0.012)) item(makeStack('ms_' + Object.keys(BLUES)[Math.floor(Math.random() * 6)], 1));
+    if (chance(0.012)) { const ks = Object.keys(BLUES).filter(k => !BLUES[k].rare); item(makeStack('ms_' + ks[Math.floor(Math.random() * ks.length)], 1)); }
+    if (chance(0.006)) { const ks = Object.keys(WHITES); item(makeStack('as_' + ks[Math.floor(Math.random() * ks.length)], 1)); }
+    if (chance(0.005)) item(makeStack(Math.random() < 0.55 ? 'tab_ms' : 'tab_as', 1));
     if (chance(0.003)) item(makeStack('astral', 1));
     if (chance(0.006)) item(makeStack('zerk', 1));
     if (Math.random() < (m.rank === 'unique' ? 1 : m.rank === 'giant' ? 0.25 : m.rank === 'champion' ? 0.04 : 0.002)) item(makeStack('silkbag', m.rank === 'unique' ? 3 : 1));

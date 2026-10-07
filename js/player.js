@@ -216,6 +216,7 @@ class Player {
   recalc() {
     const s = this.stats, L = s.level, eq = this.inv.equip;
     const pas = this.book.passives(), bf = this.buffSum();
+    const res = { rfreeze: 0, rshock: 0, rburn: 0, rpoison: 0 }, sets = {};
     let STR = s.str, INT = s.int, hpF = 0, mpF = 0, hpPct = 0, mpPct = 0, crit = 0, pdef = 0, mdef = 0, block = 0, wPhy = 3, wMag = 2;
     for (const k in eq) {
       const it = eq[k]; if (!it) continue;
@@ -224,8 +225,18 @@ class Player {
       pdef += n.pdef; mdef += n.mdef; hpF += n.hp; mpF += n.mp;
       if (k === 'weapon') { wPhy = n.phy; wMag = n.mag; }
       if (k === 'shield' && !n.broken) block += n.block;
-      if (!n.broken) { const b = n.blues; STR += b.str || 0; INT += b.int || 0; hpPct += b.hp || 0; mpPct += b.mp || 0; crit += b.crit || 0; }
+      if (!n.broken) { const b = n.blues; STR += b.str || 0; INT += b.int || 0; hpPct += b.hp || 0; mpPct += b.mp || 0; crit += (b.crit || 0) + (n.wcrit || 0);
+        for (const r of ['rfreeze', 'rshock', 'rburn', 'rpoison']) res[r] += b[r] || 0; }
+      if (it.rarity) { const key = it.rarity + ':' + n.d; sets[key] = (sets[key] || 0) + 1; }
     }
+    // Mühür seti: aynı mühür ve derecede kuşanılan parça sayısına göre bonus
+    let set = null;
+    for (const key in sets) { const [r, dg] = key.split(':').map(Number), c = sets[key]; if (!set || c > set.c || (c === set.c && r > set.r)) set = { r, d: dg, c }; }
+    const sb = { hp: 0, atk: 0, def: 0, crit: 0 };
+    if (set && set.c >= 3) { sb.hp = 5; if (set.c >= 5) sb.atk = 5; if (set.c >= 8) { sb.def = 8; sb.crit = 2; } if (set.c >= 11) { sb.hp += 5; sb.atk += 5; sb.def += 5; } sb.atk *= set.r >= 3 ? 1.5 : 1; }
+    this.setInfo = set && set.c >= 3 ? { ...set, ...sb } : null;
+    hpPct += sb.hp; crit += sb.crit;
+    this.d.res = {}; for (const r in res) this.d.res[r] = Math.min(60, res[r]);
     s.STR = STR; s.INT = INT;
     const wt = this.inv.weaponType(), wm = wt ? Object.keys(MASTERIES).find(m => (MASTERIES[m].weapons || []).includes(wt)) : null;
     const weapM = wm ? this.book.mastery[wm] : 0;
@@ -236,14 +247,14 @@ class Player {
     s.hp = Math.min(s.hp, s.maxHp); s.mp = Math.min(s.mp, s.maxMp);
     void oldMp;
     const zerk = (this.zerkT > 0 ? 1.5 : 1) * (1 + 0.01 * (this.hwan || 0));      // onur (Hwan) seviyesi: saldırı +%1/sv.
-    const pM = (1 + ((pas.patkPct || 0) + (bf.patkPct || 0)) / 100 + weapM * 0.01) * zerk;
-    const mM = (1 + ((pas.matkPct || 0) + (bf.matkPct || 0)) / 100) * zerk;
+    const pM = (1 + ((pas.patkPct || 0) + (bf.patkPct || 0) + sb.atk) / 100 + weapM * 0.01) * zerk;
+    const mM = (1 + ((pas.matkPct || 0) + (bf.matkPct || 0) + sb.atk) / 100) * zerk;
     const phy = wPhy + STR * 0.55 + L * 1.2, mag = wMag + INT * 0.55 + L * 1.2;
     const d = this.d;
     d.phyMin = Math.round(phy * 0.9 * pM); d.phyMax = Math.round(phy * 1.1 * pM);
     d.magMin = Math.round(mag * 0.9 * mM); d.magMax = Math.round(mag * 1.1 * mM);
-    d.pdef = Math.round((pdef + STR * 0.25 + L * 0.8) * (1 + ((pas.pdefPct || 0) + (bf.pdefPct || 0)) / 100));
-    d.mdef = Math.round((mdef + INT * 0.25 + L * 0.8) * (1 + ((pas.mdefPct || 0) + (bf.mdefPct || 0)) / 100));
+    d.pdef = Math.round((pdef + STR * 0.25 + L * 0.8) * (1 + ((pas.pdefPct || 0) + (bf.pdefPct || 0) + sb.def) / 100));
+    d.mdef = Math.round((mdef + INT * 0.25 + L * 0.8) * (1 + ((pas.mdefPct || 0) + (bf.mdefPct || 0) + sb.def) / 100));
     d.crit = Math.min(60, 5 + crit + (pas.crit || 0) + (bf.crit || 0));
     d.block = eq.shield ? Math.min(50, block + (pas.block || 0) + (bf.block || 0)) : 0;
     d.speed = (1 + (bf.speedPct || 0) / 100) * (this.zerkT > 0 ? 1.6 : 1) * (this.speedScrollT > 0 ? 1.3 : 1) * (this.status.slow ? 0.5 : 1);

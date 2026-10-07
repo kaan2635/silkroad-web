@@ -164,6 +164,7 @@ class Combat {
     if (kind === 'phys' && d.block && Math.random() * 100 < d.block) { this.fx(pl, 'Blok!', 'buff'); SFX.play('equip'); return; }
     const K = 40 + 10 * m.level, def = kind === 'mag' ? d.mdef : d.pdef;
     let dmg = amount * K / (K + def) * (0.9 + Math.random() * 0.2) * d.dmgTaken;
+    if (this.jobs && (this.jobs.mission || this.jobs.cargoCount())) dmg *= 1 - 0.08 * this.jobs.suitGrade();      // meslek kıyafeti
     dmg = Math.max(1, Math.round(dmg));
     if (pl.absorb) { const a = Math.min(pl.absorb.amt, dmg); pl.absorb.amt -= a; dmg -= a; if (a) this.fx(pl, 'Emildi ' + a, 'buff'); }
     if (dmg <= 0) return;
@@ -181,6 +182,8 @@ class Combat {
   }
   statusPlayer(kind, dur, dps) {
     const pl = this.player;
+    const rk = { freeze: 'rfreeze', slow: 'rfreeze', stun: 'rshock', knock: 'rshock', burn: 'rburn', poison: 'rpoison', bleed: 'rpoison' }[kind];
+    if (rk && pl.d.res && Math.random() * 100 < pl.d.res[rk]) { this.fx(pl, 'Direnç!', 'buff'); return; }
     pl.status[kind] = { t: dur, dps, tick: 1 };
     this.fx(pl, STATUS_NAMES[kind] || kind, 'dmg');
     if (kind === 'slow') pl.recalc();

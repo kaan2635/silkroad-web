@@ -19,7 +19,7 @@ function shopStock(kind) {
     out.push('horse', 'camel', 'pet_grab', 'pet_atk', 'pet_pot');
   } else if (kind === 'acc') {
     for (const d of SHOP_DEGREES) for (const T of TIERS) for (const a of ['earring', 'necklace', 'ring']) out.push(a + '_' + d + T.suf);
-    out.push('luck');
+    out.push('luck', 'tab_ms', 'tab_as');
   }
   return out;
 }
@@ -55,7 +55,7 @@ class UI {
     this.skTab = 'bicheon';
     this.filter = { at: 'protector', d: SHOP_DEGREES[0] };
     this.onTravel = null; this.mm = null; this.jobs = null;
-    this.alc = { sel: null, lucky: false, astral: false, msg: null, stone: null };
+    this.alc = { sel: null, lucky: false, astral: false, msg: null, stone: null, mode: 'enh', astone: null, proof: false, dsel: [], fus: null };
 
     this.inv.onChange = () => this.refresh();
     player.book.onChange = () => this.refresh();
@@ -135,6 +135,11 @@ class UI {
     // simya
     this.w.alc.addEventListener('click', e => {
       const it = e.target.closest('[data-src]'), b = e.target.closest('[data-act]'), st = e.target.closest('[data-stone]');
+      const md = e.target.closest('[data-amode]'), as = e.target.closest('[data-astone]'), ds = e.target.closest('[data-dsel]'), fu = e.target.closest('[data-fus]');
+      if (md) { this.alc.mode = md.dataset.amode; this.alc.msg = null; SFX.play('tab'); this.refreshAlc(); return; }
+      if (as) { this.alc.astone = as.dataset.astone; SFX.play('tab'); this.refreshAlc(); return; }
+      if (ds) { const i = +ds.dataset.dsel, L = this.alc.dsel; this.alc.dsel = L.includes(i) ? L.filter(x => x !== i) : L.concat(i); SFX.play('ui'); this.refreshAlc(); return; }
+      if (fu) { this.alc.fus = fu.dataset.fus; SFX.play('tab'); this.refreshAlc(); return; }
       if (it) { this.alc.sel = it.dataset.src; this.alc.msg = null; SFX.play('tab'); this.refreshAlc(); }
       else if (st) { this.alc.stone = st.dataset.stone; SFX.play('tab'); this.refreshAlc(); }
       else if (b) this._alcAct(b.dataset.act);
@@ -376,8 +381,12 @@ class UI {
     let h = '<div class="in-name" style="color:' + n.color + '">' + n.name + '</div>' +
       '<div class="in-sub">' + (it.rarity ? '<b style="color:' + n.color + '">' + n.rarityName + '</b> · ' : '') + n.d + '. derece · ' + (n.tier + 1) + '/3 kademe · ' + n.typeName + '</div>' +
       '<div class="in-st">' + itemStatText(n).split(' · ').join('<br>') + '</div>';
+    const wt = whiteText(n);
+    if (wt) h += '<div class="in-white">' + wt + '</div>';
     const bt = blueText(n);
     if (bt) h += '<div class="in-blue">' + bt + '</div>';
+    if (n.seal && n.cat !== 'avatar') { const S = this.p.setInfo; h += '<div class="in-set">' + RARITY[n.seal].tr + ' seti (' + n.d + '. derece): ' + (S && S.r === n.seal && S.d === n.d ? S.c : 0) + ' parça kuşanılı · 3: can +%5 · 5: saldırı +%5 · 8: savunma +%8, kritik +2 · 11: hepsi +%5</div>'; }
+    if (n.adv) h += '<div class="in-set">Gelişmiş İksir: kalıcı +' + n.adv + '</div>';
     h += '<div class="in-dur' + (n.broken ? ' bad' : '') + '">Dayanıklılık ' + n.dur + ' / ' + n.maxDur + (n.broken ? ' — KIRIK (tamir et)' : '') + '</div>';
     h += '<div class="in-req' + (lvl < n.req ? ' bad' : '') + '">Gerekli seviye: ' + n.req + '</div>';
     if (cmp) h += '<div class="in-cmp">Kuşanılı: ' + itemInfo(cmp).name + '</div>';
@@ -475,7 +484,10 @@ class UI {
       row('Fiz. savunma', d.pdef) + row('Büyü savunma', d.mdef) +
       row('Kritik', '%' + d.crit) + row('Blok', '%' + d.block) +
       row('Hız', '%' + Math.round(d.speed * 100)) + row('Menzil', d.range.toFixed(1) + ' m') +
-      row('Berserk', p.zerkT > 0 ? 'AÇIK' : Math.floor(s.zerk) + ' / 5') + row('Altın', s.gold.toLocaleString('tr-TR')) + '</div>';
+      row('Berserk', p.zerkT > 0 ? 'AÇIK' : Math.floor(s.zerk) + ' / 5') + row('Altın', s.gold.toLocaleString('tr-TR')) +
+      row('Irk', RACE_NAMES[p.race || 'ch'] + (p.book.race === 'eu' && p.book.classes().length ? ' · ' + p.book.classes().map(c => MASTERIES[c].name).join(' / ') : '')) + row('Unvan', p.title || '—') +
+      row('Direnç (donma / şok)', '%' + (d.res ? d.res.rfreeze : 0) + ' / %' + (d.res ? d.res.rshock : 0)) + row('Direnç (yanma / zehir)', '%' + (d.res ? d.res.rburn : 0) + ' / %' + (d.res ? d.res.rpoison : 0)) + '</div>' +
+      (p.setInfo ? '<div class="in-set">' + RARITY[p.setInfo.r].tr + ' seti · ' + p.setInfo.d + '. derece · ' + p.setInfo.c + ' parça: can +%' + p.setInfo.hp + (p.setInfo.atk ? ', saldırı +%' + p.setInfo.atk : '') + (p.setInfo.def ? ', savunma +%' + p.setInfo.def : '') + (p.setInfo.crit ? ', kritik +' + p.setInfo.crit : '') + '</div>' : '');
   }
 
   // ---------- Yetenekler ----------
@@ -523,6 +535,13 @@ class UI {
     return w === 'eq' ? this.inv.equip[k] : this.inv.slots[+k];
   }
   refreshAlc() {
+    const a = this.alc;
+    const tabs = '<div class="tabs alc-modes">' + [['enh', 'Güçlendirme', 'elx_w'], ['dis', 'Söküm', 'alc_dis'], ['fus', 'Sentez', 'alc_fus']].map(m => '<button data-amode="' + m[0] + '" class="' + (a.mode === m[0] ? 'on' : '') + '">' + icon(m[2], 'gold') + ' ' + m[1] + '</button>').join('') + '</div>';
+    if (a.mode === 'dis') { this.$('alch-body').innerHTML = tabs + this._alcDisHTML(); return; }
+    if (a.mode === 'fus') { this.$('alch-body').innerHTML = tabs + this._alcFusHTML(); return; }
+    this._refreshAlcEnh(tabs);
+  }
+  _refreshAlcEnh(tabs) {
     const inv = this.inv, a = this.alc, it = this._alcItem(a.sel);
     if (a.sel && (!it || !isGear(it.base) || ITEM_BASES[it.base].cat === 'avatar')) a.sel = null;
     const gear = [];
@@ -550,12 +569,93 @@ class UI {
       const stones = Object.keys(BLUES).filter(k => inv.count('ms_' + k) > 0 && BLUE_BY_KIND[ITEM_BASES[x.base].cat].includes(k));
       h += '<h4>Büyü Taşı (mavi stat)</h4>' + (stones.length ? '<div class="seg">' + stones.map(k => '<button data-stone="' + k + '" class="tg' + (a.stone === k ? ' on' : '') + '">' + BLUES[k].name + ' (' + inv.count('ms_' + k) + ')</button>').join('') + '</div>' +
         (a.stone && stones.includes(a.stone) ? '<button data-act="stone">Taşı Uygula (%60)</button>' : '') : '<div class="hint">Bu eşyaya uygun büyü taşın yok. Canavarlardan düşer.</div>');
+      // Özellik Taşı (beyaz stat), Gelişmiş İksir, Kanıt Taşı
+      const wk = WHITE_BY_KIND[ITEM_BASES[x.base].cat] || [], ast = wk.filter(k => inv.count('as_' + k) > 0);
+      h += '<h4>Beyaz statlar</h4><div class="alc-ws">' + whiteText(n) + '</div>';
+      h += ast.length ? '<div class="seg">' + ast.map(k => '<button data-astone="' + k + '" class="tg' + (a.astone === k ? ' on' : '') + '">' + WHITES[k].name + ' (' + inv.count('as_' + k) + ')</button>').join('') + '</div>' +
+        (a.astone && ast.includes(a.astone) ? '<button data-act="astone">Özellik Taşını Uygula (%' + (a.proof && inv.count('proof') ? 100 : 65) + ')</button>' : '') : '<div class="hint">Özellik Taşın yok: Sentez sekmesinde tabletle yap ya da Item Mall\'dan al.</div>';
+      h += ' <button data-act="tproof" class="tg' + (a.proof && inv.count('proof') ? ' on' : '') + '">' + icon('proof', 'gold') + ' Kanıt Taşı (' + inv.count('proof') + ')</button>';
+      h += '<h4>Gelişmiş İksir</h4>' + (x.adv ? '<div class="hint">Bu eşyada kalıcı +' + x.adv + ' var.</div>' : '<div class="cr"><span>Kalıcı +2 (simya başarısızlığında kaybolmaz)</span><b' + (inv.count('adv_elx') ? '' : ' class="bad"') + '>' + inv.count('adv_elx') + '</b></div><button data-act="adv"' + (inv.count('adv_elx') ? '' : ' disabled') + '>Gelişmiş İksiri Uygula</button>');
       h += (a.msg ? '<div class="alc-msg" style="color:' + a.msg.color + '">' + a.msg.text + '</div>' : '') + '</div></div>';
     }
-    this.$('alch-body').innerHTML = h;
+    this.$('alch-body').innerHTML = tabs + h;
+  }
+  // Söküm: eşyayı özlere ve tabletlere ayır
+  _disYield(it) {
+    const b = ITEM_BASES[it.base], r = it.rarity || 0, p = it.plus || 0;
+    const main = b.cat === 'weapon' ? 'ess_atk' : b.cat === 'acc' ? 'ess_mag' : 'ess_def';
+    return { main, n: 2 + b.d + r * 3 + Math.floor(p / 2), extra: 1 + Math.floor(b.d / 4), tms: Math.min(0.9, 0.12 + r * 0.15 + p * 0.02), tas: Math.min(0.8, 0.08 + r * 0.12 + p * 0.02) };
+  }
+  _alcDisHTML() {
+    const inv = this.inv, a = this.alc;
+    a.dsel = a.dsel.filter(i => inv.slots[i] && isGear(inv.slots[i].base) && ITEM_BASES[inv.slots[i].base].cat !== 'avatar');
+    let h = '<div class="hint">Söküm: çantandaki ekipmanı özlerine ayırır (eşya yok olur). Özler ve tabletler Sentez\'de Büyü / Özellik Taşına dönüşür. Mühürlü ve + eşyalar daha çok verir.</div>';
+    const list = inv.slots.map((it, i) => it && isGear(it.base) && ITEM_BASES[it.base].cat !== 'avatar' ? i : -1).filter(i => i >= 0);
+    h += list.length ? '<div class="alc-list wrap">' + list.map(i => '<div class="alc-it' + (a.dsel.includes(i) ? ' on' : '') + '" data-dsel="' + i + '" data-tip="sl:' + i + '">' + this._slot(inv.slots[i], '', false) + '</div>').join('') + '</div>' : '<div class="hint">Çantanda sökülecek ekipman yok (kuşanılı eşyalar sökülmez).</div>';
+    if (a.dsel.length) {
+      const tot = { ess_atk: 0, ess_def: 0, ess_mag: 0 }; let tms = 0, tas = 0;
+      for (const i of a.dsel) { const y = this._disYield(inv.slots[i]); tot[y.main] += y.n; tot.ess_mag += y.extra; tms += y.tms; tas += y.tas; }
+      h += '<div class="alc-yield">' + Object.keys(tot).filter(k => tot[k]).map(k => icon(k === 'ess_atk' ? 'ess_atk' : k === 'ess_def' ? 'ess_def' : 'ess_mag', 'gold') + ' ' + ITEM_BASES[k].name + ' ×' + tot[k]).join(' · ') + ' · tablet beklentisi ~' + (tms + tas).toFixed(1) + '</div>';
+      h += '<button data-act="dis" class="big">' + a.dsel.length + ' eşyayı sök</button>';
+    }
+    return h + (a.msg ? '<div class="alc-msg" style="color:' + a.msg.color + '">' + a.msg.text + '</div>' : '');
+  }
+  _fusRecipes() {
+    const ess = k => ['str', 'crit', 'lucky', 'patk', 'block'].includes(k) ? 'ess_atk' : ['int', 'mp', 'astral', 'matk', 'mdef'].includes(k) ? 'ess_mag' : 'ess_def';
+    const R = [];
+    for (const k in BLUES) R.push({ id: 'ms_' + k, out: 'ms_' + k, need: [['tab_ms', 1], [ess(k), BLUES[k].rare ? 15 : 5]], gold: BLUES[k].rare ? 20000 : 3000 });
+    for (const k in WHITES) R.push({ id: 'as_' + k, out: 'as_' + k, need: [['tab_as', 1], [ess(k), 5]], gold: 4000 });
+    R.push({ id: 'proof', out: 'proof', need: [['tab_ms', 1], ['ess_mag', 8]], gold: 5000 });
+    R.push({ id: 'adv_elx', out: 'adv_elx', need: [['tab_ms', 2], ['tab_as', 2], ['ess_mag', 20]], gold: 50000 });
+    return R;
+  }
+  _alcFusHTML() {
+    const inv = this.inv, a = this.alc, R = this._fusRecipes();
+    let h = '<div class="hint">Sentez: tablet + öz + altın → seçtiğin taş. Özler Söküm\'den, tabletler sökümden, demirci/takıcıdan ve Item Mall\'dan gelir.</div>';
+    h += '<div class="alc-have">' + ['tab_ms', 'tab_as', 'ess_atk', 'ess_def', 'ess_mag'].map(k => itemIcon(k) + '<b>' + inv.count(k) + '</b>').join('') + '</div>';
+    h += '<div class="seg fus-list">' + R.map(r => '<button data-fus="' + r.id + '" class="tg' + (a.fus === r.id ? ' on' : '') + '">' + ITEM_BASES[r.out].name.replace('Büyü Taşı ', 'BT ').replace('Özellik Taşı ', 'ÖT ') + '</button>').join('') + '</div>';
+    const r = R.find(x => x.id === a.fus);
+    if (r) {
+      const ok = r.need.every(([k, n]) => inv.count(k) >= n) && this.p.stats.gold >= r.gold;
+      h += '<div class="alc-recipe">' + itemIcon(r.out) + '<div><b>' + ITEM_BASES[r.out].name + '</b><small>' + (ITEM_BASES[r.out].sub || '') + '</small><div>' +
+        r.need.map(([k, n]) => '<span class="' + (inv.count(k) >= n ? '' : 'bad') + '">' + ITEM_BASES[k].name + ' ' + inv.count(k) + '/' + n + '</span>').join(' · ') + ' · <span class="' + (this.p.stats.gold >= r.gold ? '' : 'bad') + '">' + r.gold.toLocaleString('tr-TR') + ' altın</span></div></div></div>';
+      h += '<button data-act="fus" class="big"' + (ok ? '' : ' disabled') + '>Sentezle</button>';
+    }
+    return h + (a.msg ? '<div class="alc-msg" style="color:' + a.msg.color + '">' + a.msg.text + '</div>' : '');
   }
   _alcAct(act) {
     const a = this.alc, inv = this.inv, x = this._alcItem(a.sel);
+    if (act === 'tproof') { a.proof = !a.proof; SFX.play('tab'); return this.refreshAlc(); }
+    if (act === 'dis') {
+      let got = { ess_atk: 0, ess_def: 0, ess_mag: 0, tab_ms: 0, tab_as: 0 };
+      for (const i of a.dsel) { const it = inv.slots[i]; if (!it) continue; const y = this._disYield(it); got[y.main] += y.n; got.ess_mag += y.extra; if (Math.random() < y.tms) got.tab_ms++; if (Math.random() < y.tas) got.tab_as++; inv.slots[i] = null; }
+      for (const k in got) if (got[k]) inv.addStack(k, got[k]);
+      a.dsel = []; a.msg = { text: 'Söküldü: ' + Object.keys(got).filter(k => got[k]).map(k => ITEM_BASES[k].name + ' ×' + got[k]).join(', '), color: '#9fe3ff' };
+      SFX.play('upgrade'); inv.changed(); return this.refreshAlc();
+    }
+    if (act === 'fus') {
+      const r = this._fusRecipes().find(q => q.id === a.fus); if (!r) return;
+      if (!r.need.every(([k, n]) => inv.count(k) >= n) || this.p.stats.gold < r.gold) { SFX.play('error'); return; }
+      if (inv.free() < 0 && !inv.count(r.out)) { a.msg = { text: 'Envanter dolu.', color: '#ff8a7a' }; return this.refreshAlc(); }
+      for (const [k, n] of r.need) inv.take(k, n);
+      this.p.stats.gold -= r.gold; inv.addStack(r.out, 1);
+      a.msg = { text: ITEM_BASES[r.out].name + ' yapıldı!', color: '#ffd23a' }; SFX.play('upgrade'); inv.changed(); return this.refreshAlc();
+    }
+    if (act === 'adv' && x) {
+      if (x.adv || !inv.take('adv_elx', 1)) return;
+      x.adv = 2; a.msg = { text: 'Kalıcı +2 eklendi: ' + itemInfo(x).name, color: '#ffd23a' }; SFX.play('upgrade');
+      this.p.refreshLook(); inv.changed(); return this.refreshAlc();
+    }
+    if (act === 'astone' && x && a.astone) {
+      const k = a.astone; if (!inv.take('as_' + k, 1)) return;
+      const proof = a.proof && inv.take('proof', 1);
+      x.ws = x.ws || {}; const cur = wsOf(x, k);
+      if (proof || Math.random() < 0.65) { const up = 4 + Math.floor(Math.random() * 13); x.ws[k] = Math.min(100, cur + up); a.msg = { text: WHITES[k].name + ' %' + cur + ' → %' + x.ws[k], color: '#ffffff' }; SFX.play('upgrade'); }
+      else { const dn = 2 + Math.floor(Math.random() * 5); x.ws[k] = Math.max(0, cur - dn); a.msg = { text: 'Taş tutmadı: ' + WHITES[k].name + ' %' + cur + ' → %' + x.ws[k], color: '#ff8a7a' }; SFX.play('fail'); }
+      for (const w of WHITE_BY_KIND[ITEM_BASES[x.base].cat] || []) if (x.ws[w] === undefined) x.ws[w] = 50;
+      if (k === 'dur') x.dur = Math.min(maxDur(x), x.dur);
+      this.p.recalc(); inv.changed(); return this.refreshAlc();
+    }
     if (act === 'tlucky') { a.lucky = !a.lucky; SFX.play('tab'); return this.refreshAlc(); }
     if (act === 'tastral') { a.astral = !a.astral; SFX.play('tab'); return this.refreshAlc(); }
     if (act === 'timm') { a.imm = !a.imm; SFX.play('tab'); return this.refreshAlc(); }
@@ -565,7 +665,7 @@ class UI {
       const elx = elixirFor(x.base);
       if (!inv.count(elx)) { a.msg = { text: ITEM_BASES[elx].name + ' gerekli.', color: '#ff8a7a' }; SFX.play('error'); return this.refreshAlc(); }
       const lucky = a.lucky && inv.count('luck') > 0, astral = a.astral && inv.count('astral') > 0;
-      const ch = alchemyChance(x, lucky);
+      const bl = itemInfo(x).blues, ch = Math.min(0.98, alchemyChance(x, lucky) + (bl.lucky || 0) / 100);
       inv.take(elx, 1); if (lucky) inv.take('luck', 1);
       if (Math.random() < ch) {
         x.plus++;
@@ -575,7 +675,9 @@ class UI {
       } else {
         const old = x.plus, imm = a.imm && inv.count('immortal') > 0;
         if (imm) inv.take('immortal', 1);
-        else if (astral) { inv.take('astral', 1); x.plus = Math.max(0, x.plus - 1); } else x.plus = 0;
+        else if (astral) { inv.take('astral', 1); x.plus = Math.max(0, x.plus - 1); }
+        else if (bl.steady) x.plus = Math.max(0, x.plus - 1);
+        else x.plus = bl.astral ? Math.min(old, 4) : 0;
         a.msg = { text: 'Başarısız. +' + old + ' → +' + x.plus, color: '#ff8a7a' };
         SFX.play('fail');
       }
@@ -584,7 +686,7 @@ class UI {
       const k = a.stone, base = 'ms_' + k, b = ITEM_BASES[x.base];
       if (!inv.take(base, 1)) return;
       const ex = x.blues.find(v => v[0] === k), mx = BLUES[k].max(b.d);
-      if (Math.random() < 0.6) {
+      if ((a.proof && inv.take('proof', 1)) || Math.random() < 0.6) {
         if (ex) {
           if (ex[1] >= mx) { a.msg = { text: BLUES[k].name + ' zaten en üstte (' + mx + ').', color: '#ffe9a8' }; inv.addStack(base, 1); }
           else { ex[1] = Math.min(mx, ex[1] + 1 + (Math.random() < 0.3 ? 1 : 0)); a.msg = { text: BLUES[k].fmt(ex[1]), color: BLUE_COLOR }; SFX.play('upgrade'); }
@@ -791,6 +893,10 @@ class UI {
       if (J.job === 'thief') h += this._row(icon('blade', 'bad'), 'Kervan Soygunu', 'Yoldaki tüccar kervanının devesini düşür, Çalıntı Malı simsara sat (' + ZONE.npc.den + ', ' + ZONE.ruinName + ')', J.mission ? '<span class="qs">' + J.status() + '</span>' : '<button data-act="raid">Başlat</button>');
       if (J.job === 'trader') h += this._row(icon('camel', 'pet'), 'Ticaret', 'Ahır\'dan Kervan Devesi Düdüğü al, Ticaret Ustası\'ndan mal yükle, başka şehirde sat. Teleport ve dönüş parşömeni kullanılamaz; yolun ucundaki kapılardan yürü.', '<span class="qs">Yük ' + J.cargoCount() + '/' + J.capacity() + '</span>');
       h += '<div class="btns"><button data-act="leave" class="warn">Loncadan Ayrıl</button></div>';
+      h += '<h4>Meslek kıyafetleri</h4>' + Object.keys(JOB_SUITS).filter(id => JOB_SUITS[id].job === J.job).map(id => {
+        const S = JOB_SUITS[id], b = ITEM_BASES[id], ok = J.level() >= S.jl;
+        return this._row(itemIcon(id), b.name + ' <small>Meslek Sv. ' + S.jl + '+</small>', b.sub, '<span class="price">' + b.value.toLocaleString('tr-TR') + '</span><button data-act="jsbuy" data-id="' + id + '"' + (ok && s.gold >= b.value ? '' : ' class="dis"') + '>Al</button>');
+      }).join('');
     }
     h += Object.keys(JOBS).filter(k => k !== J.job).map(k => this._row(icon(k === 'trader' ? 'camel' : k === 'hunter' ? 'shield' : 'blade', k === 'thief' ? 'bad' : 'gold'), JOBS[k].name + ' Loncası', JOBS[k].desc, '<button data-act="join" data-j="' + k + '"' + (s.level < JOB_MIN_LEVEL ? ' class="dis"' : '') + '>Katıl</button>', JOBS[k].color)).join('');
     return h;
@@ -947,6 +1053,12 @@ class UI {
       if (s.gold < c) { SFX.play('error'); return this._say('Yeterli altının yok.', '#ff8a7a'); }
       s.gold -= c; inv.repairAll(); Eco.exp('repair', c); SFX.play('upgrade');
       this._say('Tüm eşyalar tamir edildi.', '#a8f0a0');
+    } else if (act === 'jsbuy') {
+      const id = btn.dataset.id, b = ITEM_BASES[id], S = JOB_SUITS[id];
+      if (this.jobs.level() < S.jl) { SFX.play('error'); return this._say('Meslek seviyen ' + S.jl + ' olmalı.', '#ff8a7a'); }
+      if (s.gold < b.value) { SFX.play('error'); return this._say('Yeterli altının yok.', '#ff8a7a'); }
+      if (!inv.add(makeItem(id))) { SFX.play('error'); return this._say('Envanter dolu.', '#ff8a7a'); }
+      s.gold -= b.value; SFX.play('coin'); this._say(b.name + ' alındı. Envanterden kuşan.', '#a8f0a0');
     } else if (['join', 'leave', 'escort', 'raid', 'tbuy', 'tsell', 'tdismiss', 'sgsell'].includes(act)) {
       const J = this.jobs;
       let r;

@@ -87,10 +87,13 @@ class JobSystem {
     this.onChange = null;
   }
   changed() { if (this.onChange) this.onChange(); }
+  // Meslek kıyafeti: mesleğe uyuyor ve meslek seviyesi yetiyorsa kademesi (0 = yok)
+  suitGrade() { const it = this.p.inv.equip.job, S = it && JOB_SUITS[it.base]; return S && S.job === this.job && this.level() >= S.jl ? S.g : 0; }
   level() { let l = 1; JOB_EXP.forEach((e, i) => { if (this.jexp >= e) l = i + 1; }); return l; }
   nextExp() { const l = this.level(); return l >= JOB_EXP.length ? null : JOB_EXP[l]; }
   gainJobExp(n) {
     if (!this.job || n <= 0) return;
+    n *= 1 + 0.1 * this.suitGrade();
     const before = this.level();
     this.jexp += Math.round(n);
     this.hud.log('+' + Math.round(n) + ' ' + JOBS[this.job].name + ' EXP', 'exp', JOBS[this.job].color);
