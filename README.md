@@ -1,6 +1,6 @@
 # Silkroad Web
 
-Tarayıcıda çalışan, **Silkroad Online** tarzı 3D MMORPG. **Masaüstü ve telefonda** oynanır. Şu an **Faz 5 (orijinal Silkroad sistemleri, tek oyunculu)** hazır. Yol haritası için [ROADMAP.md](ROADMAP.md).
+Tarayıcıda çalışan, **Silkroad Online** tarzı 3D MMORPG. **Masaüstü ve telefonda** oynanır. Şu an **Faz 6 (iSRO'nun neredeyse tüm sistemleri, tek oyunculu)** hazır: iki ırk, Sv. 140, 8 bölge, 7 zindan, yapay oyuncularla parti / lonca / PvP / Kale Savaşı. iSRO ile karşılaştırma: [docs/ISRO_KARSILASTIRMA.md](docs/ISRO_KARSILASTIRMA.md). Yol haritası için [ROADMAP.md](ROADMAP.md).
 
 ## Çalıştırma
 
@@ -19,7 +19,10 @@ python3 -m http.server 8000   # sonra http://localhost:8000
 | Yürü | Yere sol tık, WASD / oklar | Joystick, yere dokun |
 | Saldır | Canavara tıkla, Space | Canavara dokun, 🎯 |
 | Kamera | Sağ tık + sürükle, Q / E, tekerlek | Tek parmak kaydır, iki parmak yakınlaş |
-| Hotbar | 1–8, Shift+1–8 (2. sayfa), F1/F2 | Sağ alttaki yuvalar, ⇅ sayfa |
+| Hotbar | 1–8, Shift+1–8 (sonraki sayfa), F1–F4 | Sağ alttaki yuvalar, sayfa düğmesi |
+| Oto av | H | OTO düğmesi |
+| Otur / el hareketleri | X · sohbette /selam /dans /eğil /sevin /hayır /ağla | Sohbet penceresi |
+| Topluluk / Etkinlik / Sohbet | O / J / Enter | ☰ menüsü |
 | Berserk | Z | Can çubuğunun altındaki 5 küre |
 | Envanter / Karakter / Yetenek | I / C / K | 🎒 ve ☰ menüsü |
 | Görevler / Harita / Ayarlar | L / M / Esc | ☰ menüsü |
@@ -87,16 +90,48 @@ Yetenek veya iksiri hotbara koymak için pencerede **📌**'a bas, sonra bir yuv
 - Ses ve müzik (WebAudio, dosyasız), ayarlar (ses, kalite, gölge, FPS, kamera hassasiyeti, otomatik iksir, kayıt sıfırlama)
 - Tüm ilerleme tarayıcıda kaydedilir (localStorage); eski kayıtlar otomatik taşınır
 
-> **Henüz yok (sunucu gerektirir, Faz 6):** parti, lonca, takas, oyuncu tezgâhı (stall), PvP, Kale Savaşı, sohbet. Avrupa ırkı Faz 7'de.
+> Çok oyunculu sunucu henüz yok: parti, lonca, PvP ve etkinlikler yapay oyuncularla oynanır (Faz 7'de gerçek oyuncular).
+
+## Faz 6 — iSRO kapsamı
+
+**İki ırk ve Sv. 140**
+- **Çin:** 7 ustalık, 78 yetenek (iSRO adlarıyla yüksek kademeler: Kesik Bıçak, Tayfun Kılıç Dansı, Kurt Isırığı Mızrağı, Uçan Ejder, Şeytan Kovan Yay, Ruh Oku, Don Novası, Gök Gürültüsü Gücü, Anka Kuşu, Diriliş…). Toplam ustalık sınırı seviye ×3
+- **Avrupa:** Savaşçı, Haydut, Büyücü, Lanetçi, Rahip, Ozan; en çok iki sınıf (ana + yan), toplam sınır seviye ×2. Tek el / çift el kılıç, çift balta, arbalet, hançer, asa, kara asa, rahip asası, arp; cüppe / deri / plaka zırh. Konstantinopolis'te başlar
+- 14 derece, Seal of Star / Moon / Sun / **Nova**, iksirler 7 kademe
+
+**Dünya ve zindanlar**
+- 8 bölge: Jangan, Donwhang, Hotan, Semerkant, Küçük Asya, Konstantinopolis, İskenderiye (gemiyle), Şambala Kıyısı; kar, yağmur ve kum fırtınası
+- 7 zindan: Qin-Shi Mezarı (2 kat), Taş Mağara, Kutsal Su Tapınağı, Jüpiter Tapınağı, Buz ve Ateş tapınakları, Unutulmuş Dünya (davetiye, 1–5 yıldız)
+- Rütbeler: Güçlü, Şampiyon, Elit, Dev, Parti; Gölge Unique'ler; 21 Unique
+
+**Yapay oyuncular ve topluluk (O)**
+- Dünyada avlanan, tezgâh açan, sohbet eden 180 kişilik oyuncu kadrosu; gerçek zamanla seviye atlarlar
+- Sohbet kanalları: Genel, Parti, Lonca, Birlik, Fısıltı, Küresel (parşömenle)
+- Parti (8 kişi, EXP bonusu, şifacı üyeler) ve parti eşleştirme; lonca (seviye, GP bağışı, depo, unvan, birlik); arkadaşlar; akademi
+- Oyuncu tezgâhı (sen dururken satar), bot tezgâhları, takas
+- PvP pelerini (pusular), düello, cinayet ve katil cezası; onur puanı ve Hwan unvanları; sıralamalar
+
+**Etkinlikler (J)**
+- Savaş Arenası (4'e 4), Bayrak Kapmaca, Hayatta Kalma Arenası (10 dalga), Kale Savaşı (kuleler + Kale Kalbi, günlük vergi)
+- Gold Time, 28 günlük giriş ödülü takvimi, Magic POP, Arena Jetonu mağazası, Cadılar Bayramı / Kış Şenliği
+
+**Simya**
+- Beyaz statlar ve Özellik Taşları; direnç (donma, şok, yanma, zehir), Şans, Sabit, Astral mavi statları
+- Gelişmiş İksir (kalıcı +2), Kanıt Taşı, söküm (öz + tablet) ve sentez; mühür seti bonusları; Şeytan Ruhu; meslek kıyafetleri
+
+**Kolaylıklar**
+- Oto av (H), oturarak hızlı yenilenme (X), el hareketleri, 4 hotbar sayfası
+- Saldırı evcilleri seviye ve tokluk kazanır (Savaş Kurdu, Kaplan Yavrusu, Ejder Yavrusu); öküz arabası ve ticaret arabası
+- Günlük ve tekrarlanabilir görevler, ad değiştirme
 
 ## Proje yapısı
 
 ```
 index.html        giriş sayfası, HUD ve pencere iskeleti
 css/style.css     arayüz stilleri (masaüstü + mobil)
-js/config.js      sabitler, yardımcılar          js/zones.js      bölge tanımları (Jangan/Donwhang/Hotan)
+js/config.js      sabitler, yardımcılar          js/zones.js      bölgeler, zindanlar, etkinlik alanları
 js/audio.js       WebAudio efekt ve müzik         js/settings.js   ayarlar
-js/items.js       eşya verileri, simya            js/skills.js     ustalıklar ve 38 yetenek
+js/items.js       eşya verileri, simya            js/skills.js     13 ustalık, 144 yetenek (iki ırk)
 js/inventory.js   envanter, ekipman, depo         js/input.js      klavye / fare / dokunmatik
 js/world.js       arazi, bölgeler, gökyüzü        js/town.js       prosedürel şehir (yedek)
 js/daynight.js    gün/gece                        js/assets.js     model yükleyici (Kenney CC0)
@@ -105,7 +140,11 @@ js/player.js      karakter, statlar, buff'lar     js/npc.js        NPC'ler
 js/monsters.js    canavarlar, Unique'ler          js/loot.js       ganimet
 js/combat.js      savaş, yetenekler, EXP          js/pets.js       binek ve evcil hayvanlar
 js/jobs.js        meslekler ve kervanlar          js/camera.js     kamera
-js/hotbar.js      2 sayfalık hotbar               js/hud.js        arayüz, mini harita
+js/hotbar.js      4 sayfalık hotbar               js/hud.js        arayüz, mini harita
+js/dungeon.js     zindan ve arena haritaları      js/weather.js    hava durumu
+js/autohunt.js    oto av                          js/economy.js    piyasa ve Emanet Pazarı
+js/social.js      yapay oyuncular, parti, lonca, PvP   js/socialui.js   topluluk ve sohbet pencereleri
+js/events.js      arenalar, Kale Savaşı, takvim   js/eventsui.js   etkinlik penceresi
 js/quests.js      görevler                        js/worldmap.js   dünya haritası
 js/ui.js          tüm pencereler                  js/main.js       ana döngü, kayıt, bölge geçişi
 tools/pack_assets.py   modelleri seçip js/assetpack.js'e paketler

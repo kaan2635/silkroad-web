@@ -94,13 +94,22 @@ Tarayıcıda çalışan, Silkroad Online tarzı (ipek yolu temalı, tıkla-yür�
 - [x] Tıklayınca binaların etrafından dolaşan yol bulma (A*), takılma kurtarma
 - [x] Sade ekran: yakındaki / hedef canavar adları, kısa günlük ve tekrar sayacı, en çok iki pencere
 
-## Faz 6 — Çok Oyunculu Altyapı
+## ✅ Faz 6 — iSRO kapsamı (tek oyunculu)
+Orijinal iSRO ile ayrıntılı karşılaştırma: [docs/ISRO_KARSILASTIRMA.md](docs/ISRO_KARSILASTIRMA.md)
+- [x] 6A Dünya: Sv. 140, 14 derece, Seal of Nova, Semerkant, Küçük Asya, Konstantinopolis, İskenderiye, Şambala; 7 zindan; yeni rütbeler, Gölge Unique'ler, hava durumu
+- [x] 6B Avrupa ırkı: 6 sınıf (ana + yan), 9 silah, 3 zırh türü, 66 yetenek
+- [x] 6C Çin yüksek kademe yetenekleri (iSRO adlarıyla), Diriliş
+- [x] Oto av, iPhone dokunma ve güvenli alan düzeltmeleri
+- [x] 6D Yapay oyuncular: sohbet, parti ve eşleştirme, lonca, arkadaş, akademi, tezgâh, takas, PvP pelerini, düello, cinayet, Hwan unvanları, sıralamalar
+- [x] 6E Etkinlikler: Savaş Arenası, Bayrak Kapmaca, Hayatta Kalma, Kale Savaşı, Gold Time, giriş takvimi, Magic POP, mevsimsel etkinlik
+- [x] 6F Simya: beyaz statlar, Özellik Taşları, dirençler, Şans / Sabit / Astral, Gelişmiş İksir, söküm ve sentez, set bonusları, Şeytan Ruhu, meslek kıyafetleri
+- [x] 6G Kolaylıklar: oturma, el hareketleri, 4 hotbar sayfası, evcil seviye ve tokluk, yeni evciller, öküz ve ticaret arabası, günlük / tekrarlanabilir görevler, ad değiştirme
+
+## Faz 7 — Çok Oyunculu Altyapı
 - [ ] Node.js + WebSocket sunucusu, sunucu otoriteli hareket ve savaş
 - [ ] Hesap/giriş, karakter kaydı sunucuda
-- [ ] Diğer oyuncuları görme, sohbet (genel/yerel/fısıltı)
-- [ ] Parti, lonca, takas, oyuncu tezgâhı (stall), PvP (pelerin), Kale Savaşı, meslek PvP'si
+- [ ] Yapay oyuncuların yerine gerçek oyuncular: sohbet, parti, lonca, takas, tezgâh, PvP, Kale Savaşı
 
-## Faz 7 — Avrupa ve Yayın
-- [ ] Avrupa ırkı ve ustalıkları, Konstantinopolis
+## Faz 8 — Yayın
 - [ ] Performans (LOD, chunk yükleme), gamepad desteği
 - [ ] Sunucu yayını (VPS), yedekleme, anti-hile kontrolleri
