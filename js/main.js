@@ -42,11 +42,14 @@
   auto.onChange = on => autoBtn.classList.toggle('on', on);
   autoBtn.addEventListener('click', () => auto.toggle());
   window.addEventListener('keydown', e => { const a = document.activeElement; if (a && a.tagName === 'INPUT') return; if (e.code === 'KeyH' && started) auto.toggle(); });
+  const social = new Social({ world, player, monsters, combat, hud, loot, jobs });
+  combat.social = social;
   const wmap = new WorldMap(player, quests);
   const ui = new UI(player, hud, quests, wmap, combat, hotbar);
   quests.onChange = () => { npcs.refreshMarkers(quests); ui.refresh(); };
-  combat.onLevel = lvl => { hotbar.upgradePots(lvl); ui.refresh(); };
+  combat.onLevel = lvl => { hotbar.upgradePots(lvl); ui.refresh(); social.onPlayerLevel(lvl); };
   ui.mm = monsters; ui.jobs = jobs; ui.pets = pets;
+  initSocialUI(ui, social);
   pets.onChange = () => ui.refresh();
   jobs.onChange = () => ui.refresh();
   monsters.announce = (title, sub, kind) => {
@@ -117,7 +120,7 @@
         inv: player.inv.serialize(), book: player.book.serialize(), hotbar: hotbar.serialize(),
         tod: world.timeOfDay, quests: quests.serialize(), death: combat.deathPos, recall: combat.recallPos,
         zone: travelTo ? travelTo.zone : CUR_ZONE_ID, arrive: travelTo ? travelTo.arrive : null,
-        jobs: jobs.serialize(), pets: pets.serialize()
+        jobs: jobs.serialize(), pets: pets.serialize(), social: social.serialize()
       }));
     } catch (e) { /* özel pencere vb. */ }
     Eco.save();
@@ -141,7 +144,7 @@
       player.book.load(sv.book);
       hotbar.load(sv.hotbar);
       combat.deathPos = sv.death || null; combat.recallPos = sv.recall || null;
-      afterLoad = () => { jobs.load(sv.jobs); pets.load(sv.pets); };
+      afterLoad = () => { jobs.load(sv.jobs); pets.load(sv.pets); social.load(sv.social); };
     } else {
       // Eski (Faz 2–4) kayıt: seviye, altın ve görevler korunur; yeni sistemlere göre başlangıç seti ve puanlar verilir
       s.str = 20 + (s.level - 1); s.int = 20 + (s.level - 1); s.statPts = 3 * (s.level - 1);
@@ -269,6 +272,8 @@
       raycaster.setFromCamera(ndc, camera);
       const m = combat.pick(raycaster);
       if (m) { pendingNpc = null; combat.select(m, true); continue; }
+      const sim = social.pick(raycaster);
+      if (sim) { pendingNpc = null; social.clickBot(sim, c.x, c.y); continue; }
       const npc = npcs.pick(raycaster);
       if (npc) { combat.stopAttack(); pendingNpc = npc; player.target = { x: npc.x, z: npc.z }; continue; }
       const drop = loot.pick(raycaster);
@@ -300,6 +305,7 @@
       player.update(dt, input, rig.yaw);
       if (player.manualMove) auto.manual();
       auto.update(dt);
+      social.update(dt); social.uiUpdate(dt);
       monsters.update(dt, player, combat);
       loot.update(dt);
       pets.update(dt);
@@ -347,7 +353,7 @@
     if (started) hud.update(dt);
   }
 
-  window.__game = { world, player, rig, monsters, npcs, combat, quests, hud, ui, loot, input, save, hotbar, renderer, camera, travel, pets, jobs, auto, step: (n = 20, dt = 0.05) => { for (let i = 0; i < n; i++) tick(dt); } };   // hata ayıklama / test
+  window.__game = { world, player, rig, monsters, npcs, combat, quests, hud, ui, loot, input, save, hotbar, renderer, camera, travel, pets, jobs, auto, social, step: (n = 20, dt = 0.05) => { for (let i = 0; i < n; i++) tick(dt); } };   // hata ayıklama / test
   window.addEventListener('beforeunload', () => { if (started) save(); });
   document.addEventListener('visibilitychange', () => { if (document.hidden && started) save(); });
   frame();

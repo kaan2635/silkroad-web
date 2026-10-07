@@ -212,7 +212,7 @@ function buildHumanMob(L) {
     }
   }
   if (L.stripes) for (let i = 0; i < 3; i++) { const st = new THREE.Mesh(new THREE.CylinderGeometry(0.46 + i * 0.02, 0.48 + i * 0.02, 0.07, 10), new THREE.MeshLambertMaterial({ color: 0x1a1008 })); st.position.y = 1.15 + i * 0.25; h.group.add(st); }
-  return { group: h.group, legs: [h.legL, h.legR], arms: [h.armL, h.armR], armR: h.armR, kind: 'biped' };
+  return { group: h.group, legs: [h.legL, h.legR], arms: [h.armL, h.armR], armR: h.armR, kind: 'biped', h };
 }
 
 function buildScorpion(o = {}) {
@@ -292,7 +292,7 @@ class Monster {
       t.model === 'snake' ? buildSnake(L) : t.model === 'char' ? buildCharMob(t) : buildHumanMob(L);
     this.kind = parts.kind;
     this.segs = parts.segs || null; this.headPart = parts.head || null;
-    this.body = parts.group;
+    this.body = parts.group; this.h = parts.h || null;
     this.legs = parts.legs;
     this.arms = parts.arms || [];
     this.armR = parts.armR || null;

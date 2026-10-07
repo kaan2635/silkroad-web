@@ -235,7 +235,7 @@ class Player {
     if (oldMax) s.hp = Math.min(s.maxHp, s.hp * (s.maxHp > oldMax ? 1 : 1)); else s.hp = s.maxHp;
     s.hp = Math.min(s.hp, s.maxHp); s.mp = Math.min(s.mp, s.maxMp);
     void oldMp;
-    const zerk = this.zerkT > 0 ? 1.5 : 1;
+    const zerk = (this.zerkT > 0 ? 1.5 : 1) * (1 + 0.01 * (this.hwan || 0));      // onur (Hwan) seviyesi: saldırı +%1/sv.
     const pM = (1 + ((pas.patkPct || 0) + (bf.patkPct || 0)) / 100 + weapM * 0.01) * zerk;
     const mM = (1 + ((pas.matkPct || 0) + (bf.matkPct || 0)) / 100) * zerk;
     const phy = wPhy + STR * 0.55 + L * 1.2, mag = wMag + INT * 0.55 + L * 1.2;

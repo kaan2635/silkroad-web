@@ -131,9 +131,10 @@ class Combat {
   killMonster(m) {
     m.die();
     if (this.target === m) { this.target = null; this.attacking = false; this.queued = null; }
+    if (m.pvp) { SFX.play('kill'); if (this.social) this.social.onPvpKill(m); return; }     // yapay oyuncu yenildi: EXP / ganimet yok, onur var
     const pl = this.player, s = pl.stats;
     const bonus = 1 + (pl.premT > 0 ? 0.5 : 0) + (pl.blessT > 0 ? 1 : 0);
-    const exp = Math.max(1, Math.round(m.exp * clamp(1 + 0.15 * (m.level - s.level), 0.05, 1.5) * bonus));
+    const exp = Math.max(1, Math.round(m.exp * clamp(1 + 0.15 * (m.level - s.level), 0.05, 1.5) * bonus * (this.social ? this.social.expMult() : 1)));
     if (m.rank === 'unique') { s.silk = (s.silk || 0) + 50; this.hud.log('+50 Silk (Unique)', 'lvl', '#ff9ae8'); }
     this.hud.log(m.displayName + ' öldürüldü. +' + exp + ' EXP', 'exp');
     SFX.play('kill');
@@ -149,6 +150,7 @@ class Combat {
     if (this.loot) this.loot.dropFrom(m);
     if (this.quests) this.quests.onKill(m.typeKey);
     if (this.auto) this.auto.onKill(m);
+    if (this.social) this.social.onKill(m);
     if (m.onKilled) m.onKilled(this);
   }
 
@@ -164,6 +166,7 @@ class Combat {
     if (pl.absorb) { const a = Math.min(pl.absorb.amt, dmg); pl.absorb.amt -= a; dmg -= a; if (a) this.fx(pl, 'Emildi ' + a, 'buff'); }
     if (dmg <= 0) return;
     if (this.pets) this.pets.onPlayerHit();
+    if (m.pvp === 'duel' && pl.stats.hp - dmg < 1) { if (this.social) this.social.duelLost(m); return; }   // düelloda ölüm yok
     pl.stats.hp -= dmg;
     this.fx(pl, '-' + dmg, 'player');
     SFX.play('hurt');
@@ -232,6 +235,7 @@ class Combat {
     pl.dead = true;
     this.attacking = false; this.target = null; this.casting = null; this.queued = null;
     this.deathPos = { x: pl.pos.x, z: pl.pos.z };
+    this.pvpDeath = !!(m && m.pvp);
     this.hud.log((m ? m.displayName : 'Bir canavar') + ' seni yendi.', 'dmg');
     const rb = pl.buffs.fc_resur;
     if (rb && rb.st.revive) {                     // Kuvvet: Diriliş — bir kez yerinde dirilir
@@ -263,8 +267,11 @@ class Combat {
     pl.revive();
     pl.teleport(0, 6);
     s.hp = Math.round(s.maxHp * 0.5); s.mp = Math.round(s.maxMp * 0.5);
-    const loss = Math.round(s.maxExp * (s.level < 10 ? 0.02 : 0.05));
+    const murderer = this.social && this.social.murderT > 0;
+    let loss = this.pvpDeath && !murderer ? 0 : Math.round(s.maxExp * (s.level < 10 ? 0.02 : 0.05) * (murderer ? 3 : 1));     // pelerinli PvP ölümü EXP kaybettirmez; katil ağır kaybeder
     s.exp = Math.max(0, s.exp - loss);
+    if (murderer) { const g = Math.round(s.gold * 0.1); s.gold -= g; this.hud.log('Katil olarak öldün: -' + g + ' altın', 'dmg'); }
+    this.pvpDeath = false;
     this.hud.showDeath(false);
     this.hud.log('Şehirde yeniden doğdun. -' + loss + ' EXP', 'dmg');
   }

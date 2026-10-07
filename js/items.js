@@ -206,13 +206,14 @@ Object.assign(ITEM_BASES, {
   fw_inv1:  { cat: 'use', use: 'fwinv', star: 1, icon: '', name: 'Unutulmuş Dünya Davetiyesi ★', stack: 10, value: 3000, sub: '20 dakikalık zindan; seviyene göre kurulur. Boss: Unutulmuş Kral' },
   fw_inv3:  { cat: 'use', use: 'fwinv', star: 3, icon: '', name: 'Unutulmuş Dünya Davetiyesi ★★★', stack: 10, value: 9000, sub: 'Daha çok ve güçlü canavar, daha iyi ganimet' },
   fw_inv5:  { cat: 'use', use: 'fwinv', star: 5, icon: '', name: 'Unutulmuş Dünya Davetiyesi ★★★★★', stack: 10, value: 25000, sub: 'En zor kademe: mühürlü eşya şansı çok yüksek' },
+  gchat:    { cat: 'mat', icon: '📢', name: 'Küresel Sohbet Parşömeni', stack: 50, value: 0, sub: 'Sohbette Küresel kanaldan tüm sunucuya mesaj gönderir (/k mesaj)' },
   silkbag:  { cat: 'use', use: 'silkbag', icon: '🧧', name: 'Silk Kesesi', stack: 50, value: 0, sub: 'Açınca 5–15 Silk verir', cd: 'silkbag' }
 });
 const MALL = [
   { id: 'prem', name: '🎟️ Premium', items: [['prem', 1, 50], ['bless', 1, 30], ['rez', 3, 20], ['hammer', 3, 15]] },
   { id: 'alc', name: '⚗️ Simya', items: [['immortal', 1, 25], ['astral', 3, 30], ['luck', 5, 15], ['elx_w', 5, 25], ['elx_a', 5, 20], ['elx_s', 5, 20], ['elx_c', 5, 20], ['ms_str', 1, 15], ['ms_int', 1, 15], ['ms_hp', 1, 15], ['ms_crit', 1, 20]] },
   { id: 'pet', name: '🐾 Evcil & Binek', items: [['pet_grab2', 1, 150], ['pet_grab', 1, 60], ['pet_atk', 1, 100], ['pet_pot', 20, 10], ['horse2', 1, 120], ['horse', 1, 40]] },
-  { id: 'scroll', name: '📜 Parşömen', items: [['fw_inv3', 1, 30], ['rev', 5, 10], ['spd', 5, 10], ['zerk', 3, 20], ['ret', 10, 5], ['reset_stat', 1, 80], ['reset_skill', 1, 120]] },
+  { id: 'scroll', name: '📜 Parşömen', items: [['gchat', 5, 10], ['fw_inv3', 1, 30], ['rev', 5, 10], ['spd', 5, 10], ['zerk', 3, 20], ['ret', 10, 5], ['reset_stat', 1, 80], ['reset_skill', 1, 120]] },
   { id: 'avatar', name: '👘 Avatar', items: Object.keys(AVATARS).map(id => [id, 1, AVATARS[id].silk]) },
   { id: 'exp', name: '🎒 Genişletme', items: [['inv_exp', 1, 100], ['st_exp', 1, 60]] }
 ];

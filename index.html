@@ -22,6 +22,7 @@
       <div class="prow"><div id="zerk" data-tip="zerk"></div><div id="petbar"></div></div>
     </div>
     <div id="buffs"></div>
+    <div id="party-frames"></div>
 
     <div id="target-frame" class="frame hidden">
       <div class="row"><span id="tf-name"></span><span id="tf-lvl"></span></div>
@@ -65,6 +66,8 @@
       <button id="btn-quest" data-ico="menu_quest" title="Görevler (L)"></button>
       <button id="btn-map" data-ico="menu_map" title="Dünya haritası (M)"></button>
       <button id="btn-pet" data-ico="menu_pet" title="Evcil hayvanlar (P)"></button>
+      <button id="btn-soc" data-ico="menu_soc" title="Topluluk: parti, lonca, arkadaşlar, PvP (O)"></button>
+      <button id="btn-chat" data-ico="menu_chat" title="Sohbet (Enter)"><i id="badge-chat" class="badge hidden">!</i></button>
       <button id="btn-mall" data-ico="menu_mall" title="Item Mall (B)"></button>
       <button id="btn-settings" data-ico="menu_set" title="Ayarlar (Esc)"></button>
     </div>
@@ -103,6 +106,26 @@
       <div class="win-head"><span>Evcil Hayvanlar ve Binek</span><button class="x">✕</button></div>
       <div id="pet-body"></div>
     </div>
+
+    <div id="socw" class="win hidden">
+      <div class="win-head"><span>Topluluk</span><button class="x">✕</button></div>
+      <div id="soc-tabs" class="tabs mtabs"></div>
+      <div id="soc-body"></div>
+    </div>
+
+    <div id="chatw" class="win hidden">
+      <div class="win-head"><span>Sohbet</span><button class="x">✕</button></div>
+      <div id="chat-tabs" class="tabs mtabs"></div>
+      <div id="chat-lines"></div>
+      <form id="chat-form" autocomplete="off"><input id="chat-input" maxlength="120" placeholder="Mesaj yaz… (/w Ad mesaj · /p parti · /g lonca · /k küresel)" enterkeyhint="send"><button type="submit">Gönder</button></form>
+    </div>
+
+    <div id="dlgw" class="win hidden">
+      <div class="win-head"><span id="dlg-title"></span><button class="x">✕</button></div>
+      <div id="dlg-body"></div>
+    </div>
+
+    <div id="botmenu" class="hidden"></div>
 
     <div id="npc-win" class="win hidden">
       <div class="win-head"><span id="npc-title"></span><button class="x">✕</button></div>
@@ -224,6 +247,8 @@
   <script src="js/worldmap.js"></script>
   <script src="js/ui.js"></script>
   <script src="js/autohunt.js"></script>
+  <script src="js/social.js"></script>
+  <script src="js/socialui.js"></script>
   <script src="js/main.js"></script>
 </body>
 </html>
