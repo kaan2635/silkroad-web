@@ -20,7 +20,7 @@ class Combat {
     this.timers = [];
     this.inSafe = true;
     this.deathPos = null; this.recallPos = null;
-    this.vfx = new VFX(world.scene);
+    this.vfx = new VFX(world.scene, camera);
     this.potT = 0;
 
     this.ring = new THREE.Mesh(new THREE.RingGeometry(1.0, 1.3, 32),
@@ -115,7 +115,7 @@ class Combat {
     m.provoke();
     this.player.combatT = 5;
     this.fx(m, String(dmg), crit ? 'crit' : dot ? 'dot' : (elem ? ELEM_CLS[elem] : 'hit'));
-    if (!dot) SFX.play(crit ? 'crit' : 'hit');
+    if (!dot) { SFX.play(crit ? 'crit' : 'hit'); this.vfx.hit(m, elem, crit); }
     if (m.hp <= 0) { m.hp = 0; this.killMonster(m); }
   }
   killMonster(m) {
@@ -134,7 +134,7 @@ class Combat {
     if (pl.zerkT <= 0 && s.zerk < ZERK_MAX) {
       const before = Math.floor(s.zerk);
       s.zerk = Math.min(ZERK_MAX, s.zerk + m.zerkPts);
-      if (s.zerk >= ZERK_MAX && before < ZERK_MAX) { this.hud.log('Berserk hazır! (Z veya 😤)', 'lvl'); SFX.play('gem'); }
+      if (s.zerk >= ZERK_MAX && before < ZERK_MAX) { this.hud.log('Berserk hazır! (Z ya da Berserk düğmesi)', 'lvl'); SFX.play('gem'); }
     }
     if (this.loot) this.loot.dropFrom(m);
     if (this.quests) this.quests.onKill(m.typeKey);
@@ -188,7 +188,7 @@ class Combat {
       this.hud.log('SEVİYE ATLADIN! Yeni seviye: ' + s.level + ' · +3 stat puanı (C)', 'lvl');
       SFX.play('levelup');
       this.fx(this.player, 'SEVİYE ATLADIN!', 'lvl');
-      this.vfx.column(this.player.pos.x, this.player.pos.z, 0xffd23a, 6, 1.2);
+      this.vfx.column(this.player.pos.x, this.player.pos.z, 0xffd23a, 6, 1.2); this.vfx.buffCast(this.player.pos.x, this.player.pos.z, 0xffd23a, VFX_PAL.force);
       if (this.onLevel) this.onLevel(s.level);
     }
   }
@@ -423,13 +423,14 @@ class Combat {
       pl.swingKind = 'cast'; pl.swingT = 0.3;
       SFX.play(s.elem === 'fire' ? 'fire' : 'cast');
       const col = ELEM_COLOR[s.elem];
+      v.rune(P.x, P.z, col, 2.6, 0.7, P);
       const hitArea = (cx, cz) => {
-        v.burst(cx, cz, col, s.aoe, 0.6);
+        if (s.id !== 'fr_meteor') v.nova(cx, cz, s.elem, s.aoe);
         for (const m of aoeTargets(cx, cz, s.aoe)) this.hitMag(m, mult, s.elem, o);
       };
       if (s.at === 'self') hitArea(P.x, P.z);
       else if (s.elem === 'lightning') { v.bolt(t.x, t.z, col); if (s.aoe) hitArea(t.x, t.z); else this.hitMag(t, mult, s.elem, o); }
-      else if (s.id === 'fr_meteor') { this.later(0.4, () => { if (!t.dead || true) hitArea(t.x, t.z); }); v.column(t.x, t.z, col, 12, 0.5); }
+      else if (s.id === 'fr_meteor') { const tx = t.x, tz = t.z; v.meteor(tx, tz, s.aoe, () => hitArea(tx, tz)); }
       else if (s.proj || !s.aoe) {
         v.projectile({ x: P.x, y: P.y + 1.7, z: P.z }, t, s.elem === 'cold' ? 'ice' : 'fire', () => (s.aoe ? hitArea(t.x, t.z) : this.hitMag(t, mult, s.elem, o)));
       } else hitArea(t.x, t.z);
@@ -437,32 +438,33 @@ class Combat {
       const b = {}; for (const k in s.buff) b[k] = sval(s.buff[k], s, r);
       pl.addBuff(s.id, { t: s.dur, max: s.dur, icon: s.icon, name: s.name, st: b });
       this.fx(pl, s.name + '!', 'buff'); SFX.play('buff');
-      v.column(P.x, P.z, ELEM_COLOR[MASTERIES[s.m].elem] || 0xffe9a8, 4, 0.6);
+      const bc = ELEM_COLOR[MASTERIES[s.m].elem] || 0xffe9a8;
+      v.column(P.x, P.z, bc, 4, 0.6); v.buffCast(P.x, P.z, bc, VFX_PAL[MASTERIES[s.m].elem]);
     } else if (s.type === 'imbue') {
-      pl.imbue = { elem: s.elem, val: sval(s.val, s, r), t: s.dur, max: s.dur, status: s.status, chance: s.chance, sdur: s.sdur, icon: s.icon, name: s.name };
+      pl.imbue = { id: s.id, elem: s.elem, val: sval(s.val, s, r), t: s.dur, max: s.dur, status: s.status, chance: s.chance, sdur: s.sdur, icon: s.icon, name: s.name };
       this.fx(pl, s.name, 'buff'); SFX.play('buff');
-      v.burst(P.x, P.z, ELEM_COLOR[s.elem], 2.2, 0.4);
+      v.burst(P.x, P.z, ELEM_COLOR[s.elem], 2.2, 0.4); v.buffCast(P.x, P.z, ELEM_COLOR[s.elem], VFX_PAL[s.elem]);
     } else if (s.type === 'heal') {
       const h = Math.round(st.maxHp * sval(s.val, s, r) * (1 + this._elemM('force') * 0.01));
       st.hp = Math.min(st.maxHp, st.hp + h);
       this.fx(pl, '+' + h, 'heal'); SFX.play('potion');
-      v.column(P.x, P.z, 0x8aff9a, 5, 0.8);
+      v.column(P.x, P.z, 0x8aff9a, 5, 0.8); v.heal(P.x, P.z);
     } else if (s.type === 'cure') {
       pl.status = {}; pl.recalc(); this.fx(pl, 'Arındın', 'heal'); SFX.play('buff');
-      v.column(P.x, P.z, 0xffffff, 5, 0.6);
+      v.column(P.x, P.z, 0xffffff, 5, 0.6); v.buffCast(P.x, P.z, 0xffffff, VFX_PAL.force);
     } else if (s.type === 'absorb') {
       pl.absorb = { amt: Math.round(st.maxHp * sval(s.val, s, r)), t: s.dur };
-      this.fx(pl, s.name, 'buff'); SFX.play('buff');
+      this.fx(pl, s.name, 'buff'); SFX.play('buff'); v.buffCast(P.x, P.z, 0xfff0a0, VFX_PAL.force);
     } else if (s.type === 'dash') {
       const dist = sval(s.dist, s, r), tt = this.target && !this.target.dead ? this.target : null;
       let ang = pl.heading;
       if (tt) ang = Math.atan2(tt.x - P.x, tt.z - P.z);
       const maxD = tt ? Math.max(0, Math.min(dist, this.dist(tt) - 2)) : dist;
-      v.burst(P.x, P.z, 0xd8c8ff, 2, 0.35);
+      v.burst(P.x, P.z, 0xd8c8ff, 2, 0.35); v.emit(P.x, P.y + 1, P.z, 24, { pal: VFX_PAL.lightning, speed: 4, life: 0.4, size: 0.35, jitter: 1 });
       const lim = CONFIG.worldSize / 2 - 6;
       pl.teleport(clamp(P.x + Math.sin(ang) * maxD, -lim, lim), clamp(P.z + Math.cos(ang) * maxD, -lim, lim));
       pl.heading = ang;
-      v.burst(P.x, P.z, 0xd8c8ff, 2.5, 0.4); SFX.play('cast');
+      v.burst(P.x, P.z, 0xd8c8ff, 2.5, 0.4); v.emit(P.x, P.y + 1, P.z, 24, { pal: VFX_PAL.lightning, speed: 4, life: 0.4, size: 0.35, jitter: 1 }); SFX.play('cast');
     }
     if (this.hud) this.hud.flashKey(s.id);
   }
@@ -483,6 +485,7 @@ class Combat {
       this.timers[i].t -= dt;
       if (this.timers[i].t <= 0) { const f = this.timers[i].fn; this.timers.splice(i, 1); f(); }
     }
+    this.vfx.auras(pl, dt);
     this.vfx.update(dt);
 
     // Güvenli bölge geçişleri

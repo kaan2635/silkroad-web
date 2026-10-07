@@ -92,6 +92,7 @@ class UI {
 
     // envanter etkileşimi
     this.w.inv.addEventListener('click', e => {
+      if (this._dragged && Date.now() - this._dragged < 350) return;
       const sl = e.target.closest('[data-i]'), eq = e.target.closest('[data-eq]'), btn = e.target.closest('[data-act]');
       if (sl) {
         const i = +sl.dataset.i;
@@ -113,8 +114,10 @@ class UI {
     });
     // yetenekler
     this.w.sk.addEventListener('click', e => {
-      const t = e.target.closest('[data-mtab]'), b = e.target.closest('[data-act]');
-      if (t) { this.skTab = t.dataset.mtab; SFX.play('tab'); this.refreshSk(); return; }
+      const t = e.target.closest('[data-mtab]'), b = e.target.closest('[data-act]'), nd = e.target.closest('[data-sk]');
+      if (t) { this.skTab = t.dataset.mtab; this.skSel = null; SFX.play('tab'); this.refreshSk(); return; }
+      if (nd && this._dragged && Date.now() - this._dragged < 350) return;
+      if (nd) { this.skSel = nd.dataset.sk; SFX.play('tab'); this.refreshSk(); return; }
       if (!b) return;
       const book = this.p.book, a = b.dataset.act;
       if (a === 'raise') { const r = book.raise(this.skTab); this._skSay(r); if (r.ok) SFX.play('upgrade'); else SFX.play('error'); this.p.recalc(); }
@@ -143,6 +146,8 @@ class UI {
       else if (btn) this._npcAct(btn);
     });
 
+    this._initWindows(); this._initTips(); this._initDrag();
+
     window.addEventListener('keydown', e => {
       const a = document.activeElement;
       if (a && a.tagName === 'INPUT') return;
@@ -161,6 +166,156 @@ class UI {
         const st = document.getElementById('settings'); if (st && window.__escClosed) st.classList.add('hidden');
       }
     });
+  }
+
+  // ---------- Pencere yöneticisi: sürükle, öne getir, konumu hatırla, ekrana sığdır ----------
+  _initWindows() {
+    this.z = 10;
+    try { this.winPos = JSON.parse(localStorage.getItem('srw-winpos')) || {}; } catch (e) { this.winPos = {}; }
+    const all = [...document.querySelectorAll('.win')];
+    for (const w of all) {
+      w.addEventListener('pointerdown', () => { w.style.zIndex = ++this.z; }, true);
+      const head = w.querySelector('.win-head');
+      if (!head) continue;
+      head.addEventListener('pointerdown', e => {
+        if (e.target.closest('button') || CONFIG.isTouch) return;
+        const ui = this.uiScale(), r = w.getBoundingClientRect();
+        const ox = e.clientX - r.left, oy = e.clientY - r.top;
+        const move = ev => this._placeWin(w, (ev.clientX - ox) / ui, (ev.clientY - oy) / ui);
+        const up = () => { window.removeEventListener('pointermove', move); window.removeEventListener('pointerup', up); this._saveWin(w); };
+        window.addEventListener('pointermove', move); window.addEventListener('pointerup', up);
+        e.preventDefault();
+      });
+      // pencere açılınca kayıtlı konum
+      let vis = !w.classList.contains('hidden');
+      new MutationObserver(() => {
+        const now = !w.classList.contains('hidden');
+        if (now && !vis) { w.style.zIndex = ++this.z; this._restoreWin(w); }
+        vis = now;
+      }).observe(w, { attributes: true, attributeFilter: ['class'] });
+    }
+    window.addEventListener('resize', () => all.forEach(w => { if (w.classList.contains('placed')) this._placeWin(w, parseFloat(w.style.left), parseFloat(w.style.top)); }));
+  }
+  uiScale() { return parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--ui')) || 1; }
+  _placeWin(w, x, y) {
+    const ui = this.uiScale(), W = window.innerWidth / ui, H = window.innerHeight / ui;
+    const ww = w.offsetWidth, wh = w.offsetHeight;
+    w.classList.add('placed');
+    w.style.left = clamp(x, 4, Math.max(4, W - ww - 4)) + 'px';
+    w.style.top = clamp(y, 4, Math.max(4, H - wh - 4)) + 'px';
+  }
+  _saveWin(w) { this.winPos[w.id] = [parseFloat(w.style.left), parseFloat(w.style.top)]; try { localStorage.setItem('srw-winpos', JSON.stringify(this.winPos)); } catch (e) { /* yoksay */ } }
+  _restoreWin(w) {
+    const p = this.winPos[w.id];
+    if (p && !CONFIG.isTouch) requestAnimationFrame(() => this._placeWin(w, p[0], p[1]));
+    else if (w.classList.contains('placed')) { w.classList.remove('placed'); w.style.left = ''; w.style.top = ''; }
+  }
+
+  // ---------- Bilgi balonu (fare üstü / uzun dokunma) ----------
+  _initTips() {
+    const tip = this.tipEl = document.getElementById('tip');
+    let cur = null, lt = null;
+    const show = (el, x, y) => {
+      const html = this.tipHTML(el.dataset.tip);
+      if (!html) return hide();
+      tip.innerHTML = html; tip.classList.remove('hidden');
+      const r = tip.getBoundingClientRect();
+      let tx = x + 16, ty = y + 18;
+      if (tx + r.width > window.innerWidth - 6) tx = x - r.width - 12;
+      if (ty + r.height > window.innerHeight - 6) ty = y - r.height - 12;
+      tip.style.left = Math.max(4, tx) + 'px'; tip.style.top = Math.max(4, ty) + 'px';
+    };
+    const hide = () => { tip.classList.add('hidden'); cur = null; };
+    this.hideTip = hide;
+    document.addEventListener('pointermove', e => {
+      if (e.pointerType === 'touch') return;
+      const el = e.target.closest && e.target.closest('[data-tip]');
+      if (!el) { if (cur) hide(); return; }
+      cur = el; show(el, e.clientX, e.clientY);
+    });
+    document.addEventListener('pointerdown', e => {
+      if (e.pointerType !== 'touch') { hide(); return; }
+      const el = e.target.closest && e.target.closest('[data-tip]');
+      clearTimeout(lt); hide();
+      if (el) lt = setTimeout(() => { cur = el; show(el, e.clientX, e.clientY); this._tipShownAt = Date.now(); }, 420);
+    }, true);
+    document.addEventListener('pointerup', e => { if (e.pointerType === 'touch') { clearTimeout(lt); if (cur) setTimeout(hide, 2200); } }, true);
+  }
+  tipHTML(spec) {
+    if (!spec) return '';
+    const [k, v] = [spec.slice(0, spec.indexOf(':') < 0 ? spec.length : spec.indexOf(':')), spec.slice(spec.indexOf(':') + 1)];
+    const P = this.p;
+    if (k === 'sl') { const it = this.inv.slots[+v]; return it ? this.itemCard(it, isGear(it.base) ? this.inv.equip[ITEM_BASES[it.base].slot === 'ring' ? 'ring1' : ITEM_BASES[it.base].slot] : null) : ''; }
+    if (k === 'eq') { const it = this.inv.equip[v]; return it ? this.itemCard(it) : '<div class="tn">' + EQUIP_SLOTS[v].name + '</div><div class="tm">Boş</div>'; }
+    if (k === 'base') { const b = ITEM_BASES[v]; if (isStack(v)) return '<div class="tn">' + b.name + '</div><div class="te">' + (b.sub || '') + '</div>'; return this.itemCard(makeItem(v)); }
+    if (k === 'sk') {
+      const x = SKILLS_BY_ID[v], r = P.book.r(v);
+      return '<div class="tn">' + x.name + '</div><div class="tm">' + MASTERIES[x.m].name + ' · ' + SKILL_TYPE_NAMES[x.type] + ' · kademe ' + r + '/' + x.maxR + (x.mp ? ' · MP ' + rankMp(x, Math.max(1, r)) : '') + '</div><div>' + x.desc + '</div><div class="te">' + skillDetail(x, Math.max(1, r)) + '</div>' +
+        (r < x.maxR ? '<div class="tm">Sonraki: ' + MASTERIES[x.m].name + ' ' + rankReq(x, r + 1) + ' · ' + rankCost(x, r + 1) + ' SP</div>' : '');
+    }
+    if (k === 'ms') { const M = MASTERIES[v]; return '<div class="tn">' + M.full + '</div><div>' + M.desc + '</div><div class="tm">Seviye ' + P.book.mastery[v] + ' · sonraki ' + masteryCost(P.book.mastery[v] + 1) + ' SP</div>'; }
+    if (k === 'hb') {
+      const e = this.hb.get(this.hb.page, +v);
+      if (!e) return '<div class="tm">Boş yuva. Yetenek veya iksiri sürükle ya da Hotbar düğmesiyle yerleştir.</div>';
+      if (e.t === 'sk') return this.tipHTML('sk:' + e.id);
+      if (e.t === 'it') return this.tipHTML('base:' + e.base) + '<div class="tm">Envanterde: ' + this.inv.count(e.base) + '</div>';
+      const vw = this.hb.view(e); return '<div class="tn">' + vw.name + '</div><div class="tm">' + vw.tip + '</div>';
+    }
+    if (k === 'bf') {
+      const b = this.hud.buffList().find(x => x.key === v); if (!b) return '';
+      let extra = '';
+      if (v.startsWith('b_')) extra = '<div class="te">' + skillDetail(SKILLS_BY_ID[v.slice(2)], P.book.r(v.slice(2))) + '</div>';
+      if (v === 'imbue' && P.imbue && P.imbue.id) extra = '<div class="te">' + skillDetail(SKILLS_BY_ID[P.imbue.id], P.book.r(P.imbue.id)) + '</div>';
+      if (v === 'zerk') extra = '<div class="te">Saldırı x1.5, hız x1.6</div>';
+      if (v === 'prem') extra = '<div class="te">EXP ve SP +%50, ganimet +%30</div>';
+      if (v === 'bless') extra = '<div class="te">EXP ve SP +%100</div>';
+      return '<div class="tn' + (b.bad ? ' tw' : '') + '">' + b.name + '</div>' + extra + '<div class="tm">Kalan ' + (b.t >= 60 ? Math.floor(b.t / 60) + ' dk ' + Math.floor(b.t % 60) + ' sn' : Math.ceil(b.t) + ' sn') + '</div>';
+    }
+    if (k === 'st') return '<div class="tn tw">' + (STATUS_NAMES[v] || v) + '</div>';
+    if (k === 'zerk') return '<div class="tn">Berserk</div><div>Canavar öldürdükçe küreler dolar. 5 küre dolunca Z ile ya da kürelere tıklayarak 30 sn berserk olursun.</div><div class="tm">' + Math.floor(P.stats.zerk) + ' / 5</div>';
+    if (k === 'pet') return '<div class="tn">Evcil hayvanlar</div><div class="tm">Ayrıntı ve çanta için tıkla (P)</div>';
+    return '';
+  }
+
+  // ---------- Sürükle-bırak: yetenek / eşya → hotbar ----------
+  _initDrag() {
+    let st = null;
+    document.addEventListener('pointerdown', e => {
+      const el = e.target.closest && (e.target.closest('[data-drag]') || e.target.closest('[data-i]'));
+      if (!el || !el.closest('.win')) return;
+      let spec = el.dataset.drag;
+      if (!spec && el.dataset.i !== undefined) { const it = this.inv.slots[+el.dataset.i]; if (it && ITEM_BASES[it.base].cat === 'use') spec = 'it:' + it.base; }
+      if (!spec) return;
+      st = { spec, x: e.clientX, y: e.clientY, ghost: null, src: el };
+    });
+    document.addEventListener('pointermove', e => {
+      if (!st) return;
+      if (!st.ghost) {
+        if (Math.hypot(e.clientX - st.x, e.clientY - st.y) < 10) return;
+        const [t, id] = st.spec.split(':');
+        st.ghost = document.createElement('div'); st.ghost.className = 'drag-ghost';
+        st.ghost.innerHTML = t === 'sk' ? skillIcon(id) : itemIcon(id);
+        document.body.appendChild(st.ghost);
+        this.hud.el.root.classList.add('placing');
+        if (this.hideTip) this.hideTip();
+      }
+      st.ghost.style.transform = 'translate(' + (e.clientX - 22) + 'px,' + (e.clientY - 22) + 'px)';
+    });
+    const end = e => {
+      if (!st) return;
+      if (st.ghost) {
+        st.ghost.remove(); this.hud.el.root.classList.remove('placing');
+        const tgt = document.elementFromPoint(e.clientX, e.clientY), slot = tgt && tgt.closest('#hotbar .slot');
+        if (slot) {
+          const i = [...slot.parentNode.children].indexOf(slot), [t, id] = st.spec.split(':');
+          this.hb.set(this.hb.page, i, t === 'sk' ? { t: 'sk', id } : { t: 'it', base: id });
+          SFX.play('equip'); this.hud.log('Hotbara yerleştirildi.');
+        }
+        this._dragged = Date.now();
+      }
+      st = null;
+    };
+    document.addEventListener('pointerup', end); document.addEventListener('pointercancel', end);
   }
 
   // ---------- Genel ----------
@@ -200,7 +355,7 @@ class UI {
   itemCard(it, cmp) {
     const n = itemInfo(it), lvl = this.p.stats.level;
     if (n.stack) {
-      return '<div class="in-name" style="color:' + n.color + '">' + n.icon + ' ' + n.name + '</div>' +
+      return '<div class="in-name" style="color:' + n.color + '">' + n.name + '</div>' +
         '<div class="in-sub">Adet: ' + it.n + ' / ' + n.max + '</div><div class="in-st">' + (n.sub || '') + '</div>' +
         (n.req > 1 ? '<div class="in-req' + (lvl < n.req ? ' bad' : '') + '">Gerekli seviye: ' + n.req + '</div>' : '');
     }
@@ -218,7 +373,7 @@ class UI {
   _slot(item, attrs, sel, emptyIcon) {
     if (!item) return '<div class="islot empty' + (sel ? ' sel' : '') + '" ' + attrs + '>' + (emptyIcon || '') + '</div>';
     const n = itemInfo(item);
-    return '<div class="islot' + (sel ? ' sel' : '') + (n.broken ? ' broken' : '') + (n.seal ? ' seal' : '') + '" ' + attrs + ' style="border-color:' + n.color + '" title="' + n.name + '">' +
+    return '<div class="islot' + (sel ? ' sel' : '') + (n.broken ? ' broken' : '') + (n.seal ? ' seal' : '') + '" ' + attrs + ' style="--sc:' + n.color + ';border-color:' + n.color + '">' +
       n.icon + (item.plus ? '<i class="plus">+' + item.plus + '</i>' : '') + (n.stack && item.n > 1 ? '<i class="num">' + item.n + '</i>' : '') +
       (!n.stack ? '<i class="deg">' + n.d + (n.tier ? '.' + (n.tier + 1) : '') + '</i>' : '') + '</div>';
   }
@@ -233,9 +388,9 @@ class UI {
   refreshInv() {
     const sel = this.sel, inv = this.inv, s = this.p.stats;
     this.equipEl.innerHTML = Object.keys(EQUIP_SLOTS).map(k =>
-      '<div class="eqc"><small>' + EQUIP_SLOTS[k].name + '</small>' + this._slot(inv.equip[k], 'data-eq="' + k + '"', sel && sel.w === 'eq' && sel.key === k, EQUIP_SLOTS[k].icon) + '</div>').join('');
+      '<div class="eqc"><small>' + EQUIP_SLOTS[k].name + '</small>' + this._slot(inv.equip[k], 'data-eq="' + k + '" data-tip="eq:' + k + '"', sel && sel.w === 'eq' && sel.key === k, icon(k.replace(/\d$/, ''), 'menu')) + '</div>').join('');
     this.gridEl.innerHTML = inv.slots.map((it, i) =>
-      this._slot(it, 'data-i="' + i + '"', sel && sel.w === 'inv' && sel.i === i, '')).join('');
+      this._slot(it, 'data-i="' + i + '" data-tip="sl:' + i + '"', sel && sel.w === 'inv' && sel.i === i, '')).join('');
 
     const it = this._selItem();
     if (!it) this.infoEl.innerHTML = '<div class="hint">Bir eşyaya dokun.<br>Tekrar dokunmak kuşanır / kullanır.</div><button data-act="sort">↕ Sırala</button>';
@@ -245,14 +400,14 @@ class UI {
       if (sel.w === 'inv' && isGear(it.base)) cmp = inv.equip[b.slot === 'ring' ? 'ring1' : b.slot];
       let h = this.itemCard(it, cmp) + '<div class="btns">';
       if (sel.w === 'inv') {
-        if (isGear(it.base)) h += '<button data-act="equip">Kuşan</button><button data-act="alc">⚗️ Simya</button>';
-        if (b.cat === 'use') h += '<button data-act="use">Kullan</button><button data-act="pin">📌 Hotbar</button>';
+        if (isGear(it.base)) h += '<button data-act="equip">Kuşan</button><button data-act="alc">Simya</button>';
+        if (b.cat === 'use') h += '<button data-act="use">Kullan</button><button data-act="pin">Hotbar\'a koy</button>';
         if (b.cat !== 'quest') h += '<button data-act="drop" class="warn">' + (this.confirmDrop ? 'Emin misin?' : 'At') + '</button>';
-      } else h += '<button data-act="unequip">Çıkar</button><button data-act="alc">⚗️ Simya</button>';
+      } else h += '<button data-act="unequip">Çıkar</button><button data-act="alc">Simya</button>';
       this.infoEl.innerHTML = h + '</div>';
     }
-    this.footEl.innerHTML = '💰 <b>' + s.gold.toLocaleString('tr-TR') + '</b> &nbsp; 🎒 <b>' + (inv.slots.length - inv.freeCount()) + '/' + inv.slots.length + '</b> &nbsp; 🧶 <b>' + (s.silk || 0) + '</b> Silk' +
-      '<span class="stt">⚔ ' + this.p.d.phyMin + '–' + this.p.d.phyMax + ' &nbsp; 🔮 ' + this.p.d.magMin + '–' + this.p.d.magMax + ' &nbsp; 🛡 ' + this.p.d.pdef + ' / ' + this.p.d.mdef + '</span>';
+    this.footEl.innerHTML = '<span>Altın <b>' + s.gold.toLocaleString('tr-TR') + '</b></span><span>Silk <b>' + (s.silk || 0) + '</b></span><span>Yuva <b>' + (inv.slots.length - inv.freeCount()) + ' / ' + inv.slots.length + '</b></span>' +
+      '<span class="stt">Fiz. ' + this.p.d.phyMin + '–' + this.p.d.phyMax + ' · Büyü ' + this.p.d.magMin + '–' + this.p.d.magMax + ' · Savunma ' + this.p.d.pdef + ' / ' + this.p.d.mdef + '</span>';
   }
 
   _invAct(act) {
@@ -293,45 +448,53 @@ class UI {
     const row = (k, v) => '<div class="cr"><span>' + k + '</span><b>' + v + '</b></div>';
     const wt = d.wtype ? WEAPON_TYPES[d.wtype].name : 'Yok';
     b.innerHTML =
-      '<div class="ch-top"><div class="ch-av">' + (d.wtype ? WEAPON_TYPES[d.wtype].icon : '👤') + '</div><div><div class="ch-n">' + p.name + '</div>' +
+      '<div class="ch-top"><div class="ch-av">' + (d.wtype ? itemIcon(p.inv.equip.weapon.base) : icon('menu_char', 'menu')) + '</div><div><div class="ch-n">' + p.name + '</div>' +
       '<div class="ch-l">Seviye ' + s.level + ' · EXP %' + (s.exp / s.maxExp * 100).toFixed(2) + '</div><div class="ch-l">SP ' + p.book.sp + ' · Silah: ' + wt + '</div></div></div>' +
-      '<div class="ch-stats"><div class="st"><span>💪 GÜÇ (STR)</span><b>' + s.STR + '</b>' + btn('str', 1) + btn('str', Math.min(5, Math.max(1, pts))) + '</div>' +
-      '<div class="st"><span>🧠 ZEKÂ (INT)</span><b>' + s.INT + '</b>' + btn('int', 1) + btn('int', Math.min(5, Math.max(1, pts))) + '</div>' +
+      '<div class="ch-stats"><div class="st"><span>GÜÇ (STR)</span><b>' + s.STR + '</b>' + btn('str', 1) + btn('str', Math.min(5, Math.max(1, pts))) + '</div>' +
+      '<div class="st"><span>ZEKÂ (INT)</span><b>' + s.INT + '</b>' + btn('int', 1) + btn('int', Math.min(5, Math.max(1, pts))) + '</div>' +
       '<div class="pts' + (pts ? ' on' : '') + '">Dağıtılacak puan: <b>' + pts + '</b></div></div>' +
       '<div class="hint">GÜÇ: can ve fiziksel saldırı (savaşçı). ZEKÂ: mana ve büyü saldırısı (büyücü). Her seviyede +1 GÜÇ, +1 ZEKÂ ve 3 serbest puan.</div>' +
       '<div class="ch-grid">' +
-      row('❤️ Can', s.maxHp) + row('💧 Mana', s.maxMp) +
-      row('⚔ Fiz. saldırı', d.phyMin + '–' + d.phyMax) + row('🔮 Büyü saldırı', d.magMin + '–' + d.magMax) +
-      row('🛡 Fiz. savunma', d.pdef) + row('🌀 Büyü savunma', d.mdef) +
-      row('🎯 Kritik', '%' + d.crit) + row('🛡️ Blok', '%' + d.block) +
-      row('👟 Hız', '%' + Math.round(d.speed * 100)) + row('📏 Menzil', d.range.toFixed(1) + ' m') +
-      row('😤 Berserk', p.zerkT > 0 ? 'AÇIK' : Math.floor(s.zerk) + ' / 5') + row('💰 Altın', s.gold.toLocaleString('tr-TR')) + '</div>';
+      row('Can', s.maxHp) + row('Mana', s.maxMp) +
+      row('Fiz. saldırı', d.phyMin + '–' + d.phyMax) + row('Büyü saldırı', d.magMin + '–' + d.magMax) +
+      row('Fiz. savunma', d.pdef) + row('Büyü savunma', d.mdef) +
+      row('Kritik', '%' + d.crit) + row('Blok', '%' + d.block) +
+      row('Hız', '%' + Math.round(d.speed * 100)) + row('Menzil', d.range.toFixed(1) + ' m') +
+      row('Berserk', p.zerkT > 0 ? 'AÇIK' : Math.floor(s.zerk) + ' / 5') + row('Altın', s.gold.toLocaleString('tr-TR')) + '</div>';
   }
 
   // ---------- Yetenekler ----------
   _skSay(r) { this.skMsg = r.msg ? { text: r.msg, ok: r.ok } : null; this.refreshSk(); }
+  // Silkroad tarzı: solda ustalık listesi, sağda ustalık seviyesine göre kademelenen yetenek ağacı, altta ayrıntı
   refreshSk() {
     const p = this.p, book = p.book, L = p.stats.level, k = this.skTab, M = MASTERIES[k], m = book.mastery[k];
-    const tabs = Object.keys(MASTERIES).map(id => '<button data-mtab="' + id + '" class="' + (id === k ? 'on' : '') + '">' + MASTERIES[id].icon + ' ' + MASTERIES[id].name + ' <small>' + book.mastery[id] + '</small></button>').join('');
+    const list = SKILL_DEFS.filter(x => x.m === k);
+    if (!this.skSel || SKILLS_BY_ID[this.skSel].m !== k) this.skSel = list[0].id;
     const can = book.canRaise(k);
-    let h = '<div class="sk-head"><b>SP: ' + book.sp.toLocaleString('tr-TR') + '</b><span>Toplam ustalık: ' + book.total() + ' / ' + book.limit() + '</span>' +
-      '<span class="sk-tools"><button data-act="pinatk" class="small">📌 ⚔️</button><button data-act="pinzerk" class="small">📌 😤</button><button data-act="clear" class="small warn">🗑 Yuva</button></span></div>' +
-      '<div class="mtabs">' + tabs + '</div>' +
-      (this.skMsg ? '<div class="sk-msg" style="color:' + (this.skMsg.ok ? '#a8f0a0' : '#ff8a7a') + '">' + this.skMsg.text + '</div>' : '') +
-      '<div class="mcard"><div class="mi">' + M.icon + '</div><div class="mt"><b>' + M.full + '</b><small>' + M.desc + (M.weapons ? ' Silah: ' + M.weapons.map(w => WEAPON_TYPES[w].name).join(' / ') : '') + '</small></div>' +
-      '<div class="ml"><b>' + m + '</b><small>/ ' + L + '</small></div>' +
-      '<button data-act="raise"' + (can.ok ? '' : ' class="dis"') + '>Yükselt<br><small>' + (m >= L ? 'seviye sınırı' : masteryCost(m + 1) + ' SP') + '</small></button></div>';
-    const list = SKILL_DEFS.filter(s => s.m === k);
-    h += list.map(s => {
-      const r = book.r(s.id), next = r + 1, maxed = r >= s.maxR, need = maxed ? 0 : rankReq(s, next), ok = !maxed && m >= need;
-      const cost = maxed ? 0 : rankCost(s, next);
-      const typeName = { atk: 'Saldırı', nuke: 'Büyü', buff: 'Güçlendirme', imbue: 'Aşılama', heal: 'Şifa', cure: 'Arınma', dash: 'Işınlanma', passive: 'Kalıcı', absorb: 'Kalkan' }[s.type];
-      return '<div class="skrow' + (r ? ' have' : '') + (ok ? '' : ' lock') + '"><div class="si">' + s.icon + '</div><div class="sd"><b>' + s.name + '</b> <small>' + typeName + ' · Kademe ' + r + '/' + s.maxR + (s.mp ? ' · MP ' + rankMp(s, Math.max(1, r)) : '') + (s.cd > 1 ? ' · ' + s.cd + ' sn' : '') + '</small>' +
-        '<div class="sx">' + s.desc + ' — ' + skillDetail(s, Math.max(1, r)) + '</div>' +
-        (maxed ? '<div class="sn">En üst kademe</div>' : '<div class="sn' + (ok ? '' : ' bad') + '">' + (r ? 'Sonraki' : 'Öğrenmek') + ': ' + M.name + ' ' + need + ' · ' + cost + ' SP</div>') + '</div>' +
-        '<div class="sb">' + (maxed ? '' : '<button data-act="learn" data-id="' + s.id + '"' + (ok && book.sp >= cost ? '' : ' class="dis"') + '>' + (r ? 'Geliştir' : 'Öğren') + '</button>') +
-        (r && s.type !== 'passive' ? '<button data-act="pin" data-id="' + s.id + '" class="small">📌</button>' : '') + '</div></div>';
-    }).join('');
+    let h = '<div class="sk-head"><span class="sp">' + book.sp.toLocaleString('tr-TR') + ' SP</span><span class="lim">Toplam ustalık ' + book.total() + ' / ' + book.limit() + ' · her ustalık en çok karakter seviyesi (' + L + ')</span>' +
+      '<span class="sk-tools"><button data-act="pinatk" class="small" title="Normal saldırıyı hotbara koy">' + icon('atk') + '</button><button data-act="pinzerk" class="small" title="Berserk düğmesini hotbara koy">' + icon('zerk', 'fire') + '</button><button data-act="clear" class="small warn">Yuvayı boşalt</button></span></div>' +
+      '<div class="sk-msg" style="color:' + (this.skMsg && this.skMsg.ok ? '#a8f0a0' : '#ff8a7a') + '">' + (this.skMsg ? this.skMsg.text : '') + '</div><div class="sk-main"><div class="ml-list">' +
+      Object.keys(MASTERIES).map(id => '<div class="ml-it' + (id === k ? ' on' : '') + '" data-mtab="' + id + '" data-tip="ms:' + id + '">' + masteryIcon(id) +
+        '<div class="t"><b>' + MASTERIES[id].name + '</b><small>' + MASTERIES[id].full.replace(' Ustalığı', '') + '</small></div><span class="lv">' + book.mastery[id] + '</span></div>').join('') + '</div>';
+    h += '<div class="tree"><div class="tree-head">' + masteryIcon(k).replace('class="ico"', 'class="ico" style="width:44px;height:44px;flex:0 0 44px;border-radius:4px"') +
+      '<div class="t"><b>' + M.full + '</b><small>' + M.desc + (M.weapons ? ' Silah: ' + M.weapons.map(w => WEAPON_TYPES[w].name).join(', ') : '') + '</small></div>' +
+      '<div class="lv"><b>' + m + '</b><small>/ ' + L + '</small></div>' +
+      '<button data-act="raise"' + (can.ok ? '' : ' class="dis"') + ' title="' + (can.ok ? '' : can.msg) + '">Yükselt<br><small>' + (m >= L ? 'seviye sınırı' : masteryCost(m + 1) + ' SP') + '</small></button></div><div class="tree-grid">';
+    const tiers = {};
+    list.forEach(x => { (tiers[x.reqM] = tiers[x.reqM] || []).push(x); });
+    h += Object.keys(tiers).map(Number).sort((a, b) => a - b).map(req => '<div class="tier' + (m >= req ? ' open' : '') + '"><div class="lvl"><b>' + req + '</b>ustalık</div><div class="nodes">' +
+      tiers[req].map(x => {
+        const r = book.r(x.id), cl = book.canLearn(x.id);
+        const st = (r ? ' have' : m < x.reqM ? ' lock' : '') + (cl.ok ? ' can' : '') + (this.skSel === x.id ? ' sel' : '');
+        return '<div class="node' + st + '" data-sk="' + x.id + '" data-tip="sk:' + x.id + '"' + (r && x.type !== 'passive' ? ' data-drag="sk:' + x.id + '"' : '') + '>' + skillIcon(x.id) +
+          (x.type === 'passive' ? '<span class="pass">P</span>' : '') + '<div class="pips">' + Array.from({ length: x.maxR }, (_, i) => '<i' + (i < r ? ' class="on"' : '') + '></i>').join('') + '</div></div>';
+      }).join('') + '</div></div>').join('') + '</div>';
+    const x = SKILLS_BY_ID[this.skSel], r = book.r(x.id), maxed = r >= x.maxR, need = maxed ? 0 : rankReq(x, r + 1), cost = maxed ? 0 : rankCost(x, r + 1), ok = !maxed && m >= need;
+    h += '<div class="sk-detail">' + skillIcon(x.id) + '<div class="t"><b>' + x.name + '</b> <span class="meta">' + SKILL_TYPE_NAMES[x.type] + ' · kademe ' + r + '/' + x.maxR +
+      (x.mp ? ' · MP ' + rankMp(x, Math.max(1, r)) : '') + (x.cd > 1 ? ' · bekleme ' + x.cd + ' sn' : '') + '</span><div>' + x.desc + '</div><div class="eff">' + skillDetail(x, Math.max(1, r)) + '</div>' +
+      (maxed ? '<div class="next">En üst kademede.</div>' : '<div class="next' + (ok ? '' : ' bad') + '">' + (r ? 'Sonraki kademe' : 'Öğrenmek için') + ': ' + M.name + ' ' + need + ' · ' + cost + ' SP' + (r ? ' → ' + skillDetail(x, r + 1) : '') + '</div>') +
+      '</div><div class="act">' + (maxed ? '' : '<button data-act="learn" data-id="' + x.id + '"' + (ok && book.sp >= cost ? '' : ' class="dis"') + '>' + (r ? 'Geliştir' : 'Öğren') + '</button>') +
+      (r && x.type !== 'passive' ? '<button data-act="pin" data-id="' + x.id + '" class="small">Hotbara koy</button>' : '') + '</div></div></div></div>';
     this.$('skill-body').innerHTML = h;
   }
 
@@ -357,17 +520,17 @@ class UI {
       const lucky = a.lucky && inv.count('luck') > 0, astral = a.astral && inv.count('astral') > 0, imm = a.imm && inv.count('immortal') > 0;
       const ch = alchemyChance(x, lucky);
       h += '<div class="alc-main"><div class="alc-card">' + this.itemCard(x) + '</div><div class="alc-ctl">' +
-        '<h4>⚗️ Güçlendirme (+)</h4>' +
+        '<h4>Güçlendirme (+)</h4>' +
         (x.plus >= MAX_PLUS ? '<div class="hint">En üst seviye (+' + MAX_PLUS + ').</div>' :
           '<div class="cr"><span>' + ITEM_BASES[elx].name + '</span><b' + (have ? '' : ' class="bad"') + '>' + have + '</b></div>' +
           '<div class="cr"><span>+' + x.plus + ' → +' + (x.plus + 1) + ' başarı şansı</span><b>%' + Math.round(ch * 100) + '</b></div>' +
-          '<button data-act="tlucky" class="tg' + (lucky ? ' on' : '') + '">✨ Şans Tozu (' + inv.count('luck') + ')</button> ' +
-          '<button data-act="tastral" class="tg' + (astral ? ' on' : '') + '">🔷 Koruma Taşı (' + inv.count('astral') + ')</button> ' +
-          '<button data-act="timm" class="tg' + (imm ? ' on' : '') + '">💠 Ölümsüz Taş (' + inv.count('immortal') + ')</button>' +
+          '<button data-act="tlucky" class="tg' + (lucky ? ' on' : '') + '">' + icon('luck', 'gold') + ' Şans Tozu (' + inv.count('luck') + ')</button> ' +
+          '<button data-act="tastral" class="tg' + (astral ? ' on' : '') + '">' + icon('astral', 'cold') + ' Koruma Taşı (' + inv.count('astral') + ')</button> ' +
+          '<button data-act="timm" class="tg' + (imm ? ' on' : '') + '">' + icon('immortal', 'mall') + ' Ölümsüz Taş (' + inv.count('immortal') + ')</button>' +
           '<div class="hint">Başarısız olursa eşya +0\'a düşer' + (imm ? ' — Ölümsüz Taş ile hiç düşmez.' : astral ? ' — Koruma Taşı ile sadece 1 seviye düşer.' : '. Koruma Taşı / Ölümsüz Taş (Item Mall) bunu engeller.') + '</div>' +
           '<button data-act="enhance" class="big"' + (have ? '' : ' disabled') + '>Güçlendir</button>');
       const stones = Object.keys(BLUES).filter(k => inv.count('ms_' + k) > 0 && BLUE_BY_KIND[ITEM_BASES[x.base].cat].includes(k));
-      h += '<h4>🔮 Büyü Taşı (mavi stat)</h4>' + (stones.length ? '<div class="seg">' + stones.map(k => '<button data-stone="' + k + '" class="tg' + (a.stone === k ? ' on' : '') + '">' + BLUES[k].name + ' (' + inv.count('ms_' + k) + ')</button>').join('') + '</div>' +
+      h += '<h4>Büyü Taşı (mavi stat)</h4>' + (stones.length ? '<div class="seg">' + stones.map(k => '<button data-stone="' + k + '" class="tg' + (a.stone === k ? ' on' : '') + '">' + BLUES[k].name + ' (' + inv.count('ms_' + k) + ')</button>').join('') + '</div>' +
         (a.stone && stones.includes(a.stone) ? '<button data-act="stone">Taşı Uygula (%60)</button>' : '') : '<div class="hint">Bu eşyaya uygun büyü taşın yok. Canavarlardan düşer.</div>');
       h += (a.msg ? '<div class="alc-msg" style="color:' + a.msg.color + '">' + a.msg.text + '</div>' : '') + '</div></div>';
     }
@@ -388,14 +551,14 @@ class UI {
       inv.take(elx, 1); if (lucky) inv.take('luck', 1);
       if (Math.random() < ch) {
         x.plus++;
-        a.msg = { text: '✅ Başarılı! ' + itemInfo(x).name, color: '#ffd23a' };
+        a.msg = { text: 'Başarılı! ' + itemInfo(x).name, color: '#ffd23a' };
         SFX.play('upgrade'); this.hud.log(itemInfo(x).name + ' güçlendirildi!', 'lvl');
         if (x.plus >= 7) this.hud.banner('+' + x.plus + '!', itemInfo(x).baseName, 'quest');
       } else {
         const old = x.plus, imm = a.imm && inv.count('immortal') > 0;
         if (imm) inv.take('immortal', 1);
         else if (astral) { inv.take('astral', 1); x.plus = Math.max(0, x.plus - 1); } else x.plus = 0;
-        a.msg = { text: '❌ Başarısız. +' + old + ' → +' + x.plus, color: '#ff8a7a' };
+        a.msg = { text: 'Başarısız. +' + old + ' → +' + x.plus, color: '#ff8a7a' };
         SFX.play('fail');
       }
       this.p.refreshLook(); inv.changed();
@@ -406,11 +569,11 @@ class UI {
       if (Math.random() < 0.6) {
         if (ex) {
           if (ex[1] >= mx) { a.msg = { text: BLUES[k].name + ' zaten en üstte (' + mx + ').', color: '#ffe9a8' }; inv.addStack(base, 1); }
-          else { ex[1] = Math.min(mx, ex[1] + 1 + (Math.random() < 0.3 ? 1 : 0)); a.msg = { text: '✅ ' + BLUES[k].fmt(ex[1]), color: BLUE_COLOR }; SFX.play('upgrade'); }
+          else { ex[1] = Math.min(mx, ex[1] + 1 + (Math.random() < 0.3 ? 1 : 0)); a.msg = { text: BLUES[k].fmt(ex[1]), color: BLUE_COLOR }; SFX.play('upgrade'); }
         } else if (x.blues.length >= 5) { a.msg = { text: 'Bu eşyada yer yok (en çok 5 mavi stat).', color: '#ff8a7a' }; inv.addStack(base, 1); }
-        else { x.blues.push([k, Math.max(1, Math.round(mx * 0.3))]); a.msg = { text: '✅ Yeni mavi stat: ' + BLUES[k].fmt(x.blues[x.blues.length - 1][1]), color: BLUE_COLOR }; SFX.play('upgrade'); }
+        else { x.blues.push([k, Math.max(1, Math.round(mx * 0.3))]); a.msg = { text: 'Yeni mavi stat: ' + BLUES[k].fmt(x.blues[x.blues.length - 1][1]), color: BLUE_COLOR }; SFX.play('upgrade'); }
         if (k === 'dur') x.dur = Math.min(maxDur(x), x.dur);
-      } else { a.msg = { text: '❌ Taş tutmadı.', color: '#ff8a7a' }; SFX.play('fail'); }
+      } else { a.msg = { text: 'Taş tutmadı.', color: '#ff8a7a' }; SFX.play('fail'); }
       this.p.refreshLook(); inv.changed();
     }
     this.refreshAlc();
@@ -419,15 +582,15 @@ class UI {
   // ---------- Item Mall ----------
   refreshMall() {
     const s = this.p.stats, tab = MALL.find(t => t.id === this.mallTab) || MALL[0];
-    let h = '<div class="mall-head"><span class="silk">🧶 <b>' + (s.silk || 0).toLocaleString('tr-TR') + '</b> Silk</span>' +
+    let h = '<div class="mall-head"><span class="silk"><i class="silkc"></i> <b>' + (s.silk || 0).toLocaleString('tr-TR') + '</b> Silk</span>' +
       '<small>Silk kazan: seviye atlama +5 · görev +10 · Unique +50 · günlük giriş +20 · Şampiyon/Dev canavarlardan Silk Kesesi</small></div>' +
-      '<div class="mtabs">' + MALL.map(t => '<button data-mt="' + t.id + '" class="' + (t.id === tab.id ? 'on' : '') + '">' + t.name + '</button>').join('') + '</div>';
+      '<div class="mtabs">' + MALL.map(t => '<button data-mt="' + t.id + '" class="' + (t.id === tab.id ? 'on' : '') + '">' + t.name.replace(/^\S+ /, '') + '</button>').join('') + '</div>';
     h += '<div class="mall-grid">' + tab.items.map(([base, n, c]) => {
       const b = ITEM_BASES[base];
       const sub = b.cat === 'avatar' ? EQUIP_SLOTS[b.slot].name + ' · ' + b.fb.map(x => BLUES[x[0]].fmt(x[1])).join(', ') : (b.sub || '');
-      const own = b.keep && this.inv.count(base) ? ' <small class="own">✔ sende var</small>' : '';
-      return '<div class="mall-it"><div class="mi-ic">' + b.icon + '</div><div class="mi-nm">' + b.name + (n > 1 ? ' x' + n : '') + own + '<small>' + sub + '</small></div>' +
-        '<button data-buy="' + base + '" data-n="' + n + '" data-c="' + c + '"' + ((s.silk || 0) < c ? ' class="dis"' : '') + '>🧶 ' + c + '</button></div>';
+      const own = b.keep && this.inv.count(base) ? ' <small class="own">sende var</small>' : '';
+      return '<div class="mall-it" data-tip="base:' + base + '"><div class="mi-ic">' + itemIcon(base) + '</div><div class="mi-nm">' + b.name + (n > 1 ? ' x' + n : '') + own + '<small>' + sub + '</small></div>' +
+        '<button data-buy="' + base + '" data-n="' + n + '" data-c="' + c + '"' + ((s.silk || 0) < c ? ' class="dis"' : '') + '><i class="silkc"></i> ' + c + '</button></div>';
     }).join('') + '</div>';
     this.$('mall-body').innerHTML = h;
   }
@@ -445,15 +608,15 @@ class UI {
   // ---------- Evcil hayvanlar ----------
   refreshPet() {
     const P = this.pets, inv = this.inv;
-    const pet = (base, on, label, extra) => this._row(ITEM_BASES[base].icon, ITEM_BASES[base].name + (on ? ' <small class="own">çağrılı</small>' : ''), extra || ITEM_BASES[base].sub,
+    const pet = (base, on, label, extra) => this._row(itemIcon(base), ITEM_BASES[base].name + (on ? ' <small class="own">çağrılı</small>' : ''), extra || ITEM_BASES[base].sub,
       inv.count(base) ? '<button data-pa="' + base + '">' + (on ? 'Gönder' : 'Çağır') + '</button>' : '<span class="qs">Yok</span>');
-    let h = '<div class="hint">Evcil hayvan ve binek kartları envanterde durur; buradan ya da hotbardan (📌) çağırılır. Toplayıcı (Ahır: Tilki, Item Mall: Altın Sincap) yerdeki ganimeti senin için toplar; envanterin dolarsa kendi çantasına koyar.</div>';
+    let h = '<div class="hint">Evcil hayvan ve binek kartları envanterde durur; buradan ya da hotbardan çağırılır. Toplayıcı (Ahır: Tilki, Item Mall: Altın Sincap) yerdeki ganimeti senin için toplar; envanterin dolarsa kendi çantasına koyar.</div>';
     h += pet('pet_grab', P.grab && P.grabKind === 1) + pet('pet_grab2', P.grab && P.grabKind === 2) +
       pet('pet_atk', !!P.atk, '', P.atk ? 'Can ' + Math.ceil(P.atk.hp) + ' / ' + P.atk.maxHp : null) +
       pet('horse', P.mounted && (P.horseSpeed || 1.7) < 2) + pet('horse2', P.mounted && P.horseSpeed >= 2);
     h += '<h4>Toplama filtresi</h4><div class="filt">' + [['all', 'Hepsi'], ['items', 'Sadece eşya'], ['gear', 'Sadece ekipman'], ['gold', 'Sadece altın']].map(([k, n]) => '<button data-pf="' + k + '" class="' + (P.filter === k ? 'on' : '') + '">' + n + '</button>').join('') + '</div>';
     const size = P.pinvSize();
-    h += '<h4>🎒 Evcil çantası (' + P.pinv.slice(0, size).filter(Boolean).length + '/' + size + ') <button data-pa="all" class="small">Hepsini envantere al</button></h4>' +
+    h += '<h4>Evcil çantası (' + P.pinv.slice(0, size).filter(Boolean).length + '/' + size + ') <button data-pa="all" class="small">Hepsini envantere al</button></h4>' +
       '<div class="st-grid">' + P.pinv.slice(0, size).map((it, i) => this._slot(it, 'data-pb="' + i + '"', false, '')).join('') + '</div>';
     this.$('pet-body').innerHTML = h;
   }
@@ -493,7 +656,7 @@ class UI {
     const t = this.tab;
     this.npcBody.innerHTML = t.startsWith('buy:') ? this._buyHTML(t.slice(4)) : t === 'sell' ? this._sellHTML() : t === 'repair' ? this._repairHTML() :
       t === 'storage' ? this._storageHTML() : t === 'tele' ? this._teleHTML() : t === 'job' ? this._jobHTML() : t === 'trade' ? this._tradeHTML() : t === 'den' ? this._denHTML() : t === 'unique' ? this._uniqueHTML() : this._questHTML();
-    this.npcFoot.innerHTML = '💰 <b>' + s.gold.toLocaleString('tr-TR') + '</b> &nbsp; 🎒 ' + (this.inv.slots.length - this.inv.freeCount()) + '/' + this.inv.slots.length;
+    this.npcFoot.innerHTML = '<span>Altın <b>' + s.gold.toLocaleString('tr-TR') + '</b></span><span>Yuva <b>' + (this.inv.slots.length - this.inv.freeCount()) + ' / ' + this.inv.slots.length + '</b></span>';
     this.npcMsgEl.innerHTML = this.msg ? '<span style="color:' + this.msg.color + '">' + this.msg.text + '</span>' : '';
   }
 
@@ -514,7 +677,7 @@ class UI {
       if (s === 'none') right = '<button data-act="qaccept" data-q="' + q.id + '">Kabul Et</button>';
       else if (s === 'ready') right = '<button data-act="qturn" data-q="' + q.id + '">Teslim Et</button>';
       else if (s === 'active') right = '<span class="qs">' + qm.objectiveText(q) + '</span>';
-      else right = '<span class="qs lock">🔒 ' + qm.lockText(q) + '</span>';
+      else right = '<span class="qs lock">' + qm.lockText(q) + '</span>';
       return '<div class="qrow ' + s + '"><div class="qt">' + q.name + '<small> Sv. ' + q.minLevel + '+</small></div>' +
         (s === 'locked' ? '' : '<div class="qd">' + q.desc + '</div><div class="qr">Ödül: ' + qm.rewardText(q) + '</div>') +
         '<div class="qa">' + right + '</div></div>';
@@ -541,12 +704,12 @@ class UI {
       if (isStack(base)) {
         const ns = base === 'arrow' ? [250, 1000] : [1, 10, 50];
         const bad = (b.req || 1) > lvl;
-        return this._row(b.icon, b.name, (b.sub || '') + (b.req > 1 ? ' · Sv. ' + b.req : ''),
-          '<b class="pr">' + (base === 'arrow' ? '0.5' : price) + ' 💰</b>' + ns.map(n => '<button data-act="buy" data-b="' + base + '" data-n="' + n + '">' + (n === 1 ? 'Al' : 'x' + n) + '</button>').join(''), bad ? '#9a8a6a' : null);
+        return this._row(itemIcon(base), b.name, (b.sub || '') + (b.req > 1 ? ' · Sv. ' + b.req : ''),
+          '<b class="pr">' + (base === 'arrow' ? '0.5' : price) + ' <i class="coin"></i></b>' + ns.map(n => '<button data-act="buy" data-b="' + base + '" data-n="' + n + '">' + (n === 1 ? 'Al' : 'x' + n) + '</button>').join(''), bad ? '#9a8a6a' : null);
       }
       const n = itemInfo({ base, rarity: 0, plus: 0, blues: [], dur: 99 }), bad = b.req > lvl;
       return this._row(n.icon, n.name, n.typeName + ' · ' + itemStatText(n) + ' · Sv. ' + n.req,
-        '<b class="pr">' + price.toLocaleString('tr-TR') + ' 💰</b><button data-act="buy" data-b="' + base + '" data-n="1">Al</button>', bad ? '#9a8a6a' : null);
+        '<b class="pr">' + price.toLocaleString('tr-TR') + ' <i class="coin"></i></b><button data-act="buy" data-b="' + base + '" data-n="1">Al</button>', bad ? '#9a8a6a' : null);
     }).join('');
   }
 
@@ -556,7 +719,7 @@ class UI {
       const n = itemInfo(it), conf = this.sellConfirm === it.uid, b = ITEM_BASES[it.base];
       if (b.cat === 'quest') return '';
       return this._row(n.icon, n.name + (n.stack && it.n > 1 ? ' x' + it.n : ''), n.stack ? (n.sub || '') : ((it.rarity ? n.rarityName + ' · ' : '') + n.d + '. derece'),
-        '<b class="pr">' + sellPrice(it).toLocaleString('tr-TR') + ' 💰</b><button data-act="sell" data-i="' + i + '" class="' + (conf ? 'warn' : '') + '">' + (conf ? 'Emin misin?' : 'Sat') + '</button>', n.color);
+        '<b class="pr">' + sellPrice(it).toLocaleString('tr-TR') + ' <i class="coin"></i></b><button data-act="sell" data-i="' + i + '" class="' + (conf ? 'warn' : '') + '">' + (conf ? 'Emin misin?' : 'Sat') + '</button>', n.color);
     }).join('');
     return rows || '<div class="hint">Satacak eşyan yok. (Kuşanılı eşyalar satılmaz.)</div>';
   }
@@ -567,40 +730,40 @@ class UI {
     for (const k in this.inv.equip) { const it = this.inv.equip[k]; if (it && it.dur < maxDur(it)) worn.push(it); }
     return '<div class="hint">Eşyalar savaşta aşınır. Dayanıklılığı 0 olan eşya kırılır ve gücünü kaybeder.</div>' +
       (worn.map(it => { const n = itemInfo(it); return this._row(n.icon, n.name, 'Dayanıklılık ' + n.dur + ' / ' + n.maxDur, '', n.broken ? '#ff8a7a' : n.color); }).join('') || '<div class="hint">Kuşanılı eşyalarının hepsi sağlam.</div>') +
-      '<div class="srow"><span class="ic">🔨</span><div class="nm">Tümünü tamir et<small>Kuşanılı ve envanterdeki tüm ekipman</small></div><b class="pr">' + c.toLocaleString('tr-TR') + ' 💰</b><button data-act="repair"' + (c ? '' : ' disabled') + '>Tamir Et</button></div>';
+      '<div class="srow"><span class="ic">' + icon('hammer', 'phys') + '</span><div class="nm">Tümünü tamir et<small>Kuşanılı ve envanterdeki tüm ekipman</small></div><b class="pr">' + c.toLocaleString('tr-TR') + ' <i class="coin"></i></b><button data-act="repair"' + (c ? '' : ' disabled') + '>Tamir Et</button></div>';
   }
 
   _teleHTML() {
     const lv = { jangan: 'Sv. 1–20', donwhang: 'Sv. 20–40', hotan: 'Sv. 40–80' };
     return '<div class="hint">Kervan yollarını aşmak uzun sürer. Ücreti öde, anında diğer şehre geç. (Yolun ucundaki kapılardan yürüyerek de gidebilirsin.)</div>' +
-      ZONE.tele.map(t => { const z = ZONES[t.zone]; return this._row('🌀', z.town, 'Önerilen ' + lv[t.zone], '<b class="pr">' + t.cost.toLocaleString('tr-TR') + ' 💰</b><button data-act="travel" data-z="' + t.zone + '" data-c="' + t.cost + '">Işınlan</button>'); }).join('');
+      ZONE.tele.map(t => { const z = ZONES[t.zone]; return this._row(icon('rev', 'lightning'), z.town, 'Önerilen ' + lv[t.zone], '<b class="pr">' + t.cost.toLocaleString('tr-TR') + ' <i class="coin"></i></b><button data-act="travel" data-z="' + t.zone + '" data-c="' + t.cost + '">Işınlan</button>'); }).join('');
   }
   _jobHTML() {
     const J = this.jobs, s = this.p.stats;
     let h = '<div class="hint">Silkroad\'un üçgen sistemi: <b style="color:#ffd23a">Tüccar</b> mal taşır, <b style="color:#ff7a6a">Hırsız</b> kervan soyar, <b style="color:#6ab4ff">Avcı</b> kervanları korur. Katılmak için Sv. ' + JOB_MIN_LEVEL + '.</div>';
     if (J.job) {
       const J0 = JOBS[J.job], nx = J.nextExp();
-      h += '<div class="mcard"><div class="mi">' + J0.icon + '</div><div class="mt"><b style="color:' + J0.color + '">' + J0.name + ' · Meslek Sv. ' + J.level() + '</b><small>' + J0.desc + '</small>' +
+      h += '<div class="mcard"><div class="mi">' + icon(J.job === 'trader' ? 'camel' : J.job === 'hunter' ? 'shield' : 'blade', J.job === 'thief' ? 'bad' : 'gold') + '</div><div class="mt"><b style="color:' + J0.color + '">' + J0.name + ' · Meslek Sv. ' + J.level() + '</b><small>' + J0.desc + '</small>' +
         '<div class="bar exp" style="margin-top:4px"><div class="fill" style="width:' + (nx ? (J.jexp / nx * 100) : 100) + '%"></div><span>' + J.jexp.toLocaleString('tr-TR') + (nx ? ' / ' + nx.toLocaleString('tr-TR') : ' (en üst)') + '</span></div></div></div>';
-      if (J.job === 'hunter') h += this._row('🛡️', 'Kervan Koruma', 'Kervanı yolun sonuna kadar hırsızlara karşı koru. Ödül: altın + Avcı EXP', J.mission ? '<span class="qs">' + J.status() + '</span>' : '<button data-act="escort">Başlat</button>');
-      if (J.job === 'thief') h += this._row('🗡️', 'Kervan Soygunu', 'Yoldaki tüccar kervanının devesini düşür, Çalıntı Malı simsara sat (' + ZONE.npc.den + ', ' + ZONE.ruinName + ')', J.mission ? '<span class="qs">' + J.status() + '</span>' : '<button data-act="raid">Başlat</button>');
-      if (J.job === 'trader') h += this._row('🐫', 'Ticaret', 'Ahır\'dan Kervan Devesi Düdüğü al, Ticaret Ustası\'ndan mal yükle, başka şehirde sat. Teleport ve dönüş parşömeni kullanılamaz; yolun ucundaki kapılardan yürü.', '<span class="qs">Yük ' + J.cargoCount() + '/' + J.capacity() + '</span>');
+      if (J.job === 'hunter') h += this._row(icon('shield', 'cold'), 'Kervan Koruma', 'Kervanı yolun sonuna kadar hırsızlara karşı koru. Ödül: altın + Avcı EXP', J.mission ? '<span class="qs">' + J.status() + '</span>' : '<button data-act="escort">Başlat</button>');
+      if (J.job === 'thief') h += this._row(icon('blade', 'bad'), 'Kervan Soygunu', 'Yoldaki tüccar kervanının devesini düşür, Çalıntı Malı simsara sat (' + ZONE.npc.den + ', ' + ZONE.ruinName + ')', J.mission ? '<span class="qs">' + J.status() + '</span>' : '<button data-act="raid">Başlat</button>');
+      if (J.job === 'trader') h += this._row(icon('camel', 'pet'), 'Ticaret', 'Ahır\'dan Kervan Devesi Düdüğü al, Ticaret Ustası\'ndan mal yükle, başka şehirde sat. Teleport ve dönüş parşömeni kullanılamaz; yolun ucundaki kapılardan yürü.', '<span class="qs">Yük ' + J.cargoCount() + '/' + J.capacity() + '</span>');
       h += '<div class="btns"><button data-act="leave" class="warn">Loncadan Ayrıl</button></div>';
     }
-    h += Object.keys(JOBS).filter(k => k !== J.job).map(k => this._row(JOBS[k].icon, JOBS[k].name + ' Loncası', JOBS[k].desc, '<button data-act="join" data-j="' + k + '"' + (s.level < JOB_MIN_LEVEL ? ' class="dis"' : '') + '>Katıl</button>', JOBS[k].color)).join('');
+    h += Object.keys(JOBS).filter(k => k !== J.job).map(k => this._row(icon(k === 'trader' ? 'camel' : k === 'hunter' ? 'shield' : 'blade', k === 'thief' ? 'bad' : 'gold'), JOBS[k].name + ' Loncası', JOBS[k].desc, '<button data-act="join" data-j="' + k + '"' + (s.level < JOB_MIN_LEVEL ? ' class="dis"' : '') + '>Katıl</button>', JOBS[k].color)).join('');
     return h;
   }
   _tradeHTML() {
     const J = this.jobs, g = J.localGood();
-    let h = '<div class="hint">' + ZONE.town + ' malı: <b>' + g.icon + ' ' + g.name + '</b>. Uzak şehirlerde daha pahalı satılır. Fiyatlar saatlik değişir.</div>';
+    let h = '<div class="hint">' + ZONE.town + ' malı: <b>' + g.name + '</b>. Uzak şehirlerde daha pahalı satılır. Fiyatlar saatlik değişir.</div>';
     h += '<div class="seg">' + ZONE_ORDER.map(z => { const pz = J.price(g.base, z); return '<span class="tag">' + ZONES[z].name + ': <b>' + pz + '</b></span>'; }).join('') + '</div>';
     if (J.job !== 'trader') return h + '<div class="hint">Mal almak için Meslek Loncası\'nda <b>Tüccar</b> olmalısın.</div>';
-    h += this._row(g.icon, g.name + ' <small>' + J.price(g.base) + ' 💰 / adet</small>', 'Kervan: ' + J.cargoCount() + ' / ' + J.capacity() + (J.transport ? '' : ' — önce deveyi çağır'),
+    h += this._row(icon('tg', 'gold'), g.name + ' <small>' + J.price(g.base) + ' <i class="coin"></i> / adet</small>', 'Kervan: ' + J.cargoCount() + ' / ' + J.capacity() + (J.transport ? '' : ' — önce deveyi çağır'),
       [5, 10, 'max'].map(n => '<button data-act="tbuy" data-n="' + n + '">' + (n === 'max' ? 'Doldur' : 'x' + n) + '</button>').join(''));
-    const lines = Object.keys(J.cargo).map(b => { const o = TRADE_GOODS[goodOrigin(b)]; return this._row(o.icon, o.name + ' x' + J.cargo[b], 'Buradaki fiyat: ' + J.price(b) + ' 💰', ''); }).join('');
+    const lines = Object.keys(J.cargo).map(b => { const o = TRADE_GOODS[goodOrigin(b)]; return this._row(icon('tg', 'gold'), o.name + ' x' + J.cargo[b], 'Buradaki fiyat: ' + J.price(b) + ' altın', ''); }).join('');
     if (lines) {
       let rev = 0; for (const b in J.cargo) rev += J.price(b) * J.cargo[b];
-      h += '<h4>🐫 Kervandaki mallar</h4>' + lines + '<div class="srow"><span class="ic">💰</span><div class="nm">Hepsini sat<small>Maliyet ' + J.cargoCost.toLocaleString('tr-TR') + ' → Gelir ' + rev.toLocaleString('tr-TR') + '</small></div><button data-act="tsell">Sat</button></div>';
+      h += '<h4>Kervandaki mallar</h4>' + lines + '<div class="srow"><span class="ic">' + icon('gold', 'gold') + '</span><div class="nm">Hepsini sat<small>Maliyet ' + J.cargoCost.toLocaleString('tr-TR') + ' → Gelir ' + rev.toLocaleString('tr-TR') + '</small></div><button data-act="tsell">Sat</button></div>';
     }
     if (J.transport && !J.cargoCount()) h += '<div class="btns"><button data-act="tdismiss">Deveyi Gönder</button></div>';
     return h;
@@ -608,19 +771,19 @@ class UI {
   _denHTML() {
     const n = this.inv.count('sg'), L = this.p.stats.level;
     return '<div class="hint">"Kervanlardan ne getirdiysen alırım, soru sormam."</div>' +
-      this._row('💰', 'Çalıntı Mal x' + n, 'Adet başı ~' + (60 + 8 * L) + ' 💰 + Hırsız EXP', '<button data-act="sgsell"' + (n ? '' : ' disabled') + '>Sat</button>');
+      this._row(itemIcon('sg'), 'Çalıntı Mal x' + n, 'Adet başı ~' + (60 + 8 * L) + ' altın + Hırsız EXP', '<button data-act="sgsell"' + (n ? '' : ' disabled') + '>Sat</button>');
   }
   _uniqueHTML() {
     const st = this.mm ? this.mm.uniqueStatus() : [];
     return '<div class="hint">Bölgenin efsanevi canavarları. Ortaya çıktıklarında bütün bölgeye duyurulur. Çok güçlüdürler; iyi hazırlan!</div>' +
-      st.map(u => this._row(u.live ? '🔴' : '⏳', u.name + ' <small>Sv. ' + u.level + '</small>', u.region, '<span class="qs">' + (u.live ? 'ŞU AN ORTADA!' : '~' + u.mins + ' dk sonra') + '</span>', u.live ? '#ff8ae8' : null)).join('');
+      st.map(u => this._row(icon('crown', u.live ? 'bad' : 'pass'), u.name + ' <small>Sv. ' + u.level + '</small>', u.region, '<span class="qs">' + (u.live ? 'ŞU AN ORTADA!' : '~' + u.mins + ' dk sonra') + '</span>', u.live ? '#ff8ae8' : null)).join('');
   }
 
   _storageHTML() {
     const inv = this.inv;
     return '<div class="hint">Eşyaya dokun: envanterden depoya / depodan envantere taşınır. Depo tüm karakterlerinde ortaktır.</div>' +
-      '<div class="st-wrap"><div><h4>🎒 Envanter</h4><div class="st-grid">' + inv.slots.map((it, i) => this._slot(it, 'data-act="dep" data-i="' + i + '"', false, '')).join('') + '</div></div>' +
-      '<div><h4>📦 Depo (' + (inv.storage.length - inv.freeCount(inv.storage)) + '/' + inv.storage.length + ')</h4><div class="st-grid">' + inv.storage.map((it, i) => this._slot(it, 'data-act="wd" data-i="' + i + '"', false, '')).join('') + '</div></div></div>';
+      '<div class="st-wrap"><div><h4>Envanter</h4><div class="st-grid">' + inv.slots.map((it, i) => this._slot(it, 'data-act="dep" data-i="' + i + '"', false, '')).join('') + '</div></div>' +
+      '<div><h4>Depo (' + (inv.storage.length - inv.freeCount(inv.storage)) + '/' + inv.storage.length + ')</h4><div class="st-grid">' + inv.storage.map((it, i) => this._slot(it, 'data-act="wd" data-i="' + i + '"', false, '')).join('') + '</div></div></div>';
   }
 
   _npcAct(btn) {
@@ -634,7 +797,7 @@ class UI {
       inv.add(isStack(base) ? makeStack(base, n) : makeItem(base));
       SFX.play('coin');
       this.hb.upgradePots(s.level);
-      this._say(b.name + (n > 1 ? ' x' + n : '') + ' satın alındı. -' + cost.toLocaleString('tr-TR') + ' 💰', '#a8f0a0');
+      this._say(b.name + (n > 1 ? ' x' + n : '') + ' satın alındı. -' + cost.toLocaleString('tr-TR') + ' altın', '#a8f0a0');
     } else if (act === 'qaccept' || act === 'qturn') {
       const r = act === 'qaccept' ? this.quests.accept(btn.dataset.q) : this.quests.turnIn(btn.dataset.q);
       this._say(r.msg, r.ok ? '#a8f0a0' : '#ff8a7a');
@@ -644,7 +807,7 @@ class UI {
       if ((it.rarity >= 1 || (it.plus || 0) >= 3 || it.base === 'astral') && this.sellConfirm !== it.uid) { this.sellConfirm = it.uid; return this.refreshNpc(); }
       const price = sellPrice(it), name = itemInfo(it).name;
       s.gold += price; this.sellConfirm = null; inv.remove(i); SFX.play('coin');
-      this._say(name + ' satıldı. +' + price.toLocaleString('tr-TR') + ' 💰', '#a8f0a0');
+      this._say(name + ' satıldı. +' + price.toLocaleString('tr-TR') + ' altın', '#a8f0a0');
     } else if (act === 'repair') {
       const c = inv.repairCost();
       if (s.gold < c) { SFX.play('error'); return this._say('Yeterli altının yok.', '#ff8a7a'); }

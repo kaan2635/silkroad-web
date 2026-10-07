@@ -61,14 +61,19 @@ Yetenek veya iksiri hotbara koymak için pencerede **📌**'a bas, sonra bir yuv
 - Sv. 20'de Meslek Loncası: **Tüccar** (şehre özgü mallar, kervan devesi, yolda hırsız baskınları), **Avcı** (kervan koruma görevi), **Hırsız** (kervan soygunu, çalıntı malı simsara satma). 7 meslek seviyesi, meslek pelerini
 - At (binek, %70 hız), Toplayıcı Tilki (ganimeti toplar), Savaş Kurdu (hedefine saldırır)
 
-**Item Mall (🛒 / B) ve Silk**
+**Item Mall (B) ve Silk**
 - Silk kazanma: yeni karakter 100, günlük giriş +20, seviye +5, görev +10, Unique +50, Şampiyon/Dev canavarlardan Silk Kesesi
 - Premium Bilet, Bereket Parşömeni, Diriliş Parşömeni, Tamir Çekici, Ölümsüz Taş, Koruma Taşı, Şans Tozu, iksir ve büyü taşı paketleri, Stat/Ustalık sıfırlama, envanter (96'ya kadar) ve depo (120'ye kadar) genişletme
 - Avatarlar: şapka, giysi, sırt süsü (taç, kanat, sancak, hale…) karakter görünümünü değiştirir, küçük statlar verir
 - Altın Sincap (premium toplayıcı), Savaş Atı
 
-**Evcil hayvanlar (🐾 / P)**
+**Evcil hayvanlar (P)**
 - Toplayıcı Tilki (yeni karakterle gelir) ve Altın Sincap yerdeki ganimeti toplar; filtre (hepsi / eşya / ekipman / altın), envanter dolarsa evcil çantası (16 / 32 yuva)
+
+**Arayüz ve efektler**
+- Silkroad tarzı pencereler ve boyalı ikonlar; ekrana göre otomatik ölçek ve ayarlardan arayüz boyutu; pencereler masaüstünde sürüklenir, yerini hatırlar
+- Buff ikonlarında kalan süre halkası, ipuçları, yatay yetenek ağacı, yetenekleri ve iksirleri hotbara sürükleyip bırakma
+- Element büyü efektleri: ateş izi ve göktaşı, buz dikenleri, dallı yıldırım, rün çemberleri, aşılanmış silah parıltısı, berserk alevi
 
 **Diğer**
 - Ses ve müzik (WebAudio, dosyasız), ayarlar (ses, kalite, gölge, FPS, kamera hassasiyeti, otomatik iksir, kayıt sıfırlama)

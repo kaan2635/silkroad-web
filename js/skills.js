@@ -176,3 +176,4 @@ class SkillBook {
     this.changed();
   }
 }
+const SKILL_TYPE_NAMES = { atk: 'Saldırı', nuke: 'Büyü', buff: 'Güçlendirme', imbue: 'Aşılama', heal: 'Şifa', cure: 'Arınma', dash: 'Işınlanma', passive: 'Kalıcı', absorb: 'Kalkan' };

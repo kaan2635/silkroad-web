@@ -132,7 +132,7 @@ class JobSystem {
     if (s.gold < cost) return { ok: false, msg: 'Yeterli altının yok.' };
     s.gold -= cost; this.cargo[g.base] = (this.cargo[g.base] || 0) + n; this.cargoCost += cost;
     this._trLabel(); this.changed();
-    return { ok: true, msg: g.name + ' x' + n + ' yüklendi. -' + cost.toLocaleString('tr-TR') + ' 💰' };
+    return { ok: true, msg: g.name + ' x' + n + ' yüklendi. -' + cost.toLocaleString('tr-TR') + ' altın' };
   }
   sellAll() {
     if (!this.cargoCount()) return { ok: false, msg: 'Kervanında mal yok.' };
@@ -145,7 +145,7 @@ class JobSystem {
     this._trLabel();
     this.gainJobExp(Math.max(20, profit * 0.6));
     this.changed();
-    return { ok: true, msg: 'Mallar satıldı: +' + rev.toLocaleString('tr-TR') + ' 💰 (' + (profit >= 0 ? 'kâr ' : 'zarar ') + Math.abs(profit).toLocaleString('tr-TR') + ')' };
+    return { ok: true, msg: 'Mallar satıldı: +' + rev.toLocaleString('tr-TR') + ' altın (' + (profit >= 0 ? 'kâr ' : 'zarar ') + Math.abs(profit).toLocaleString('tr-TR') + ')' };
   }
   summonTransport(hp) {
     if (this.job !== 'trader') { this.hud.log('Kervan devesi sadece Tüccarlar içindir.'); return false; }
@@ -236,7 +236,7 @@ class JobSystem {
     const L = this.p.stats.level, gold = n * (60 + 8 * L) * (1 + 0.1 * (this.level() - 1));
     this.p.inv.take('sg', n); this.p.stats.gold += Math.round(gold);
     this.gainJobExp(n * 45);
-    return { ok: true, msg: n + ' Çalıntı Mal satıldı: +' + Math.round(gold).toLocaleString('tr-TR') + ' 💰' };
+    return { ok: true, msg: n + ' Çalıntı Mal satıldı: +' + Math.round(gold).toLocaleString('tr-TR') + ' altın' };
   }
 
   update(dt) {
@@ -275,7 +275,7 @@ class JobSystem {
           c.remove(); this.mission = null;
           const L = pl.stats.level, gold = Math.round((300 + 45 * L) * (1 + 0.15 * (this.level() - 1)));
           pl.stats.gold += gold;
-          this.hud.banner('Kervan Güvende!', '+' + gold.toLocaleString('tr-TR') + ' 💰', 'quest'); SFX.play('questdone');
+          this.hud.banner('Kervan Güvende!', '+' + gold.toLocaleString('tr-TR') + ' altın', 'quest'); SFX.play('questdone');
           this.gainJobExp(400 + 25 * L);
           this.changed();
           return;

@@ -44,7 +44,7 @@
   jobs.onChange = () => ui.refresh();
   monsters.announce = (title, sub, kind) => {
     hud.banner(title, sub, kind === 'kill' ? 'quest' : 'unique');
-    hud.log('📣 ' + title + ' — ' + sub, 'lvl', kind === 'kill' ? '#8ef07a' : '#ff8ae8');
+    hud.log(title + ' — ' + sub, 'lvl', kind === 'kill' ? '#8ef07a' : '#ff8ae8');
     SFX.play(kind === 'kill' ? 'questdone' : 'region');
   };
   npcs.refreshMarkers(quests);
@@ -221,10 +221,10 @@
     nameInput.blur();
     hud.log('İpek Yolu\'na hoş geldin, ' + name + '!');
     const today = new Date().toISOString().slice(0, 10);
-    if (lastDay !== today) { lastDay = today; player.stats.silk = (player.stats.silk || 0) + 20; hud.log('🧶 Günlük giriş ödülü: +20 Silk (🛒 Item Mall)', 'lvl', '#ff9ae8'); }
-    if (!sameChar) hud.log('🦊 Toplayıcı Tilki envanterinde: 2. hotbar sayfasından çağır, ganimeti senin için toplasın.', 'lvl');
+    if (lastDay !== today) { lastDay = today; player.stats.silk = (player.stats.silk || 0) + 20; hud.log('Günlük giriş ödülü: +20 Silk (Item Mall)', 'lvl', '#ff9ae8'); }
+    if (!sameChar) hud.log('Toplayıcı Tilki envanterinde: 2. hotbar sayfasından çağır, ganimeti senin için toplasın.', 'lvl');
     if (!sameChar) {
-      hud.log('📖 Yetenek penceresinden (K) SP harcayıp bir ustalık seç, yetenek öğren.', 'lvl');
+      hud.log('Yetenek penceresinden (K) SP harcayıp bir ustalık seç, yetenek öğren.', 'lvl');
       hud.log('Kaptan Lee\'nin başındaki ! işaretine bak: görevler seni bekliyor.');
     }
     hud.log(CONFIG.isTouch ? 'Joystick ile yürü, canavara dokun = saldır.' : 'Canavara tıkla = saldır. Yürümek için yere tıkla.');

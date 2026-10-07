@@ -96,7 +96,8 @@ class Input {
       const d = Math.hypot(dx, dy);
       if (d > R) { dx *= R / d; dy *= R / d; }
       this.joy.x = dx / R; this.joy.y = dy / R;
-      knob.style.transform = 'translate(calc(-50% + ' + dx + 'px), calc(-50% + ' + dy + 'px))';
+      const ui = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--ui')) || 1;
+      knob.style.transform = 'translate(calc(-50% + ' + dx / ui + 'px), calc(-50% + ' + dy / ui + 'px))';
     };
     zone.addEventListener('touchstart', e => {
       e.preventDefault();

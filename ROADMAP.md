@@ -75,6 +75,13 @@ Tarayıcıda çalışan, Silkroad Online tarzı (ipek yolu temalı, tıkla-yür�
 - [x] Toplayıcı evcil hayvan: filtre, evcil çantası, evcil çubuğu ve penceresi
 - [x] Item Mall ve Silk: premium, simya, evcil/binek, parşömen, avatar, genişletme
 
+**5F — Arayüz yenilemesi (TAMAM)**
+- [x] Silkroad tarzı lake/bronz pencere çerçeveleri, Cinzel + Alegreya Sans yazı tipleri, emoji yerine boyalı SVG ikonlar (game-icons.net, CC BY 3.0)
+- [x] Ekrana göre otomatik ölçek + ayarlardan "Arayüz boyutu"; pencereler ekrandan taşmaz, masaüstünde sürüklenir ve yerini hatırlar
+- [x] Buff/durum ikonlarında dairesel kalan süre, son saniyelerde yanıp sönme, ayrıntılı ipuçları
+- [x] Yatay yetenek ağacı (ustalık seviyesine göre basamaklar, kademe noktaları, ayrıntı paneli), sürükle-bırak hotbar
+- [x] Büyü efektleri: parçacık sistemi, element izli mermiler, buz dikenleri, dallı yıldırım, göktaşı, rün çemberi, aşılanmış silah parıltısı, berserk alevi, vuruş kıvılcımları
+
 ## Faz 6 — Çok Oyunculu Altyapı
 - [ ] Node.js + WebSocket sunucusu, sunucu otoriteli hareket ve savaş
 - [ ] Hesap/giriş, karakter kaydı sunucuda

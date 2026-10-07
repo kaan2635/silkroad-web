@@ -210,7 +210,7 @@ function itemInfo(it) {
   const b = ITEM_BASES[it.base];
   if (!b) return { name: '?', icon: '❔', color: '#999', stack: true };
   if (isStack(it.base)) {
-    return { name: b.name, baseName: b.name, icon: b.icon, color: b.cat === 'quest' ? '#ffd23a' : b.cat === 'mat' ? '#9fe3ff' : '#e8e8e8',
+    return { name: b.name, baseName: b.name, icon: itemIcon(it.base), color: b.cat === 'quest' ? '#ffd23a' : b.cat === 'mat' ? '#9fe3ff' : '#e8e8e8',
       stack: true, n: it.n, max: b.stack, sub: b.sub || '', req: b.req || 1, value: b.value, cat: b.cat };
   }
   const r = RARITY[it.rarity] || RARITY[0], pm = PLUS_MULT(it.plus || 0), m = r.mult * pm;
@@ -222,7 +222,7 @@ function itemInfo(it) {
   const typeName = b.cat === 'avatar' ? EQUIP_SLOTS[b.slot].name : b.cat === 'weapon' ? WEAPON_TYPES[b.wtype].name : b.cat === 'armor' ? ARMOR_TYPES[b.atype].name + ' ' + EQUIP_SLOTS[b.slot].name : (EQUIP_SLOTS[b.slot] || EQUIP_SLOTS.ring1).name;
   return {
     name: r.sym + b.name + (it.plus ? ' (+' + it.plus + ')' : ''), baseName: b.name, tier: b.tier || 0, cat: b.cat, slot: b.slot, req: b.req, d: b.d,
-    wtype: b.wtype, atype: b.atype, typeName, icon: b.icon,
+    wtype: b.wtype, atype: b.atype, typeName, icon: itemIcon(it.base),
     phy: st(b.phy), mag: st(b.mag), pdef: st(b.pdef), mdef: st(b.mdef), hp: st(b.hp), mp: st(b.mp), block: b.block || 0,
     blues: bl, dur: it.dur, maxDur: maxDur(it), broken,
     value: Math.round(b.value * r.val * (1 + 0.35 * (it.plus || 0))),

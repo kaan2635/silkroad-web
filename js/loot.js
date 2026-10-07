@@ -82,7 +82,7 @@ class LootManager {
     const L = m.level, k = (m.dropMult || 1) * (this.player.premT > 0 ? 1.3 : 1);
     const spot = () => { const a = Math.random() * 6.283, r = 0.6 + Math.random() * (1.4 + Math.min(4, k * 0.3)); return [m.x + Math.cos(a) * r, m.z + Math.sin(a) * r]; };
     const item = it => {
-      if (it.rarity && this.hud) { const n = itemInfo(it); this.hud.banner(RARITY[it.rarity].name + '!', n.name, 'seal'); this.hud.log('✨ ' + RARITY[it.rarity].name + ' düştü: ' + n.name, 'lvl', n.color); SFX.play('levelup'); }
+      if (it.rarity && this.hud) { const n = itemInfo(it); this.hud.banner(RARITY[it.rarity].name + '!', n.name, 'seal'); this.hud.log(RARITY[it.rarity].name + ' düştü: ' + n.name, 'lvl', n.color); SFX.play('levelup'); }
       return this.spawn('item', ...spot(), { item: it });
     };
     const chance = p => Math.random() < Math.min(0.95, p * k);
@@ -126,7 +126,7 @@ class LootManager {
     const s = this.player.stats, pos = { x: this.player.pos.x, y: this.player.pos.y + 2.8, z: this.player.pos.z };
     if (d.kind === 'gold') {
       s.gold += d.amount;
-      this.hud.floatText(pos, '+' + d.amount + ' 💰', 'exp');
+      this.hud.floatText(pos, '+' + d.amount + ' altın', 'exp');
       this.hud.log('+' + d.amount + ' altın', 'gold');
       SFX.play('coin');
     } else {

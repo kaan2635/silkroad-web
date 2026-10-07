@@ -64,10 +64,10 @@ class Hotbar {
   // Giriş görünümü
   view(e) {
     if (!e) return null;
-    if (e.t === 'atk') return { icon: this.p.d.ranged ? '🏹' : '⚔️', name: 'Normal Saldırı', tip: 'Hedefe otomatik saldır (Space)' };
-    if (e.t === 'zerk') return { icon: '😤', name: 'Berserk', tip: '5 küre dolunca aç (Z)' };
-    if (e.t === 'sk') { const s = SKILLS_BY_ID[e.id]; return { icon: s.icon, name: s.name, tip: skillDetail(s, this.p.book.r(e.id)), mp: rankMp(s, Math.max(1, this.p.book.r(e.id))), learned: this.p.book.r(e.id) > 0 }; }
-    if (e.t === 'it') { const b = ITEM_BASES[e.base]; return { icon: b.icon, name: b.name, tip: b.sub || '', count: this.p.inv.count(e.base) }; }
+    if (e.t === 'atk') return { icon: icon('atk', 'phys'), name: 'Normal Saldırı', tip: 'Hedefe otomatik saldır (Space)' };
+    if (e.t === 'zerk') return { icon: icon('zerk', 'fire'), name: 'Berserk', tip: '5 küre dolunca aç (Z)' };
+    if (e.t === 'sk') { const s = SKILLS_BY_ID[e.id]; return { icon: skillIcon(e.id), name: s.name, tip: skillDetail(s, this.p.book.r(e.id)), mp: rankMp(s, Math.max(1, this.p.book.r(e.id))), learned: this.p.book.r(e.id) > 0 }; }
+    if (e.t === 'it') { const b = ITEM_BASES[e.base]; return { icon: itemIcon(e.base), name: b.name, tip: b.sub || '', count: this.p.inv.count(e.base) }; }
     return null;
   }
 }

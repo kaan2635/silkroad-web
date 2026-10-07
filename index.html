@@ -14,24 +14,24 @@
   <canvas id="game"></canvas>
 
   <div id="hud" class="hidden">
-    <div id="player-panel" class="panel">
-      <div class="row"><span id="pname">Gezgin</span><span id="plvl">Sv. 1</span></div>
+    <div id="player-panel" class="frame">
+      <div id="portrait"></div><span id="plvl">1</span>
+      <div class="row"><span id="pname">Gezgin</span><span id="pgold">0</span></div>
       <div class="bar hp"><div id="hp-fill" class="fill"></div><span id="hp-text"></span></div>
       <div class="bar mp"><div id="mp-fill" class="fill"></div><span id="mp-text"></span></div>
-      <div class="prow"><div id="zerk" title="Berserk (Z)"></div><div id="pgold">💰 0</div></div>
-      <div id="buffs"></div>
-      <div id="petbar"></div>
+      <div class="prow"><div id="zerk" data-tip="zerk"></div><div id="petbar"></div></div>
     </div>
+    <div id="buffs"></div>
 
-    <div id="target-frame" class="panel hidden">
+    <div id="target-frame" class="frame hidden">
       <div class="row"><span id="tf-name"></span><span id="tf-lvl"></span></div>
       <div class="bar hp"><div id="tf-fill" class="fill"></div><span id="tf-text"></span></div>
       <div id="tf-st"></div>
     </div>
 
     <div id="minimap-wrap">
-      <canvas id="minimap" width="170" height="170"></canvas>
-      <div id="clock">☀️ 08:00</div>
+      <canvas id="minimap" width="176" height="176"></canvas>
+      <div id="clock">08:00</div>
       <div id="coords">0, 0</div>
       <div id="fps">-- FPS</div>
     </div>
@@ -40,36 +40,36 @@
     <div id="banner"></div>
     <div id="tracker" class="panel hidden"></div>
 
-    <div id="help" class="panel">
-      <b>Sol tık</b> yürü/saldır · <b>Sağ tık</b> kamera · <b>1–8</b> hotbar · <b>I</b> envanter · <b>C</b> karakter · <b>K</b> yetenek · <b>L</b> görev · <b>M</b> harita · <b>Z</b> berserk
+    <div id="help">
+      <b>Sol tık</b> yürü/saldır · <b>Sağ tık</b> kamera · <b>1–8</b> hotbar · <b>I</b> envanter · <b>C</b> karakter · <b>K</b> yetenek · <b>B</b> Item Mall · <b>Z</b> berserk
     </div>
 
     <div id="cast" class="hidden"><div id="cast-fill"></div><span id="cast-text"></span></div>
 
     <div id="bottom">
-      <div id="place-hint">📌 Bir yuvaya dokun <button id="place-cancel">İptal</button></div>
-      <div class="hbwrap"><div id="hotbar"></div><button id="hb-page" title="Hotbar sayfası (F1/F2)">1/2</button></div>
+      <div id="place-hint">Bir hotbar yuvasına dokun <button id="place-cancel">İptal</button></div>
+      <div class="hbwrap frame"><button id="hb-page" title="Hotbar sayfası (F1 / F2)">1<small>F1</small></button><div id="hotbar"></div></div>
       <div class="bar exp"><div id="exp-fill" class="fill"></div><span id="exp-text"></span></div>
     </div>
 
     <!-- Mobil kontroller -->
     <div id="joy-zone"><div id="joy-base"></div><div id="joy-knob"></div></div>
-    <div id="btn-target">🎯</div>
+    <div id="btn-target" data-ico="target"></div>
 
-    <div id="menu-btns">
-      <button id="btn-menu" title="Menü">☰</button>
-      <button id="btn-inv" title="Envanter (I)">🎒</button>
-      <button id="btn-char" title="Karakter (C)">👤<i id="badge-c" class="badge hidden">0</i></button>
-      <button id="btn-skill" title="Yetenekler (K)">📖<i id="badge-k" class="badge hidden">!</i></button>
-      <button id="btn-quest" title="Görevler (L)">📜</button>
-      <button id="btn-map" title="Harita (M)">🗺️</button>
-      <button id="btn-pet" title="Evcil hayvanlar (P)">🐾</button>
-      <button id="btn-mall" title="Item Mall (B)">🛒</button>
-      <button id="btn-settings" title="Ayarlar (Esc)">⚙️</button>
+    <div id="menu-btns" class="frame">
+      <button id="btn-menu" data-ico="menu" title="Menü"></button>
+      <button id="btn-inv" data-ico="menu_inv" title="Envanter (I)"></button>
+      <button id="btn-char" data-ico="menu_char" title="Karakter (C)"><i id="badge-c" class="badge hidden">0</i></button>
+      <button id="btn-skill" data-ico="menu_skill" title="Ustalık ve yetenekler (K)"><i id="badge-k" class="badge hidden">!</i></button>
+      <button id="btn-quest" data-ico="menu_quest" title="Görevler (L)"></button>
+      <button id="btn-map" data-ico="menu_map" title="Dünya haritası (M)"></button>
+      <button id="btn-pet" data-ico="menu_pet" title="Evcil hayvanlar (P)"></button>
+      <button id="btn-mall" data-ico="menu_mall" title="Item Mall (B)"></button>
+      <button id="btn-settings" data-ico="menu_set" title="Ayarlar (Esc)"></button>
     </div>
 
     <div id="inv" class="win hidden">
-      <div class="win-head"><span>🎒 Envanter</span><button class="x">✕</button></div>
+      <div class="win-head"><span>Envanter</span><button class="x">✕</button></div>
       <div class="inv-body">
         <div id="equip"></div>
         <div id="inv-grid"></div>
@@ -79,27 +79,27 @@
     </div>
 
     <div id="charw" class="win hidden">
-      <div class="win-head"><span>👤 Karakter</span><button class="x">✕</button></div>
+      <div class="win-head"><span>Karakter</span><button class="x">✕</button></div>
       <div id="char-body"></div>
     </div>
 
     <div id="skillw" class="win hidden">
-      <div class="win-head"><span>📖 Ustalık ve Yetenekler</span><button class="x">✕</button></div>
+      <div class="win-head"><span>Ustalık ve Yetenekler</span><button class="x">✕</button></div>
       <div id="skill-body"></div>
     </div>
 
     <div id="alchw" class="win hidden">
-      <div class="win-head"><span>⚗️ Simya</span><button class="x">✕</button></div>
+      <div class="win-head"><span>Simya</span><button class="x">✕</button></div>
       <div id="alch-body"></div>
     </div>
 
     <div id="mallw" class="win hidden">
-      <div class="win-head"><span>🛒 Item Mall</span><button class="x">✕</button></div>
+      <div class="win-head"><span>Item Mall</span><button class="x">✕</button></div>
       <div id="mall-body"></div>
     </div>
 
     <div id="petw" class="win hidden">
-      <div class="win-head"><span>🐾 Evcil Hayvanlar ve Binek</span><button class="x">✕</button></div>
+      <div class="win-head"><span>Evcil Hayvanlar ve Binek</span><button class="x">✕</button></div>
       <div id="pet-body"></div>
     </div>
 
@@ -112,29 +112,30 @@
     </div>
 
     <div id="qlog" class="win hidden">
-      <div class="win-head"><span>📜 Görevler</span><button class="x">✕</button></div>
+      <div class="win-head"><span>Görevler</span><button class="x">✕</button></div>
       <div id="qlog-body"></div>
     </div>
 
     <div id="wmap" class="win hidden">
-      <div class="win-head"><span>🗺️ Dünya Haritası</span><button class="x">✕</button></div>
+      <div class="win-head"><span>Dünya Haritası</span><button class="x">✕</button></div>
       <canvas id="wmap-canvas" width="420" height="420"></canvas>
     </div>
 
     <div id="settings" class="win hidden">
-      <div class="win-head"><span>⚙️ Ayarlar</span><button class="x">✕</button></div>
+      <div class="win-head"><span>Ayarlar</span><button class="x">✕</button></div>
       <div id="set-body"></div>
     </div>
 
-    <div id="fx"></div>
   </div>
+  <div id="fx"></div>
+  <div id="tip" class="hidden"></div>
 
   <div id="death" class="hidden">
     <div class="start-box">
       <h1>ÖLDÜN</h1>
       <p class="sub">Canavarlar seni yendi.</p>
       <button id="btn-respawn">Şehirde Yeniden Doğ</button>
-      <button id="btn-rez" class="hidden">🕯️ Burada Diril</button>
+      <button id="btn-rez" class="hidden">Burada Diril</button>
     </div>
   </div>
 
@@ -146,8 +147,8 @@
       <div id="create">
         <div class="cl">Başlangıç silahı</div>
         <div class="chips" id="pick-w">
-          <button data-w="blade" class="on">🗡️ Bıçak+Kalkan</button><button data-w="sword">⚔️ Kılıç+Kalkan</button>
-          <button data-w="spear">🔱 Mızrak</button><button data-w="glaive">🪓 Pala</button><button data-w="bow">🏹 Yay</button>
+          <button data-w="blade" class="on">Bıçak + Kalkan</button><button data-w="sword">Kılıç + Kalkan</button>
+          <button data-w="spear">Mızrak</button><button data-w="glaive">Pala</button><button data-w="bow">Yay</button>
         </div>
         <div class="cl">Zırh türü</div>
         <div class="chips" id="pick-a">
@@ -158,7 +159,7 @@
       <div id="loadbar"><div id="loadfill"></div></div>
       <p id="loadtxt">Varlıklar yükleniyor…</p>
       <button id="start-btn" disabled>Oyuna Başla</button>
-      <p class="hint-touch">📱 Telefonu yatay tut</p>
+      <p class="hint-touch">Telefonu yatay tut</p>
       <p class="ver">Faz 5 · Ustalık, simya, 3 bölge, Unique, meslekler</p>
     </div>
   </div>
@@ -190,6 +191,8 @@
   <script src="js/town3d.js"></script>
   <script src="js/fx.js"></script>
   <script src="js/looks.js"></script>
+  <script src="js/iconpack.js"></script>
+  <script src="js/icons.js"></script>
   <script src="js/player.js"></script>
   <script src="js/npc.js"></script>
   <script src="js/monsters.js"></script>

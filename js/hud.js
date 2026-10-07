@@ -1,4 +1,3 @@
-const STATUS_ICONS = { stun: '💫', freeze: '🧊', knock: '⤵️', slow: '🐌', burn: '🔥', bleed: '🩸', poison: '☠️' };
 // Arayüz: can/mana/EXP, hedef çerçevesi, hotbar + bekleme süreleri, mini harita, mesajlar, hasar yazıları.
 class HUD {
   constructor(player, world, rig, camera) {
@@ -25,6 +24,10 @@ class HUD {
     this.floats = [];
     this._v = new THREE.Vector3();
     this._buildHotbar();
+    // menü ve mobil düğme ikonları
+    document.querySelectorAll('[data-ico]').forEach(b => b.insertAdjacentHTML('afterbegin', icon(b.dataset.ico, b.id === 'btn-target' ? 'bad' : 'menu')));
+    this.buffEls = {}; this._maxSeen = {};
+    this.portrait = $('portrait');
     this.el.zerk.innerHTML = '<i></i><i></i><i></i><i></i><i></i>';
     this.zerkOrbs = [...this.el.zerk.children];
     this.el.zerk.addEventListener('click', () => this.combat && this.combat.activateZerk());
@@ -43,6 +46,7 @@ class HUD {
       const d = document.createElement('div');
       d.className = 'slot';
       d.innerHTML = '<span class="key">' + (i + 1) + '</span><span class="ic"></span><div class="cd"></div><span class="cdt"></span><span class="cnt"></span>';
+      d.dataset.tip = 'hb:' + i;
       d.addEventListener('click', () => this._slotClick(i));
       this.el.hotbar.appendChild(d);
       this.slots.push({ el: d, ic: d.querySelector('.ic'), cd: d.querySelector('.cd'), cdt: d.querySelector('.cdt'), cnt: d.querySelector('.cnt'), lastCnt: -1, lastCdt: '', lastIcon: null });
@@ -67,7 +71,7 @@ class HUD {
   showDeath(v) {
     this.el.death.classList.toggle('hidden', !v);
     const n = this.player.inv.count('rez'), b = document.getElementById('btn-rez');
-    if (b) { b.classList.toggle('hidden', !n); b.textContent = '🕯️ Burada Diril (' + n + ')'; }
+    if (b) { b.classList.toggle('hidden', !n); b.textContent = 'Burada Diril (' + n + ')'; }
   }
 
   // Bölge / görev afişi (ekranın üstünde birkaç saniye)
@@ -92,7 +96,7 @@ class HUD {
 
   floatText(pos, text, cls = '') {
     const el = document.createElement('div');
-    el.className = 'ft ' + cls;
+    el.className = 'ft' + (cls ? ' ft-' + cls : '');
     el.textContent = text;
     this.el.fx.appendChild(el);
     this.floats.push({ el, x: pos.x, y: pos.y, z: pos.z, t: 0, life: cls === 'lvl' ? 2.2 : 1.1 });
@@ -115,15 +119,15 @@ class HUD {
   _hotbarUpdate() {
     const c = this.combat, hb = this.hotbar, s = this.player.stats;
     if (!c || !hb) return;
-    this.el.page.textContent = (hb.page + 1) + '/2';
+    if (this._lastPage !== hb.page) { this.el.page.innerHTML = (hb.page + 1) + '<small>F' + (hb.page + 1) + '</small>'; this._lastPage = hb.page; }
     this.el.root.classList.toggle('placing', !!hb.placing);
     for (let i = 0; i < HOTBAR_SLOTS; i++) {
       const sl = this.slots[i], e = hb.get(hb.page, i), v = hb.view(e);
       const icon = v ? v.icon : '';
-      if (icon !== sl.lastIcon) { sl.ic.textContent = icon; sl.lastIcon = icon; sl.el.title = v ? v.name + ' — ' + v.tip : 'Boş'; }
+      if (icon !== sl.lastIcon) { sl.ic.innerHTML = icon; sl.lastIcon = icon; }
       sl.el.classList.toggle('empty', !v);
       const key = c.slotKey(e), cd = key ? (c.cd[key] || 0) : 0;
-      sl.cd.style.height = cd > 0 ? (cd / c.cdMax[key] * 100) + '%' : '0';
+      sl.cd.style.setProperty('--p', cd > 0 ? (cd / c.cdMax[key]).toFixed(3) : 0);
       const txt = cd > 0 ? (cd >= 10 ? Math.ceil(cd) : cd.toFixed(1)) : '';
       if (txt !== sl.lastCdt) { sl.cdt.textContent = txt; sl.lastCdt = txt; }
       sl.el.classList.toggle('nomp', !!(v && ((v.mp && s.mp < v.mp) || v.learned === false || (v.count === 0))));
@@ -137,20 +141,23 @@ class HUD {
   update(dt) {
     const pl = this.player, s = pl.stats, e = this.el, c = this.combat;
     e.name.textContent = pl.name;
-    e.lvl.textContent = 'Sv. ' + s.level;
+    if (this._lastLvl !== s.level) { e.lvl.textContent = s.level; this._lastLvl = s.level; }
+    const wt = pl.inv.weaponType() || 'none';
+    if (this._lastWt !== wt) { this.portrait.innerHTML = wt === 'none' ? icon('menu_char', 'menu') : itemIcon(pl.inv.equip.weapon.base); this._lastWt = wt; }
     e.hp.style.width = (s.hp / s.maxHp * 100) + '%';
     e.hpt.textContent = Math.ceil(s.hp) + ' / ' + s.maxHp;
     e.mp.style.width = (s.mp / s.maxMp * 100) + '%';
     e.mpt.textContent = Math.floor(s.mp) + ' / ' + s.maxMp;
     e.exp.style.width = (s.exp / s.maxExp * 100) + '%';
     e.expt.textContent = 'EXP %' + (s.exp / s.maxExp * 100).toFixed(2) + ' · SP ' + pl.book.sp;
-    e.pgold.textContent = '💰 ' + s.gold.toLocaleString('tr-TR');
+    const gt = s.gold.toLocaleString('tr-TR');
+    if (gt !== this._lastGold) { e.pgold.innerHTML = gt + ' <small style="color:#b3a27c">altın</small>'; this._lastGold = gt; }
     e.coords.textContent = Math.round(pl.pos.x) + ', ' + Math.round(pl.pos.z);
-    const ck = (this.world.isNight() ? '🌙 ' : '☀️ ') + this.world.clockText() + ' · ' + (this.quests ? this.quests.region || '' : '');
+    const ck = (this.world.isNight() ? '☾ ' : '☀ ') + this.world.clockText() + ' · ' + (this.quests ? this.quests.region || '' : '');
     if (ck !== this._lastClock) { e.clock.textContent = ck; this._lastClock = ck; }
     if (this.quests) {
       const js = this.jobs && this.jobs.status();
-      const th = (js ? '<div class="tq"><b style="color:' + JOBS[this.jobs.job].color + '">' + JOBS[this.jobs.job].icon + ' ' + js + '</b></div>' : '') + this.quests.trackerHTML();
+      const th = (js ? '<div class="tq"><b style="color:' + JOBS[this.jobs.job].color + '">' + js + '</b></div>' : '') + this.quests.trackerHTML();
       if (th !== this._lastTrack) { e.tracker.innerHTML = th; e.tracker.classList.toggle('hidden', !th); this._lastTrack = th; }
     }
     // rozetler: harcanmamış stat puanı / öğrenilebilir yetenek
@@ -178,8 +185,8 @@ class HUD {
         e.tfLvl.textContent = 'Sv. ' + t.level;
         e.tfFill.style.width = (t.hp / t.maxHp * 100) + '%';
         e.tfText.textContent = Math.ceil(t.hp).toLocaleString('tr-TR') + ' / ' + t.maxHp.toLocaleString('tr-TR');
-        const st = Object.keys(t.status).map(k => STATUS_ICONS[k] || '').join(' ');
-        if (st !== this._lastTfSt) { e.tfSt.textContent = st; this._lastTfSt = st; }
+        const st = Object.keys(t.status).join(',');
+        if (st !== this._lastTfSt) { e.tfSt.innerHTML = Object.keys(t.status).map(k => '<span data-tip="st:' + k + '">' + statusIcon(k) + '</span>').join(''); this._lastTfSt = st; }
       } else e.tf.classList.add('hidden');
       this._hotbarUpdate();
 
@@ -191,30 +198,51 @@ class HUD {
       } else e.cast.classList.add('hidden');
     }
 
-    // aktif güçlendirmeler ve etkiler
-    let b = '';
-    const chip = (icon, t, bad) => '<span' + (bad ? ' class="bad"' : '') + '>' + icon + '<small>' + (t >= 60 ? Math.ceil(t / 60) + 'dk' : Math.ceil(t)) + '</small></span>';
-    if (pl.zerkT > 0) b += chip('😤', pl.zerkT);
-    if (pl.imbue) b += chip(pl.imbue.icon, pl.imbue.t);
-    for (const id in pl.buffs) b += chip(pl.buffs[id].icon, pl.buffs[id].t);
-    if (pl.absorb) b += chip('🌟', pl.absorb.t);
-    if (pl.speedScrollT > 0) b += chip('🐎', pl.speedScrollT);
-    if (pl.premT > 0) b += chip('🎟️', pl.premT);
-    if (pl.blessT > 0) b += chip('📗', pl.blessT);
-    for (const k in pl.status) b += chip(STATUS_ICONS[k] || '❗', pl.status[k].t, true);
-    if (b !== this._lastBuffs) { e.buffs.innerHTML = b; this._lastBuffs = b; }
+    this._updateBuffs();
     // evcil hayvan çubuğu
     const P = this.pets;
     if (P) {
       let pb = '';
-      if (P.grab) { const n = P.pinv.slice(0, P.pinvSize()).filter(Boolean).length; pb += '<span>' + (P.grabKind === 2 ? '🐿️' : '🦊') + '<small>' + n + '/' + P.pinvSize() + '</small></span>'; }
-      if (P.atk) pb += '<span>🐺<i style="width:' + Math.round(P.atk.hp / P.atk.maxHp * 100) + '%"></i></span>';
-      if (P.mounted) pb += '<span>' + (P.horseSpeed >= 2 ? '🏇' : '🐴') + '</span>';
+      if (P.grab) { const n = P.pinv.slice(0, P.pinvSize()).filter(Boolean).length; pb += '<span data-tip="pet">' + itemIcon(P.grabKind === 2 ? 'pet_grab2' : 'pet_grab') + n + '/' + P.pinvSize() + '</span>'; }
+      if (P.atk) pb += '<span data-tip="pet">' + itemIcon('pet_atk') + Math.round(P.atk.hp / P.atk.maxHp * 100) + '%<i style="width:' + Math.round(P.atk.hp / P.atk.maxHp * 100) + '%"></i></span>';
+      if (P.mounted) pb += '<span data-tip="pet">' + itemIcon(P.horseSpeed >= 2 ? 'horse2' : 'horse') + '</span>';
       if (pb !== this._lastPet) { document.getElementById('petbar').innerHTML = pb; this._lastPet = pb; }
     }
 
     this._updateFloats(dt);
     this._drawMinimap();
+  }
+
+  // Aktif etkiler: anahtar → { ico, t, max, bad, name }
+  buffList() {
+    const pl = this.player, out = [];
+    const push = (key, ico, t, max, name, bad) => { if (t > 0) out.push({ key, ico, t, max: Math.max(max || t, this._maxSeen[key] || 0, t), name, bad }); };
+    if (pl.zerkT > 0) push('zerk', icon('zerk', 'fire'), pl.zerkT, 30, 'Berserk');
+    if (pl.imbue) push('imbue', pl.imbue.id ? skillIcon(pl.imbue.id) : icon('fr_imbue', 'fire'), pl.imbue.t, pl.imbue.max, pl.imbue.name);
+    for (const id in pl.buffs) push('b_' + id, skillIcon(id), pl.buffs[id].t, pl.buffs[id].max, pl.buffs[id].name);
+    if (pl.absorb) push('absorb', skillIcon('fc_guard'), pl.absorb.t, 15, 'Gök Kalkanı (' + pl.absorb.amt + ')');
+    if (pl.speedScrollT > 0) push('spd', itemIcon('spd'), pl.speedScrollT, 600, 'Hız Parşömeni');
+    if (pl.premT > 0) push('prem', itemIcon('prem'), pl.premT, 3600, 'Premium');
+    if (pl.blessT > 0) push('bless', itemIcon('bless'), pl.blessT, 1800, 'Bereket');
+    for (const k in pl.status) push('st_' + k, statusIcon(k), pl.status[k].t, 0, STATUS_NAMES[k] || k, true);
+    return out;
+  }
+  _updateBuffs() {
+    const list = this.buffList(), seen = {};
+    for (const b of list) {
+      seen[b.key] = 1;
+      this._maxSeen[b.key] = b.max;
+      let el = this.buffEls[b.key];
+      if (!el) {
+        el = document.createElement('div'); el.className = 'buff' + (b.bad ? ' bad' : ''); el.dataset.tip = 'bf:' + b.key;
+        el.innerHTML = b.ico + '<b></b>'; this.el.buffs.appendChild(el); el._b = el.lastChild; this.buffEls[b.key] = el;
+      }
+      el.style.setProperty('--p', (b.t / b.max).toFixed(3));
+      const txt = b.t >= 3600 ? Math.ceil(b.t / 3600) + 's' : b.t >= 60 ? Math.ceil(b.t / 60) + 'dk' : String(Math.ceil(b.t));
+      if (el._t !== txt) { el._b.textContent = txt; el._t = txt; }
+      el.classList.toggle('low', b.t < 5 && !b.bad);
+    }
+    for (const k in this.buffEls) if (!seen[k]) { this.buffEls[k].remove(); delete this.buffEls[k]; delete this._maxSeen[k]; }
   }
 
   _drawMinimap() {

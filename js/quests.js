@@ -181,8 +181,8 @@ class QuestManager {
   rewardText(q) {
     const r = q.reward, a = [];
     if (r.exp) a.push(r.exp + ' EXP');
-    if (r.gold) a.push(r.gold + ' 💰');
-    for (const [b, n] of r.items || []) a.push(ITEM_BASES[b].icon + ' ' + ITEM_BASES[b].name + (n > 1 ? ' x' + n : ''));
+    if (r.gold) a.push(r.gold + ' altın');
+    for (const [b, n] of r.items || []) a.push(ITEM_BASES[b].name + (n > 1 ? ' x' + n : ''));
     if (r.gear) { const g = this._gearBase(r.gear.base); a.push((r.gear.rarity ? RARITY[r.gear.rarity].name + ' ' : '') + ITEM_BASES[g].name); }
     return a.join(' · ');
   }
@@ -203,7 +203,7 @@ class QuestManager {
     SFX.play('levelup');
     this.hud.log('Görev teslim edildi: ' + q.name + ' (' + this.rewardText(q) + ')', 'lvl');
     this._changed();
-    return { ok: true, msg: '✅ ' + q.name + ' tamamlandı! ' + this.rewardText(q) + ' · 10 Silk' };
+    return { ok: true, msg: q.name + ' tamamlandı! ' + this.rewardText(q) + ' · 10 Silk' };
   }
 
   // Bir NPC'nin penceresinde gösterilecek görevler
@@ -236,7 +236,7 @@ class QuestManager {
 
   objectiveText(q) {
     const st = this.state[q.id];
-    if (st.s === 'ready') return '✔ Tamamlandı — ' + this._npcName(this.turnTo(q), q.zone) + '\'e git';
+    if (st.s === 'ready') return 'Tamamlandı — ' + this._npcName(this.turnTo(q), q.zone) + '\'e git';
     if (q.type === 'kill' || q.type === 'collect') return q.noun + ': ' + st.p + '/' + q.n;
     if (q.type === 'visit') return q.target + ' bölgesini keşfet';
     return '';
