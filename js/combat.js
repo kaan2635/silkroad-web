@@ -148,6 +148,7 @@ class Combat {
     }
     if (this.loot) this.loot.dropFrom(m);
     if (this.quests) this.quests.onKill(m.typeKey);
+    if (this.auto) this.auto.onKill(m);
     if (m.onKilled) m.onKilled(this);
   }
 

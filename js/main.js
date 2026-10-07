@@ -36,6 +36,12 @@
   player.onDeathMount = () => pets.toggleMount(false);
   const quests = new QuestManager(player, hud, world);
   quests.combat = combat; combat.quests = quests; loot.quests = quests; hud.quests = quests;
+  const auto = new AutoHunt(player, combat, monsters, hotbar, loot, hud);
+  combat.auto = auto;
+  const autoBtn = document.getElementById('hb-auto');
+  auto.onChange = on => autoBtn.classList.toggle('on', on);
+  autoBtn.addEventListener('click', () => auto.toggle());
+  window.addEventListener('keydown', e => { const a = document.activeElement; if (a && a.tagName === 'INPUT') return; if (e.code === 'KeyH' && started) auto.toggle(); });
   const wmap = new WorldMap(player, quests);
   const ui = new UI(player, hud, quests, wmap, combat, hotbar);
   quests.onChange = () => { npcs.refreshMarkers(quests); ui.refresh(); };
@@ -60,12 +66,14 @@
 
   function resize() {
     const w = window.innerWidth, h = window.innerHeight;
+    document.documentElement.style.setProperty('--vh', (h / 100) + 'px');   // iOS Safari: 100vh araç çubuklarının altına taşar
     renderer.setSize(w, h, false);
     camera.aspect = w / h;
     camera.updateProjectionMatrix();
   }
   document.addEventListener('gesturestart', e => e.preventDefault());   // iOS sayfa yakınlaştırmasını engelle
   window.addEventListener('resize', resize);
+  if (window.visualViewport) window.visualViewport.addEventListener('resize', resize);
   window.addEventListener('orientationchange', () => setTimeout(resize, 200));
   resize();
 
@@ -269,7 +277,7 @@
       if (hit) {
         const lim = CONFIG.worldSize / 2 - 6;
         const p = { x: clamp(hit.point.x, -lim, lim), z: clamp(hit.point.z, -lim, lim) };
-        combat.stopAttack();
+        combat.stopAttack(); auto.manual();
         pendingNpc = null;
         player.target = p;
         world.showMarker(p);
@@ -290,6 +298,8 @@
       handleClicks();
       combat.update(dt);
       player.update(dt, input, rig.yaw);
+      if (player.manualMove) auto.manual();
+      auto.update(dt);
       monsters.update(dt, player, combat);
       loot.update(dt);
       pets.update(dt);
@@ -337,7 +347,7 @@
     if (started) hud.update(dt);
   }
 
-  window.__game = { world, player, rig, monsters, npcs, combat, quests, hud, ui, loot, input, save, hotbar, renderer, camera, travel, pets, jobs, step: (n = 20, dt = 0.05) => { for (let i = 0; i < n; i++) tick(dt); } };   // hata ayıklama / test
+  window.__game = { world, player, rig, monsters, npcs, combat, quests, hud, ui, loot, input, save, hotbar, renderer, camera, travel, pets, jobs, auto, step: (n = 20, dt = 0.05) => { for (let i = 0; i < n; i++) tick(dt); } };   // hata ayıklama / test
   window.addEventListener('beforeunload', () => { if (started) save(); });
   document.addEventListener('visibilitychange', () => { if (document.hidden && started) save(); });
   frame();
