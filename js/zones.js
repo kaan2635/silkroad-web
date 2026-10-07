@@ -188,6 +188,23 @@ const ZONES = {
     rings: [{ r: 60, name: 'Rüya Kapısı', lv: '' }, { r: 130, name: 'Kayıp Koridorlar', lv: '' }, { r: 9999, name: 'Unutulmuş Taht', lv: '' }],
     spawns: [], uniques: [{ id: 'u_fwboss', level: 1, room: 'boss', every: 99999 }], shop: [], tele: [{ zone: 'jangan', cost: 0 }],
     npc: { tele: 'Rüya Bekçisi' }
+  },
+  // --- Etkinlik alanları (arenalar ve Kale Savaşı): girişte güvenli bekleme odası, doğuda savaş alanı ---
+  arena: {
+    id: 'arena', kind: 'dungeon', layout: 'arena', event: 'arena', instance: true, name: 'Savaş Arenası', town: 'Savaş Arenası', lv: 'Takım savaşı', parent: 'jangan', seed: 21.1, amp: 0, dark: 0x1a120a,
+    floorCol: 0xb89a6a, wallCol: '#a88a5a', light: 0xffd8a0, rings: [{ r: 9999, name: 'Arena', lv: '' }], spawns: [], uniques: [], shop: [], tele: [{ zone: 'jangan', cost: 0 }], npc: { tele: 'Arena Görevlisi' }
+  },
+  ctf: {
+    id: 'ctf', kind: 'dungeon', layout: 'arena', event: 'ctf', instance: true, name: 'Bayrak Kapmaca', town: 'Bayrak Kapmaca Alanı', lv: 'Takım savaşı', parent: 'jangan', seed: 22.3, amp: 0, dark: 0x0e1a10,
+    floorCol: 0x6a8a4a, wallCol: '#5a7a3a', light: 0xd8ffc0, rings: [{ r: 9999, name: 'Bayrak Alanı', lv: '' }], spawns: [], uniques: [], shop: [], tele: [{ zone: 'jangan', cost: 0 }], npc: { tele: 'Bayrak Hakemi' }
+  },
+  survival: {
+    id: 'survival', kind: 'dungeon', layout: 'arena', event: 'survival', instance: true, name: 'Hayatta Kalma Arenası', town: 'Hayatta Kalma Arenası', lv: 'Tek kişilik', parent: 'jangan', seed: 23.9, amp: 0, dark: 0x1a0808,
+    floorCol: 0x7a5a4a, wallCol: '#6a3a2a', light: 0xff9a6a, rings: [{ r: 9999, name: 'Kum Çukuru', lv: '' }], spawns: [], uniques: [], shop: [], tele: [{ zone: 'jangan', cost: 0 }], npc: { tele: 'Arena Ustası' }
+  },
+  fortress: {
+    id: 'fortress', kind: 'dungeon', layout: 'arena', event: 'fortress', instance: true, name: 'Kale Savaşı', town: 'Kale Avlusu', lv: 'Lonca savaşı', parent: 'jangan', seed: 24.7, amp: 0, dark: 0x101418,
+    floorCol: 0x8a8a84, wallCol: '#9a9488', light: 0xc8d8ff, rings: [{ r: 9999, name: 'Kale Avlusu', lv: '' }], spawns: [], uniques: [], shop: [], tele: [{ zone: 'jangan', cost: 0 }], npc: { tele: 'Kuşatma Komutanı' }
   }
 };
 
@@ -206,6 +223,13 @@ if (ZONE.id === 'forgotten') {
   const L = fw.lvl, mix = L < 30 ? ['goblin', 'hound', 'skelminion', 'cavebat'] : L < 60 ? ['spider', 'raptor', 'skelmage', 'darkorc'] : L < 90 ? ['ninja', 'tribal', 'tombspirit', 'flydemon'] : L < 115 ? ['jiangshi', 'anubisw', 'scarab2', 'templeguard'] : ['gladiator', 'icewraith', 'lavademon', 'minotaur'];
   ZONE.spawns = mix.map((t, i) => [t, 12 + fw.star * 2, 25 + i * 20, 110 + i * 20, L, L + 4]);
   ZONE.uniques[0].level = L + 5; ZONE.fw = fw; ZONE.lv = 'Sv. ' + L + '–' + (L + 5) + ' · ' + '★'.repeat(fw.star);
+}
+// Etkinlik alanı: dönüş noktası ve etkinlik bilgisi (sessionStorage)
+if (ZONE.event) {
+  let ev = null; try { ev = JSON.parse(sessionStorage.getItem('srw-ev')); } catch (e) { ev = null; }
+  ZONE.ev = ev && ev.type === ZONE.event ? ev : null;
+  const from = ZONE.ev && ZONES[ZONE.ev.from] && !ZONES[ZONE.ev.from].event ? ZONE.ev.from : 'jangan';
+  ZONE.parent = from; ZONE.tele = [{ zone: from, cost: 0 }];
 }
 if (IS_DUNGEON) { ZONE.ponds = []; ZONE.pondNames = []; ZONE.ruins = []; ZONE.ruinMob = null; ZONE.col = ZONE.col || { sand: ZONE.floorCol, dark: ZONE.floorCol, rock: ZONE.floorCol, grass: ZONE.floorCol, road: ZONE.floorCol, outer: 0x000000, mount: 0x000000, skyH: ZONE.dark, skyZ: 0x000000 }; ZONE.flora = { palms: 0, cacti: 0, rocks: 0, pines: 0, crypts: 0, bushes: 0, trees: 0 }; ZONE.npc = ZONE.npc || {}; }
 CONFIG.sky.horizon = ZONE.col.skyH; CONFIG.sky.zenith = ZONE.col.skyZ;

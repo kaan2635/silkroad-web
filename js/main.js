@@ -44,12 +44,15 @@
   window.addEventListener('keydown', e => { const a = document.activeElement; if (a && a.tagName === 'INPUT') return; if (e.code === 'KeyH' && started) auto.toggle(); });
   const social = new Social({ world, player, monsters, combat, hud, loot, jobs });
   combat.social = social;
+  const events = new Events({ world, player, monsters, combat, hud, social, loot });
+  combat.events = events;
   const wmap = new WorldMap(player, quests);
   const ui = new UI(player, hud, quests, wmap, combat, hotbar);
   quests.onChange = () => { npcs.refreshMarkers(quests); ui.refresh(); };
   combat.onLevel = lvl => { hotbar.upgradePots(lvl); ui.refresh(); social.onPlayerLevel(lvl); };
   ui.mm = monsters; ui.jobs = jobs; ui.pets = pets;
   initSocialUI(ui, social);
+  initEventsUI(ui, events);
   pets.onChange = () => ui.refresh();
   jobs.onChange = () => ui.refresh();
   monsters.announce = (title, sub, kind) => {
@@ -120,7 +123,7 @@
         inv: player.inv.serialize(), book: player.book.serialize(), hotbar: hotbar.serialize(),
         tod: world.timeOfDay, quests: quests.serialize(), death: combat.deathPos, recall: combat.recallPos,
         zone: travelTo ? travelTo.zone : CUR_ZONE_ID, arrive: travelTo ? travelTo.arrive : null,
-        jobs: jobs.serialize(), pets: pets.serialize(), social: social.serialize()
+        jobs: jobs.serialize(), pets: pets.serialize(), social: social.serialize(), events: events.serialize()
       }));
     } catch (e) { /* özel pencere vb. */ }
     Eco.save();
@@ -144,7 +147,7 @@
       player.book.load(sv.book);
       hotbar.load(sv.hotbar);
       combat.deathPos = sv.death || null; combat.recallPos = sv.recall || null;
-      afterLoad = () => { jobs.load(sv.jobs); pets.load(sv.pets); social.load(sv.social); };
+      afterLoad = () => { jobs.load(sv.jobs); pets.load(sv.pets); social.load(sv.social); events.load(sv.events); };
     } else {
       // Eski (Faz 2–4) kayıt: seviye, altın ve görevler korunur; yeni sistemlere göre başlangıç seti ve puanlar verilir
       s.str = 20 + (s.level - 1); s.int = 20 + (s.level - 1); s.statPts = 3 * (s.level - 1);
@@ -249,6 +252,7 @@
     hud.log('İpek Yolu\'na hoş geldin, ' + name + '!');
     const today = new Date().toISOString().slice(0, 10);
     if (lastDay !== today) { lastDay = today; player.stats.silk = (player.stats.silk || 0) + 20; hud.log('Günlük giriş ödülü: +20 Silk (Item Mall)', 'lvl', '#ff9ae8'); }
+    setTimeout(() => events.remind(), 2500);
     if (!sameChar) hud.log('Toplayıcı Tilki envanterinde: 2. hotbar sayfasından çağır, ganimeti senin için toplasın.', 'lvl');
     if (!sameChar) {
       hud.log('Yetenek penceresinden (K) SP harcayıp bir ustalık seç, yetenek öğren.', 'lvl');
@@ -305,7 +309,7 @@
       player.update(dt, input, rig.yaw);
       if (player.manualMove) auto.manual();
       auto.update(dt);
-      social.update(dt); social.uiUpdate(dt);
+      social.update(dt); social.uiUpdate(dt); events.update(dt);
       monsters.update(dt, player, combat);
       loot.update(dt);
       pets.update(dt);
@@ -353,7 +357,7 @@
     if (started) hud.update(dt);
   }
 
-  window.__game = { world, player, rig, monsters, npcs, combat, quests, hud, ui, loot, input, save, hotbar, renderer, camera, travel, pets, jobs, auto, social, step: (n = 20, dt = 0.05) => { for (let i = 0; i < n; i++) tick(dt); } };   // hata ayıklama / test
+  window.__game = { world, player, rig, monsters, npcs, combat, quests, hud, ui, loot, input, save, hotbar, renderer, camera, travel, pets, jobs, auto, social, events, step: (n = 20, dt = 0.05) => { for (let i = 0; i < n; i++) tick(dt); } };   // hata ayıklama / test
   window.addEventListener('beforeunload', () => { if (started) save(); });
   document.addEventListener('visibilitychange', () => { if (document.hidden && started) save(); });
   frame();

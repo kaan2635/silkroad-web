@@ -131,10 +131,10 @@ class Combat {
   killMonster(m) {
     m.die();
     if (this.target === m) { this.target = null; this.attacking = false; this.queued = null; }
-    if (m.pvp) { SFX.play('kill'); if (this.social) this.social.onPvpKill(m); return; }     // yapay oyuncu yenildi: EXP / ganimet yok, onur var
+    if (m.pvp) { SFX.play('kill'); if (m.onKilled) m.onKilled(this); else if (this.social && m.sim) this.social.onPvpKill(m); return; }     // yapay oyuncu yenildi: EXP / ganimet yok, onur var
     const pl = this.player, s = pl.stats;
     const bonus = 1 + (pl.premT > 0 ? 0.5 : 0) + (pl.blessT > 0 ? 1 : 0);
-    const exp = Math.max(1, Math.round(m.exp * clamp(1 + 0.15 * (m.level - s.level), 0.05, 1.5) * bonus * (this.social ? this.social.expMult() : 1)));
+    const exp = Math.max(1, Math.round(m.exp * clamp(1 + 0.15 * (m.level - s.level), 0.05, 1.5) * bonus * (this.social ? this.social.expMult() : 1) * (this.events ? this.events.expMult() : 1)));
     if (m.rank === 'unique') { s.silk = (s.silk || 0) + 50; this.hud.log('+50 Silk (Unique)', 'lvl', '#ff9ae8'); }
     this.hud.log(m.displayName + ' öldürüldü. +' + exp + ' EXP', 'exp');
     SFX.play('kill');
@@ -147,10 +147,12 @@ class Combat {
       s.zerk = Math.min(ZERK_MAX, s.zerk + m.zerkPts);
       if (s.zerk >= ZERK_MAX && before < ZERK_MAX) { this.hud.log('Berserk hazır! (Z ya da Berserk düğmesi)', 'lvl'); SFX.play('gem'); }
     }
+    if (this.events) m.dropMult *= this.events.dropMult();
     if (this.loot) this.loot.dropFrom(m);
     if (this.quests) this.quests.onKill(m.typeKey);
     if (this.auto) this.auto.onKill(m);
     if (this.social) this.social.onKill(m);
+    if (this.events) this.events.onKill(m);
     if (m.onKilled) m.onKilled(this);
   }
 
@@ -235,7 +237,8 @@ class Combat {
     pl.dead = true;
     this.attacking = false; this.target = null; this.casting = null; this.queued = null;
     this.deathPos = { x: pl.pos.x, z: pl.pos.z };
-    this.pvpDeath = !!(m && m.pvp);
+    this.pvpDeath = !!(m && m.pvp) || !!ZONE.event;
+    if (this.events && this.events.handleDeath()) { SFX.play('death'); return; }      // arenada üste yeniden doğulur
     this.hud.log((m ? m.displayName : 'Bir canavar') + ' seni yendi.', 'dmg');
     const rb = pl.buffs.fc_resur;
     if (rb && rb.st.revive) {                     // Kuvvet: Diriliş — bir kez yerinde dirilir

@@ -53,6 +53,10 @@ World.prototype._dungeonLight = function (playerPos, camera) {
     this.light.intensity = 0.35; this.light.color.setHex(0xc8b8a0);
     if (this.lanternMat) this.lanternMat.color.setHex(0xffd070);
     this.night = 1;
+    if (ZONE.layout === 'arena') {   // etkinlik alanları açık hava gibi aydınlık
+      this.hemi.intensity = 0.85; this.hemi.color.setHex(0xfff0d8); this.light.intensity = 0.9; this.light.color.setHex(0xfff0d0);
+      this.scene.fog.near = 60; this.scene.fog.far = 220; this.sky.material.color.setHex(0x6a90c0); this.scene.fog.color.setHex(0x8aa0b8); this.night = 0;
+    }
   }
   this._dl.position.set(playerPos.x, playerPos.y + 4, playerPos.z);
   this.light.position.copy(playerPos).add(new THREE.Vector3(30, 80, 20)); this.light.target.position.copy(playerPos);

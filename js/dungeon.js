@@ -6,6 +6,7 @@ const Dungeon = {
   C: 1, H: 160, n: 320, grid: null, rooms: [], edges: [],
   build() {
     if (!this.on || this.grid) return;
+    if (ZONE.layout === 'arena') return this._buildArena();
     const rng = mulberry32(Math.round(ZONE.seed * 1000) + 7);
     const N = ZONE.rooms || 4, S = 58, lo = -Math.floor(N / 2), hi = lo + N - 1;
     this.n = Math.round(this.H * 2 / this.C);
@@ -53,6 +54,17 @@ const Dungeon = {
       const r = u.room === 'boss' ? this.boss : this.ordered[Math.min(this.ordered.length - 2, (u.room | 0) + Math.floor(this.ordered.length / 4))] || this.boss;
       u.x = r.x; u.z = r.z; r.unique = u.id;
     }
+  },
+  // Etkinlik alanı: batıda güvenli bekleme odası (0,0), koridor, 120 x 84 m savaş alanı (dostlar batıda x=40, rakip doğuda x=140)
+  _buildArena() {
+    this.n = Math.round(this.H * 2 / this.C);
+    this.grid = new Uint8Array(this.n * this.n);
+    const entry = { i: 0, j: 0, x: 0, z: 0, w: 24, d: 24, entry: true, links: [], depth: 0 };
+    const field = { i: 1, j: 0, x: 92, z: 0, w: 120, d: 84, links: [entry], depth: 1 };
+    entry.links.push(field);
+    this._rect(-12, -12, 12, 12); this._rect(10, -4, 34, 4); this._rect(32, -42, 152, 42);
+    this.rooms = [entry, field]; this.edges = [[entry, field]]; this.ordered = [field]; this.boss = field; this.entry = entry;
+    this.bases = { ally: { x: 42, z: 0 }, enemy: { x: 142, z: 0 } };
   },
   _rect(x0, z0, x1, z1) {
     const n = this.n;
@@ -127,6 +139,16 @@ World.prototype._buildDungeon = function () {
       const x = r.x + sx * (r.w / 2 - 6), z = r.z + sz * (r.d / 2 - 6);
       const c = new THREE.Mesh(new THREE.CylinderGeometry(0.7, 0.85, 6, 10), colMat); c.position.set(x, 3, z); c.castShadow = true; this.scene.add(c);
       this.obstacles.push({ x, z, r: 0.9, type: 'pillar' });
+    }
+    if (ZONE.layout === 'arena') {   // etkinlik alanı: orta çember, takım üsleri (mavi / kırmızı)
+      const ring = (x, z, rad, col, w = 0.5) => { const m = new THREE.Mesh(new THREE.RingGeometry(rad - w, rad, 48), new THREE.MeshBasicMaterial({ color: col, transparent: true, opacity: 0.55, side: THREE.DoubleSide, depthWrite: false })); m.rotation.x = -Math.PI / 2; m.position.set(x, 0.05, z); this.scene.add(m); };
+      ring(r.x, r.z, 14, 0xe8d8b0, 0.4); ring(r.x, r.z, 3, 0xe8d8b0, 0.3);
+      ring(D.bases.ally.x, 0, 8, 0x3a8aff, 0.8); ring(D.bases.enemy.x, 0, 8, 0xff3a3a, 0.8);
+      for (const [b, col] of [[D.bases.ally, 0x2a6ad0], [D.bases.enemy, 0xc02a2a]]) for (const sz of [-1, 1]) {
+        const pole = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.08, 5, 6), new THREE.MeshLambertMaterial({ color: 0x4a3a2a })); pole.position.set(b.x, 2.5, sz * 10); this.scene.add(pole);
+        const ban = new THREE.Mesh(new THREE.BoxGeometry(0.05, 2.4, 1.4), new THREE.MeshLambertMaterial({ color: col, emissive: new THREE.Color(col).multiplyScalar(0.25) })); ban.position.set(b.x, 3.6, sz * 10 + 0.75); this.scene.add(ban);
+      }
+      continue;
     }
     if (r === D.boss) {   // boss odası: kırmızı halı ve iki mangal
       const rug = new THREE.Mesh(new THREE.PlaneGeometry(6, r.d - 6), new THREE.MeshLambertMaterial({ color: 0x6a1010 }));

@@ -215,6 +215,27 @@ function buildHumanMob(L) {
   return { group: h.group, legs: [h.legL, h.legR], arms: [h.armL, h.armR], armR: h.armR, kind: 'biped', h };
 }
 
+// Kale yapıları: Kale Kalbi (dev kristal) ve savunma kulesi — hareket etmez
+function buildStruct(L) {
+  const g = new THREE.Group(), stone = new THREE.MeshLambertMaterial({ color: 0x8a8478 }), dark = new THREE.MeshLambertMaterial({ color: 0x4a463e });
+  const add = (geo, mat, y, x = 0, z = 0) => { const m = new THREE.Mesh(geo, mat); m.position.set(x, y, z); m.castShadow = true; g.add(m); return m; };
+  if (L.kind === 'heart') {
+    add(new THREE.CylinderGeometry(2.2, 2.6, 0.8, 8), stone, 0.4);
+    add(new THREE.CylinderGeometry(1.6, 2.0, 0.6, 8), dark, 1.1);
+    const c = add(new THREE.OctahedronGeometry(1.3), new THREE.MeshPhongMaterial({ color: L.color || 0x6ad8ff, emissive: new THREE.Color(L.color || 0x6ad8ff).multiplyScalar(0.5), shininess: 120, transparent: true, opacity: 0.9 }), 3.0);
+    c.scale.set(1, 1.6, 1); g.userData.spin = c;
+    for (let i = 0; i < 4; i++) { const a = i / 4 * 6.283; add(new THREE.BoxGeometry(0.4, 3.2, 0.4), stone, 1.6, Math.sin(a) * 2.1, Math.cos(a) * 2.1); }
+  } else {
+    add(new THREE.CylinderGeometry(1.3, 1.6, 5, 10), stone, 2.5);
+    add(new THREE.CylinderGeometry(1.7, 1.7, 0.7, 10), dark, 5.3);
+    for (let i = 0; i < 8; i++) { const a = i / 8 * 6.283; add(new THREE.BoxGeometry(0.45, 0.6, 0.45), stone, 5.9, Math.sin(a) * 1.5, Math.cos(a) * 1.5); }
+    add(new THREE.SphereGeometry(0.45, 10, 8), new THREE.MeshBasicMaterial({ color: L.color || 0xff6a3a }), 6.1);
+    const fl = add(new THREE.BoxGeometry(0.05, 0.8, 1.1), new THREE.MeshLambertMaterial({ color: L.flag || 0xc0302a }), 7.4, 0, 0.55); void fl;
+    add(new THREE.CylinderGeometry(0.04, 0.04, 2.2, 5), dark, 7.0);
+  }
+  return { group: g, legs: [], arms: [], kind: 'struct' };
+}
+
 function buildScorpion(o = {}) {
   const g = new THREE.Group();
   const shell = new THREE.MeshLambertMaterial({ color: o.shell || 0x8a3a1c });
@@ -289,7 +310,7 @@ class Monster {
     this.group = new THREE.Group();
     const t = this.type, L = t.look || {};
     const parts = t.model === 'camel' ? buildCamel() : t.model === 'quad' ? buildQuad(L) : t.model === 'scorpion' ? buildScorpion(L) : t.model === 'golem' ? buildGolem(L) :
-      t.model === 'snake' ? buildSnake(L) : t.model === 'char' ? buildCharMob(t) : buildHumanMob(L);
+      t.model === 'snake' ? buildSnake(L) : t.model === 'char' ? buildCharMob(t) : t.model === 'struct' ? buildStruct(L) : buildHumanMob(L);
     this.kind = parts.kind;
     this.segs = parts.segs || null; this.headPart = parts.head || null;
     this.body = parts.group; this.h = parts.h || null;
@@ -570,6 +591,7 @@ class Monster {
       this.segs.forEach((m, i) => { m.position.x = Math.sin(t - i * 0.7) * 0.25 * (this.moving ? 1.6 : 0.6); });
       this.headPart.position.y = 1.0 + atk * 0.4; this.headPart.position.z = 0.45 + atk * 0.6;
     }
+    if (this.kind === 'struct') { if (this.body.userData.spin) this.body.userData.spin.rotation.y += dt * 0.8; return; }
     // saldırı: öne atılma efekti
     this.body.position.z = atk * 0.5;
     if (this.kind === 'scorpion') this.body.rotation.y = Math.sin(this.walkPhase * 0.5) * 0.05;

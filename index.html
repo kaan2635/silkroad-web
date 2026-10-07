@@ -42,7 +42,7 @@
     <div id="tracker" class="panel hidden"></div>
 
     <div id="help">
-      <b>Sol tık</b> yürü/saldır · <b>Sağ tık</b> kamera · <b>1–8</b> hotbar · <b>I</b> envanter · <b>C</b> karakter · <b>K</b> yetenek · <b>B</b> Item Mall · <b>Z</b> berserk · <b>H</b> oto av
+      <b>Sol tık</b> yürü/saldır · <b>Sağ tık</b> kamera · <b>1–8</b> hotbar · <b>I</b> envanter · <b>C</b> karakter · <b>K</b> yetenek · <b>B</b> Item Mall · <b>Z</b> berserk · <b>H</b> oto av · <b>O</b> topluluk · <b>J</b> etkinlik · <b>Enter</b> sohbet
     </div>
 
     <div id="cast" class="hidden"><div id="cast-fill"></div><span id="cast-text"></span></div>
@@ -68,6 +68,7 @@
       <button id="btn-pet" data-ico="menu_pet" title="Evcil hayvanlar (P)"></button>
       <button id="btn-soc" data-ico="menu_soc" title="Topluluk: parti, lonca, arkadaşlar, PvP (O)"></button>
       <button id="btn-chat" data-ico="menu_chat" title="Sohbet (Enter)"><i id="badge-chat" class="badge hidden">!</i></button>
+      <button id="btn-ev" data-ico="menu_ev" title="Etkinlikler: arenalar, Kale Savaşı, giriş ödülü, Magic POP (J)"><i id="badge-ev" class="badge hidden">!</i></button>
       <button id="btn-mall" data-ico="menu_mall" title="Item Mall (B)"></button>
       <button id="btn-settings" data-ico="menu_set" title="Ayarlar (Esc)"></button>
     </div>
@@ -123,6 +124,12 @@
     <div id="dlgw" class="win hidden">
       <div class="win-head"><span id="dlg-title"></span><button class="x">✕</button></div>
       <div id="dlg-body"></div>
+    </div>
+
+    <div id="evw" class="win hidden">
+      <div class="win-head"><span>Etkinlikler</span><button class="x">✕</button></div>
+      <div id="ev-tabs" class="tabs mtabs"></div>
+      <div id="ev-body"></div>
     </div>
 
     <div id="botmenu" class="hidden"></div>
@@ -249,6 +256,8 @@
   <script src="js/autohunt.js"></script>
   <script src="js/social.js"></script>
   <script src="js/socialui.js"></script>
+  <script src="js/events.js"></script>
+  <script src="js/eventsui.js"></script>
   <script src="js/main.js"></script>
 </body>
 </html>

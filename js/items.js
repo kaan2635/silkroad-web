@@ -188,6 +188,7 @@ const AVATARS = {
   av_dress_white:{ slot: 'av_dress', name: 'Ak Kaplan Giysisi', icon: '🐯', look: { c1: 0xf0f0f0, c2: 0x2a2a2a, c3: 0xe07a2a }, fb: [['hp', 4], ['crit', 2]], silk: 140 },
   av_att_flag:   { slot: 'av_attach', name: 'Savaş Sancağı', icon: '🚩', look: { kind: 'flag', c1: 0xc0302a }, fb: [['str', 2]], silk: 60 },
   av_att_halo:   { slot: 'av_attach', name: 'Işık Halesi', icon: '😇', look: { kind: 'halo', c1: 0xfff0a0 }, fb: [['int', 3]], silk: 90 },
+  av_hat_witch:  { slot: 'av_hat', name: 'Cadı Şapkası', icon: '🎃', look: { kind: 'hat', c1: 0x2a1a3a, c2: 0xff7a1a }, fb: [['int', 4], ['mp', 4]], silk: 0, event: true },
   av_att_wings:  { slot: 'av_attach', name: 'Anka Kanatları', icon: '🪽', look: { kind: 'wings', c1: 0xff7a2a }, fb: [['hp', 3], ['mp', 3]], silk: 150 }
 };
 for (const id in AVATARS) { const a = AVATARS[id]; ITEM_BASES[id] = { cat: 'avatar', slot: a.slot, d: 1, tier: 0, req: 1, icon: a.icon, name: a.name, look: a.look, fb: a.fb, value: a.silk * 10, silk: a.silk }; }
@@ -206,6 +207,9 @@ Object.assign(ITEM_BASES, {
   fw_inv1:  { cat: 'use', use: 'fwinv', star: 1, icon: '', name: 'Unutulmuş Dünya Davetiyesi ★', stack: 10, value: 3000, sub: '20 dakikalık zindan; seviyene göre kurulur. Boss: Unutulmuş Kral' },
   fw_inv3:  { cat: 'use', use: 'fwinv', star: 3, icon: '', name: 'Unutulmuş Dünya Davetiyesi ★★★', stack: 10, value: 9000, sub: 'Daha çok ve güçlü canavar, daha iyi ganimet' },
   fw_inv5:  { cat: 'use', use: 'fwinv', star: 5, icon: '', name: 'Unutulmuş Dünya Davetiyesi ★★★★★', stack: 10, value: 25000, sub: 'En zor kademe: mühürlü eşya şansı çok yüksek' },
+  arena_coin: { cat: 'mat', icon: '🪙', name: 'Arena Jetonu', stack: 999, value: 0, sub: 'Arenalar ve Kale Savaşı ödülü. Etkinlik penceresindeki mağazada harcanır (J)' },
+  pumpkin:  { cat: 'mat', icon: '🎃', name: 'Bal Kabağı', stack: 999, value: 0, sub: 'Cadılar Bayramı etkinliği: Etkinlik penceresinde (J) ödüllerle değiştir' },
+  snowflake:{ cat: 'mat', icon: '❄️', name: 'Kar Tanesi', stack: 999, value: 0, sub: 'Kış Şenliği etkinliği: Etkinlik penceresinde (J) ödüllerle değiştir' },
   gchat:    { cat: 'mat', icon: '📢', name: 'Küresel Sohbet Parşömeni', stack: 50, value: 0, sub: 'Sohbette Küresel kanaldan tüm sunucuya mesaj gönderir (/k mesaj)' },
   silkbag:  { cat: 'use', use: 'silkbag', icon: '🧧', name: 'Silk Kesesi', stack: 50, value: 0, sub: 'Açınca 5–15 Silk verir', cd: 'silkbag' }
 });
@@ -214,7 +218,7 @@ const MALL = [
   { id: 'alc', name: '⚗️ Simya', items: [['immortal', 1, 25], ['astral', 3, 30], ['luck', 5, 15], ['elx_w', 5, 25], ['elx_a', 5, 20], ['elx_s', 5, 20], ['elx_c', 5, 20], ['ms_str', 1, 15], ['ms_int', 1, 15], ['ms_hp', 1, 15], ['ms_crit', 1, 20]] },
   { id: 'pet', name: '🐾 Evcil & Binek', items: [['pet_grab2', 1, 150], ['pet_grab', 1, 60], ['pet_atk', 1, 100], ['pet_pot', 20, 10], ['horse2', 1, 120], ['horse', 1, 40]] },
   { id: 'scroll', name: '📜 Parşömen', items: [['gchat', 5, 10], ['fw_inv3', 1, 30], ['rev', 5, 10], ['spd', 5, 10], ['zerk', 3, 20], ['ret', 10, 5], ['reset_stat', 1, 80], ['reset_skill', 1, 120]] },
-  { id: 'avatar', name: '👘 Avatar', items: Object.keys(AVATARS).map(id => [id, 1, AVATARS[id].silk]) },
+  { id: 'avatar', name: '👘 Avatar', items: Object.keys(AVATARS).filter(id => !AVATARS[id].event).map(id => [id, 1, AVATARS[id].silk]) },
   { id: 'exp', name: '🎒 Genişletme', items: [['inv_exp', 1, 100], ['st_exp', 1, 60]] }
 ];
 

@@ -627,3 +627,26 @@ body.touch #party-frames .pf { width: 118px; padding: 2px 5px 3px; }
   body:not(.touch) #menu-btns button { width: 38px; height: 38px; }
   body:not(.touch) #menu-btns button .ico { width: 24px; height: 24px; }
 }
+
+/* ---------- Etkinlikler ---------- */
+#evw { width: min(700px, calc((100vw - var(--sl) - var(--sr)) / var(--ui) - 16px)); }
+#ev-body { overflow-y: auto; -webkit-overflow-scrolling: touch; min-height: 0; flex: 1 1 auto; padding-top: 6px; }
+#ev-tabs button .ico { width: 18px; height: 18px; vertical-align: -4px; }
+#ev-body h4 { margin: 12px 0 4px; font: 700 13px var(--f-title); color: var(--gold); }
+#ev-body .lvt { font-size: 11px; color: var(--dim); font-weight: 500; }
+#ev-body .srow select { background: #0a0604; color: var(--text); border: 1px solid var(--bronze-d); border-radius: 3px; padding: 5px; font-size: 12px; margin-right: 4px; max-width: 150px; }
+.att-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 5px; margin: 6px 0; }
+.att { position: relative; display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 5px 2px 4px; background: #0007; border: 1px solid #2e2010; border-radius: 3px; min-width: 0; }
+.att b { font: 700 12px var(--f-title); color: var(--muted); } .att .ico { width: 30px; height: 30px; }
+.att small { font-size: 9.5px; color: var(--dim); text-align: center; line-height: 1.15; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.att.big { border-color: var(--bronze); background: #2a1808aa; } .att.big b { color: var(--gold); }
+.att.got { opacity: .45; } .att.got::after { content: "✓"; position: absolute; right: 4px; top: 2px; color: #8ef07a; font-weight: 700; }
+.att.next { border-color: #ffe7a6; box-shadow: 0 0 0 1px #ffe7a6, 0 0 12px #ffd27a66; opacity: 1; }
+.pop-wheel { display: flex; gap: 6px; justify-content: center; flex-wrap: wrap; padding: 10px; background: radial-gradient(#3a2010, #0a0604); border: 1px solid var(--bronze-d); border-radius: 50px; margin: 6px 0; }
+.pop-wheel span .ico { width: 34px; height: 34px; }
+.pop-wheel.spin span { animation: popSpin .14s linear infinite alternate; }
+.pop-wheel.spin span:nth-child(2n) { animation-delay: .07s; }
+@keyframes popSpin { from { transform: translateY(-3px) scale(1.08); filter: brightness(1.6); } to { transform: translateY(3px) scale(.92); filter: brightness(.7); } }
+.pop-res b { color: #ff9ae8 !important; }
+#ev-timer { pointer-events: none; }
+@media (prefers-reduced-motion: reduce) { .pop-wheel.spin span { animation: none; } }

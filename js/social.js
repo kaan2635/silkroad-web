@@ -208,7 +208,8 @@ class SimPlayer {
       this.h.group.rotation.z = Math.min(Math.PI / 2, this.downT * 4); p.y = terrainHeight(p.x, p.z) + 0.3;
       if (this.downT > (party ? 12 : 20)) {
         this.dead = false; this.hp = this.maxHp; this.h.group.rotation.z = 0;
-        if (!party) { const s = soc.townSpot(); p.set(s.x, terrainHeight(s.x, s.z), s.z); }
+        if (this.mode === 'ally' && soc.allyBase) p.set(soc.allyBase.x + (Math.random() - 0.5) * 6, 0, soc.allyBase.z + (Math.random() - 0.5) * 6);
+        else if (!party) { const s = soc.townSpot(); p.set(s.x, terrainHeight(s.x, s.z), s.z); }
       }
       return;
     }
@@ -217,6 +218,7 @@ class SimPlayer {
     if (party) this._party(dt, dp);
     else if (this.mode === 'hunt' || this.mode === 'pvp') this._hunt(dt);
     else if (this.mode === 'town') this._wander(dt);
+    else if (this.mode === 'ally') this._ally(dt);
     // can yenilenmesi
     if (this.hp < this.maxHp) this.hp = Math.min(this.maxHp, this.hp + this.maxHp * (this.target ? 0.01 : 0.05) * dt);
     p.y = terrainHeight(p.x, p.z) - (this.mode === 'stall' ? 0.38 : 0);
@@ -247,6 +249,20 @@ class SimPlayer {
       if (this.target === soc.combat.target) { this.target = null; return; }
       this._fight(dt, this.target);
     } else this._wander2(dt);
+  }
+  // Etkinlik müttefiki: en yakın rakibe saldırır, yoksa hedef noktaya ilerler
+  _ally(dt) {
+    const soc = this.soc;
+    this.searchT -= dt;
+    if (this.target && (this.target.dead || this.target.removed)) this.target = null;
+    if (!this.target || this.searchT <= 0) {
+      this.searchT = 1;
+      let best = null, bd = 45;
+      for (const m of soc.monsters.list) { if (m.dead || m.removed || !m.evEnemy) continue; const d = Math.hypot(m.x - this.x, m.z - this.z); if (d < bd) { bd = d; best = m; } }
+      this.target = best;
+    }
+    if (this.target) { this._fight(dt, this.target); return; }
+    const g = soc.allyGoal; if (g && Math.hypot(g.x - this.x, g.z - this.z) > 4) this._move(g.x + (this.slot % 3 - 1) * 3, g.z + (this.slot - 1) * 2, 6, dt);
   }
   _wander2(dt) {
     this.wait -= dt;
@@ -702,17 +718,24 @@ class Social {
     return true;
   }
   // Bot ile çatışma: bot gizlenir, yerine aynı görünümde savaşan bir "canavar" çıkar (hedefleme, yetenek, hasar aynen işler)
-  engage(sim, mode) {
-    if (sim.engaged || sim.dead) return null;
-    const b = sim.bot, W = WEAPON_TYPES[b.w], key = 'pvp_' + b.id;
+  // Yapay oyuncu görünümünde savaşan bir "canavar" üret (PvP, arenalar, Kale Savaşı)
+  makePvpMob(b, lvl, x, z, mode, eq) {
+    const W = WEAPON_TYPES[b.w], key = 'pvp_' + b.id;
     MONSTER_TYPES[key] = { name: b.name, model: 'human', look: { robe: b.robe, dark: 0x2a1a10, weapon: b.w, skin: b.race === 'eu' ? 0xf0c8a8 : 0xe8b98a },
       hpM: mode === 'duel' ? 1.1 : 1.3, dmgM: 0.7, defM: 1.1, expM: 0, speed: 6.4, aggro: 40, range: W.ranged ? Math.min(11, W.range) : 2.6, atkInt: 1.25, hit: 1.1, scale: 1, labelY: 3.2, magic: !!W.magic };
-    const m = new Monster(this.world, key, sim.lvl, { x: sim.x, z: sim.z }, { rank: 'normal' });
-    m.pvp = mode; m.sim = sim; m.noRespawn = true; m.respawnTime = 4; m.noLeash = true; m.state = 'chase'; m.provoked = true;
-    if (m.h) { const opt = it => ({ d: ITEM_BASES[it.base].d, plus: it.plus || 0, rarity: it.rarity || 0 }); if (sim.eq.shield) m.h.setShield(true, opt(sim.eq.shield)); dressHumanoid(m.h, sim.eq); }
+    const m = new Monster(this.world, key, lvl, { x, z }, { rank: 'normal' });
+    m.pvp = mode; m.noRespawn = true; m.respawnTime = 4; m.noLeash = true; m.state = 'chase'; m.provoked = true; m.bot = b;
+    eq = eq || botEquip(b);
+    if (m.h) { const opt = it => ({ d: ITEM_BASES[it.base].d, plus: it.plus || 0, rarity: it.rarity || 0 }); if (eq.shield) m.h.setShield(true, opt(eq.shield)); if (W.dual) m.h.setOff(b.w, opt(eq.weapon)); dressHumanoid(m.h, eq); }
     m.displayName = b.name; m._makeLabel();
     this.monsters.list.push(m);
-    sim.engaged = m; sim.group.visible = false;
+    return m;
+  }
+  // Bot ile çatışma: bot gizlenir, yerine aynı görünümde savaşan bir "canavar" çıkar (hedefleme, yetenek, hasar aynen işler)
+  engage(sim, mode) {
+    if (sim.engaged || sim.dead) return null;
+    const m = this.makePvpMob(sim.bot, sim.lvl, sim.x, sim.z, mode, sim.eq);
+    m.sim = sim; sim.engaged = m; sim.group.visible = false;
     this.fight = m;
     return m;
   }
