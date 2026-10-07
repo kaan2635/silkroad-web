@@ -472,7 +472,7 @@ body.touch .start-box .sub { margin-bottom: 10px; }
 .drag-ghost .ico { width: 100%; height: 100%; border-radius: 4px; }
 #pgold small { font-weight: 500; }
 /* yetenek ağacı: soldan sağa kademeler */
-.tree-grid { display: flex; align-items: flex-start; gap: 22px; padding: 14px 16px 18px; overflow: auto; }
+.tree-grid { display: flex; flex-wrap: wrap; align-items: flex-start; align-content: flex-start; gap: 18px 22px; padding: 14px 16px 18px; overflow: auto; }
 .tier { flex-direction: column; align-items: center; gap: 8px; padding: 0; }
 .tier + .tier::before { left: -20px; top: 56px; width: 18px; height: 2px; background: linear-gradient(90deg, var(--bronze-d), var(--bronze)); }
 .tier .lvl { flex: 0 0 auto; }

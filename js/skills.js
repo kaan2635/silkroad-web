@@ -64,7 +64,55 @@ const SKILL_DEFS = [
   { id: 'fc_cure', m: 'force', name: 'Arınma', icon: '🕊️', type: 'cure', reqM: 5, maxR: 1, step: 1, mp: 15, cd: 8, desc: 'Tüm kötü etkileri kaldırır' },
   { id: 'fc_vital', m: 'force', name: 'Canlılık', icon: '💪', type: 'buff', reqM: 9, maxR: 4, step: 10, mp: 30, cd: 5, dur: 300, buff: { hpPct: RK(8, 20) }, desc: 'Azami can artar' },
   { id: 'fc_regen', m: 'force', name: 'Yenilenme Aurası', icon: '🌿', type: 'buff', reqM: 15, maxR: 4, step: 9, mp: 35, cd: 30, dur: 20, buff: { regen: RK(1.5, 4) }, desc: 'Saniyede canının bir kısmını yeniler' },
-  { id: 'fc_guard', m: 'force', name: 'Gök Kalkanı', icon: '🌟', type: 'absorb', reqM: 24, maxR: 3, step: 12, mp: 45, cd: 30, dur: 15, val: RK(0.2, 0.4), desc: 'Hasarı emen ışık kalkanı' }
+  { id: 'fc_guard', m: 'force', name: 'Gök Kalkanı', icon: '🌟', type: 'absorb', reqM: 24, maxR: 3, step: 12, mp: 45, cd: 30, dur: 15, val: RK(0.2, 0.4), desc: 'Hasarı emen ışık kalkanı' },
+  // ===== iSRO yüksek kademeler (ustalık 30–140) =====
+  // --- Bicheon ---
+  { id: 'bc_cut', m: 'bicheon', name: 'Kesik Bıçak', icon: '🗡️', type: 'atk', reqM: 34, maxR: 5, step: 6, mp: 48, cd: 6, hits: 2, mult: RK(1.6, 2.6), status: 'bleed', chance: 0.5, sdur: 5, desc: 'Cut Blade: iki derin kesik, kanatır' },
+  { id: 'bc_force', m: 'bicheon', name: 'Kılıç Gücü', icon: '💫', type: 'atk', reqM: 48, maxR: 5, step: 6, mp: 70, cd: 9, hits: 1, mult: RK(3.0, 4.6), aoe: 3.5, at: 'target', status: 'knock', chance: 0.35, sdur: 2, desc: 'Blade Force: kılıçtan fırlayan güç dalgası' },
+  { id: 'bc_bloom', m: 'bicheon', name: 'Çiçek Açan Kılıç', icon: '🌸', type: 'atk', reqM: 62, maxR: 5, step: 6, mp: 95, cd: 11, hits: 4, mult: RK(0.95, 1.5), aoe: 4.5, at: 'self', desc: 'Flower Bloom Blade: etrafa dört kılıç darbesi' },
+  { id: 'bc_wall', m: 'bicheon', name: 'Çelik Duvar', icon: '🏰', type: 'buff', reqM: 72, maxR: 4, step: 8, mp: 110, cd: 6, dur: 300, needShield: true, buff: { pdefPct: RK(30, 55), block: RK(12, 24), dmgTaken: RK(0.92, 0.82) }, desc: 'Kalkanla aşılmaz savunma duruşu' },
+  { id: 'bc_dance', m: 'bicheon', name: 'Tayfun Kılıç Dansı', icon: '🌀', type: 'atk', reqM: 86, maxR: 5, step: 6, mp: 150, cd: 14, hits: 6, mult: RK(0.9, 1.4), aoe: 5.5, at: 'self', status: 'stun', chance: 0.25, sdur: 1.2, desc: 'Typhoon Sword Dance: kılıçla dönen kasırga' },
+  { id: 'bc_heaven', m: 'bicheon', name: 'Göksel Kılıç', icon: '☀️', type: 'atk', reqM: 108, maxR: 5, step: 6, mp: 210, cd: 16, hits: 1, mult: RK(6.5, 9.5), status: 'stun', chance: 0.5, sdur: 2, desc: 'Heaven Sword: tek ve yıkıcı darbe' },
+  { id: 'bc_pass2', m: 'bicheon', name: 'Kılıç Ruhu', icon: '📕', type: 'passive', reqM: 56, maxR: 5, step: 12, pass: { patkPct: RK(4, 18), crit: RK(1, 5) }, desc: 'Kalıcı: fiziksel saldırı ve kritik' },
+  // --- Heuksal ---
+  { id: 'hk_wolf', m: 'heuksal', name: 'Kurt Isırığı Mızrağı', icon: '🐺', type: 'atk', reqM: 34, maxR: 5, step: 6, mp: 52, cd: 6, hits: 3, mult: RK(1.0, 1.6), status: 'bleed', chance: 0.45, sdur: 5, desc: 'Wolf Bite Spear: üç ısıran hamle' },
+  { id: 'hk_chain', m: 'heuksal', name: 'Zincir Mızrak', icon: '⛓️', type: 'atk', reqM: 48, maxR: 5, step: 6, mp: 75, cd: 9, hits: 3, mult: RK(1.1, 1.7), aoe: 3.5, at: 'target', desc: 'Chain Spear: hedef ve yanındakileri deler' },
+  { id: 'hk_ghost', m: 'heuksal', name: 'Hayalet Mızrak', icon: '👻', type: 'atk', reqM: 62, maxR: 5, step: 6, mp: 100, cd: 11, hits: 1, mult: RK(4.0, 6.0), status: 'knock', chance: 0.5, sdur: 2, desc: 'Ghost Spear: ruhları bile delen saplama' },
+  { id: 'hk_bond', m: 'heuksal', name: 'Ruh Bağı', icon: '🔥', type: 'buff', reqM: 72, maxR: 4, step: 8, mp: 115, cd: 6, dur: 300, buff: { patkPct: RK(22, 40), hpPct: RK(5, 12) }, desc: 'Soul Bond: silahla ruh birleşir, saldırı ve can artar' },
+  { id: 'hk_bloody', m: 'heuksal', name: 'Kanlı Fırtına', icon: '🩸', type: 'atk', reqM: 86, maxR: 5, step: 6, mp: 160, cd: 14, hits: 3, mult: RK(1.4, 2.1), aoe: 6, at: 'self', status: 'bleed', chance: 0.6, sdur: 6, desc: 'Bloody Storm: etrafa kanlı kasırga' },
+  { id: 'hk_dragon', m: 'heuksal', name: 'Uçan Ejder', icon: '🐲', type: 'atk', reqM: 108, maxR: 5, step: 6, mp: 220, cd: 17, hits: 1, mult: RK(5.0, 7.5), aoe: 6, at: 'target', status: 'knock', chance: 0.6, sdur: 2.5, desc: 'Flying Dragon: havalanıp hedefin üstüne iner' },
+  { id: 'hk_pass2', m: 'heuksal', name: 'Pala Ruhu', icon: '📗', type: 'passive', reqM: 56, maxR: 5, step: 12, pass: { patkPct: RK(3, 14), hpPct: RK(4, 14) }, desc: 'Kalıcı: fiziksel saldırı ve can' },
+  // --- Pacheon ---
+  { id: 'pc_anti', m: 'pacheon', name: 'Şeytan Kovan Yay', icon: '🎯', type: 'atk', reqM: 34, maxR: 5, step: 6, mp: 46, cd: 6, hits: 3, mult: RK(1.0, 1.6), desc: 'Anti Devil Bow: üç kutsanmış ok' },
+  { id: 'pc_combo', m: 'pacheon', name: 'Ok Kombosu', icon: '🏹', type: 'atk', reqM: 48, maxR: 5, step: 6, mp: 70, cd: 9, hits: 5, mult: RK(0.8, 1.25), desc: 'Arrow Combo: beş okluk seri' },
+  { id: 'pc_hawk', m: 'pacheon', name: 'Şahin Ruhu', icon: '🦅', type: 'buff', reqM: 60, maxR: 4, step: 8, mp: 100, cd: 6, dur: 300, buff: { crit: RK(10, 20), patkPct: RK(10, 22), range: RK(3, 6) }, desc: 'Mind Hawk: kritik, saldırı ve menzil artar' },
+  { id: 'pc_autumn', m: 'pacheon', name: 'Sonbahar Rüzgârı', icon: '🍂', type: 'atk', reqM: 76, maxR: 5, step: 6, mp: 135, cd: 13, hits: 2, mult: RK(1.4, 2.1), aoe: 6, at: 'target', status: 'slow', chance: 0.6, sdur: 4, desc: 'Autumn Wind: hedefin çevresine yaprak gibi ok fırtınası' },
+  { id: 'pc_soul', m: 'pacheon', name: 'Ruh Oku', icon: '✴️', type: 'atk', reqM: 104, maxR: 5, step: 7, mp: 205, cd: 15, hits: 1, mult: RK(7.0, 10.0), status: 'stun', chance: 0.4, sdur: 1.5, desc: 'Soul Arrow: ruhu delen tek ok' },
+  { id: 'pc_pass2', m: 'pacheon', name: 'Kartal Nişanı', icon: '📙', type: 'passive', reqM: 56, maxR: 5, step: 12, pass: { crit: RK(2, 8), patkPct: RK(3, 12) }, desc: 'Kalıcı: kritik ve fiziksel saldırı' },
+  // --- Soğuk ---
+  { id: 'cd_wave', m: 'cold', name: 'Soğuk Dalga', icon: '🌊', type: 'nuke', elem: 'cold', reqM: 32, maxR: 5, step: 6, mp: 50, cd: 5, mult: RK(2.6, 3.8), range: 15, proj: true, status: 'slow', chance: 0.5, sdur: 4, desc: 'Cold Wave: buz dalgası, yavaşlatır' },
+  { id: 'cd_wall', m: 'cold', name: 'Buz Duvarı', icon: '🧱', type: 'absorb', reqM: 46, maxR: 4, step: 8, mp: 85, cd: 25, dur: 20, val: RK(0.25, 0.45), desc: 'Ice Wall: hasarı emen buz duvarı' },
+  { id: 'cd_frost', m: 'cold', name: 'Don Novası', icon: '❄️', type: 'nuke', elem: 'cold', reqM: 62, maxR: 5, step: 6, mp: 115, cd: 13, mult: RK(1.8, 2.8), aoe: 7, at: 'self', status: 'freeze', chance: 0.6, sdur: 2.5, desc: 'Frost Nova: çevreyi dondurur' },
+  { id: 'cd_blizz', m: 'cold', name: 'Kar Kıyameti', icon: '🌨️', type: 'nuke', elem: 'cold', reqM: 88, maxR: 5, step: 6, mp: 170, cd: 15, mult: RK(2.4, 3.6), range: 16, aoe: 8, at: 'target', status: 'freeze', chance: 0.45, sdur: 2.5, desc: 'Snow Storm: hedefin üstüne kar fırtınası' },
+  { id: 'cd_snow', m: 'cold', name: 'Kar Kalkanı', icon: '🛡️', type: 'buff', reqM: 110, maxR: 4, step: 8, mp: 200, cd: 8, dur: 300, buff: { pdefPct: RK(25, 45), mdefPct: RK(25, 45), dmgTaken: RK(0.9, 0.8) }, desc: 'Snow Shield: her türlü hasara karşı kar örtüsü' },
+  // --- Şimşek ---
+  { id: 'lt_thunder', m: 'lightning', name: 'Gök Gürültüsü Gücü', icon: '⚡', type: 'imbue', elem: 'lightning', reqM: 40, maxR: 5, step: 8, mp: 60, cd: 1, dur: 45, val: RK(0.55, 0.95), status: 'stun', chance: 0.15, sdur: 0.8, desc: 'Thunder Force: güçlü şimşek aşılaması' },
+  { id: 'lt_flash', m: 'lightning', name: 'Şimşek Adımı', icon: '👣', type: 'dash', reqM: 52, maxR: 3, step: 12, mp: 70, cd: 6, dist: RK(14, 20), desc: 'Flash Step: çok uzağa anında ışınlanır' },
+  { id: 'lt_lion', m: 'lightning', name: 'Aslan Kükremesi', icon: '🦁', type: 'nuke', elem: 'lightning', reqM: 64, maxR: 5, step: 6, mp: 120, cd: 12, mult: RK(2.0, 3.0), range: 16, aoe: 7, at: 'target', status: 'stun', chance: 0.35, sdur: 1.2, desc: 'Lion Thunder: hedef ve çevresine şimşek' },
+  { id: 'lt_heaven', m: 'lightning', name: 'Göksel Yıldırım', icon: '🌩️', type: 'nuke', elem: 'lightning', reqM: 98, maxR: 5, step: 7, mp: 190, cd: 14, mult: RK(6.0, 8.5), range: 18, status: 'stun', chance: 0.5, sdur: 1.5, desc: 'Heaven Thunder: tek hedefe dev yıldırım' },
+  { id: 'lt_pass', m: 'lightning', name: 'Elektrik Bedeni', icon: '📒', type: 'passive', reqM: 30, maxR: 5, step: 14, pass: { matkPct: RK(3, 15), crit: RK(1, 4) }, desc: 'Kalıcı: büyü saldırısı ve kritik' },
+  // --- Ateş ---
+  { id: 'fr_flame', m: 'fire', name: 'Alev Ruhu', icon: '🔥', type: 'imbue', elem: 'fire', reqM: 40, maxR: 5, step: 8, mp: 60, cd: 1, dur: 45, val: RK(0.55, 0.95), status: 'burn', chance: 0.3, sdur: 5, desc: 'Flame Spirit: güçlü ateş aşılaması' },
+  { id: 'fr_wave', m: 'fire', name: 'Alev Dalgası', icon: '🌋', type: 'nuke', elem: 'fire', reqM: 50, maxR: 5, step: 6, mp: 85, cd: 7, mult: RK(2.8, 4.2), range: 15, aoe: 4, proj: true, status: 'burn', chance: 0.45, sdur: 5, desc: 'Flame Wave: patlayan alev topu' },
+  { id: 'fr_phoenix', m: 'fire', name: 'Anka Kuşu', icon: '🐦‍🔥', type: 'nuke', elem: 'fire', reqM: 72, maxR: 5, step: 6, mp: 140, cd: 13, mult: RK(2.6, 3.8), range: 16, aoe: 6, at: 'target', status: 'burn', chance: 0.6, sdur: 6, desc: 'Phoenix: alevden kuş hedefe dalar' },
+  { id: 'fr_inferno', m: 'fire', name: 'Cehennem Ateşi', icon: '💥', type: 'nuke', elem: 'fire', reqM: 100, maxR: 5, step: 7, mp: 210, cd: 16, mult: RK(3.0, 4.4), aoe: 8, at: 'self', status: 'burn', chance: 0.7, sdur: 6, desc: 'Inferno: çevreni ateş denizine çevirir' },
+  { id: 'fr_pass', m: 'fire', name: 'Ateş Kalbi', icon: '📒', type: 'passive', reqM: 30, maxR: 5, step: 14, pass: { matkPct: RK(4, 18) }, desc: 'Kalıcı: büyü saldırısı' },
+  // --- Kuvvet ---
+  { id: 'fc_heal2', m: 'force', name: 'Büyük Şifa', icon: '💖', type: 'heal', reqM: 38, maxR: 5, step: 8, mp: 90, cd: 8, val: RK(0.4, 0.65), desc: 'Canının büyük kısmını yeniler' },
+  { id: 'fc_bless', m: 'force', name: 'Kutsama', icon: '🙏', type: 'buff', reqM: 52, maxR: 4, step: 8, mp: 100, cd: 6, dur: 600, buff: { hpPct: RK(6, 14), mpPct: RK(8, 20) }, desc: 'Azami can ve mana artar' },
+  { id: 'fc_resur', m: 'force', name: 'Diriliş', icon: '🕯️', type: 'buff', reqM: 66, maxR: 4, step: 10, mp: 160, cd: 300, dur: 600, buff: { revive: RK(30, 80) }, desc: 'Resurrection: ölürsen bu canla yerinde dirilirsin (bir kez)' },
+  { id: 'fc_aura', m: 'force', name: 'Kuvvet Aurası', icon: '🔆', type: 'buff', reqM: 88, maxR: 4, step: 10, mp: 180, cd: 60, dur: 30, buff: { dmgTaken: RK(0.85, 0.7), regen: RK(1, 2.5) }, desc: 'Hasarı azaltan ve can yenileyen aura' },
+  { id: 'fc_holy', m: 'force', name: 'Kutsal Işık', icon: '✨', type: 'nuke', elem: 'force', reqM: 106, maxR: 5, step: 6, mp: 200, cd: 14, mult: RK(2.8, 4.2), aoe: 7, at: 'self', desc: 'Holy Light: çevreye kutsal patlama' }
 ];
 const SKILLS_BY_ID = {};
 SKILL_DEFS.forEach(s => { SKILLS_BY_ID[s.id] = s; });
@@ -87,7 +135,7 @@ function skillDetail(s, r) {
   if (s.type === 'heal') p.push('Canın %' + Math.round(sval(s.val, s, r) * 100) + '\'i');
   if (s.type === 'absorb') p.push('Canın %' + Math.round(sval(s.val, s, r) * 100) + '\'i kadar hasar emer, ' + s.dur + ' sn');
   if (s.type === 'dash') p.push(Math.round(sval(s.dist, s, r)) + ' m');
-  const names = { pdefPct: 'Fiz. savunma %', mdefPct: 'Büyü savunma %', patkPct: 'Fiz. saldırı %', matkPct: 'Büyü saldırı %', speedPct: 'Hız %', crit: 'Kritik +', block: 'Blok %', range: 'Menzil +', hpPct: 'Can %', mpPct: 'Mana %', regen: 'Can yenileme %/sn ', dmgTaken: 'Alınan hasar x' };
+  const names = { pdefPct: 'Fiz. savunma %', mdefPct: 'Büyü savunma %', patkPct: 'Fiz. saldırı %', matkPct: 'Büyü saldırı %', speedPct: 'Hız %', crit: 'Kritik +', block: 'Blok %', range: 'Menzil +', hpPct: 'Can %', mpPct: 'Mana %', regen: 'Can yenileme %/sn ', dmgTaken: 'Alınan hasar x', revive: 'Diriliş canı %' };
   const b = s.buff || s.pass;
   if (b) for (const k in b) { const v = sval(b[k], s, r); p.push(names[k] + (k === 'dmgTaken' ? v.toFixed(2) : Math.round(v * 10) / 10)); }
   if (s.dur && s.type === 'buff') p.push(s.dur + ' sn');

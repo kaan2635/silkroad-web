@@ -223,6 +223,18 @@ class Combat {
     this.attacking = false; this.target = null; this.casting = null; this.queued = null;
     this.deathPos = { x: pl.pos.x, z: pl.pos.z };
     this.hud.log((m ? m.displayName : 'Bir canavar') + ' seni yendi.', 'dmg');
+    const rb = pl.buffs.fc_resur;
+    if (rb && rb.st.revive) {                     // Kuvvet: Diriliş — bir kez yerinde dirilir
+      const pct = rb.st.revive / 100;
+      SFX.play('death');
+      this.later(1.6, () => {
+        if (!pl.dead) return;
+        pl.revive(); pl.stats.hp = Math.max(1, Math.round(pl.stats.maxHp * pct));
+        this.vfx.column(pl.pos.x, pl.pos.z, 0xfff0a0, 6, 1.2); SFX.play('levelup');
+        this.hud.log('Diriliş ile yeniden ayağa kalktın.', 'lvl');
+      });
+      return;
+    }
     this.hud.showDeath(true);
     SFX.play('death');
   }
@@ -474,7 +486,9 @@ class Combat {
       const maxD = tt ? Math.max(0, Math.min(dist, this.dist(tt) - 2)) : dist;
       v.burst(P.x, P.z, 0xd8c8ff, 2, 0.35); v.emit(P.x, P.y + 1, P.z, 24, { pal: VFX_PAL.lightning, speed: 4, life: 0.4, size: 0.35, jitter: 1 });
       const lim = CONFIG.worldSize / 2 - 6;
-      pl.teleport(clamp(P.x + Math.sin(ang) * maxD, -lim, lim), clamp(P.z + Math.cos(ang) * maxD, -lim, lim));
+      let nx = clamp(P.x + Math.sin(ang) * maxD, -lim, lim), nz = clamp(P.z + Math.cos(ang) * maxD, -lim, lim);
+      if (typeof Dungeon !== 'undefined' && Dungeon.on) { for (let k = 0; k < 12 && !Dungeon.walk(nx, nz); k++) { nx = P.x + (nx - P.x) * 0.8; nz = P.z + (nz - P.z) * 0.8; } if (!Dungeon.walk(nx, nz)) { nx = P.x; nz = P.z; } }
+      pl.teleport(nx, nz);
       pl.heading = ang;
       v.burst(P.x, P.z, 0xd8c8ff, 2.5, 0.4); v.emit(P.x, P.y + 1, P.z, 24, { pal: VFX_PAL.lightning, speed: 4, life: 0.4, size: 0.35, jitter: 1 }); SFX.play('cast');
     }

@@ -189,7 +189,7 @@ class Player {
   addBuff(id, b) { this.buffs[id] = b; this.recalc(); }
   buffSum() {
     const t = {};
-    for (const id in this.buffs) for (const k in this.buffs[id].st) t[k] = (t[k] || 0) + this.buffs[id].st[k];
+    for (const id in this.buffs) for (const k in this.buffs[id].st) { const v = this.buffs[id].st[k]; t[k] = k === 'dmgTaken' ? (t[k] || 1) * v : (t[k] || 0) + v; }
     return t;
   }
   disabled() { return !!(this.status.stun || this.status.freeze); }
@@ -213,13 +213,13 @@ class Player {
     const weapM = wm ? this.book.mastery[wm] : 0;
     const oldMax = s.maxHp, oldMp = s.maxMp;
     s.maxHp = Math.round((40 + STR * 6 + L * 10 + hpF) * (1 + (hpPct + (pas.hpPct || 0) + (bf.hpPct || 0)) / 100));
-    s.maxMp = Math.round((30 + INT * 6 + L * 7 + mpF) * (1 + (mpPct + (pas.mpPct || 0)) / 100));
+    s.maxMp = Math.round((30 + INT * 6 + L * 7 + mpF) * (1 + (mpPct + (pas.mpPct || 0) + (bf.mpPct || 0)) / 100));
     if (oldMax) s.hp = Math.min(s.maxHp, s.hp * (s.maxHp > oldMax ? 1 : 1)); else s.hp = s.maxHp;
     s.hp = Math.min(s.hp, s.maxHp); s.mp = Math.min(s.mp, s.maxMp);
     void oldMp;
     const zerk = this.zerkT > 0 ? 1.5 : 1;
     const pM = (1 + ((pas.patkPct || 0) + (bf.patkPct || 0)) / 100 + weapM * 0.01) * zerk;
-    const mM = (1 + (bf.matkPct || 0) / 100) * zerk;
+    const mM = (1 + ((pas.matkPct || 0) + (bf.matkPct || 0)) / 100) * zerk;
     const phy = wPhy + STR * 0.55 + L * 1.2, mag = wMag + INT * 0.55 + L * 1.2;
     const d = this.d;
     d.phyMin = Math.round(phy * 0.9 * pM); d.phyMax = Math.round(phy * 1.1 * pM);
