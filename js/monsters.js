@@ -9,7 +9,7 @@ const RESPAWN_TIME = 18;
 const MONSTER_TYPES = {
   // --- Jangan ---
   wolf:      { name: 'Kurt', model: 'quad', look: { fur: 0x7a7a82, dark: 0x3a3a42 }, hpM: 1.1, dmgM: 0.9, defM: 0.8, expM: 1.0, speed: 6.5, aggro: 11, range: 2.0, atkInt: 1.4, hit: 1.2, scale: 1.0, labelY: 2.5 },
-  boar:      { name: 'Yaban Domuzu', model: 'quad', look: { fur: 0x6a4a32, dark: 0x3a2818, tusks: true, legH: 0.5, body: [0.85, 0.75, 1.5] }, hpM: 1.3, dmgM: 0.95, defM: 1.0, expM: 1.1, speed: 5.2, aggro: 7, range: 2.0, atkInt: 1.6, hit: 1.3, scale: 1.0, labelY: 2.4 },
+  boar:      { name: 'Yaban Öküzü', model: 'quad', look: { fur: 0x6a4a32, dark: 0x3a2818, tusks: true, legH: 0.5, body: [0.85, 0.75, 1.5] }, hpM: 1.3, dmgM: 0.95, defM: 1.0, expM: 1.1, speed: 5.2, aggro: 7, range: 2.0, atkInt: 1.6, hit: 1.3, scale: 1.0, labelY: 2.4 },
   scorpion:  { name: 'Dev Akrep', model: 'scorpion', look: { shell: 0x8a3a1c, dark: 0x4a1e0e }, hpM: 1.3, dmgM: 1.0, defM: 1.2, expM: 1.15, speed: 4.6, aggro: 8, range: 2.3, atkInt: 1.8, hit: 1.5, scale: 1.25, labelY: 3.3, status: { kind: 'poison', chance: 0.15, dur: 6 } },
   tiger:     { name: 'Kaplan', model: 'quad', look: { fur: 0xd8822a, dark: 0x2a1a10, stripes: true, body: [0.8, 0.7, 1.8] }, hpM: 1.25, dmgM: 1.2, defM: 1.0, expM: 1.25, speed: 7, aggro: 12, range: 2.3, atkInt: 1.3, hit: 1.4, scale: 1.2, labelY: 2.8, status: { kind: 'bleed', chance: 0.1, dur: 4 } },
   golem:     { name: 'Kum Devi', model: 'golem', look: { c: 0xa07a4c }, hpM: 1.8, dmgM: 1.25, defM: 1.5, expM: 1.5, speed: 3.8, aggro: 9, range: 2.8, atkInt: 2.0, hit: 2.0, scale: 1.5, labelY: 3.6, status: { kind: 'stun', chance: 0.08, dur: 1.2 } },
@@ -23,7 +23,7 @@ const MONSTER_TYPES = {
   dbandit:   { name: 'Çöl Haydudu', model: 'human', look: { robe: 0xb89058, dark: 0x6a4a2a, hat: 'band', weapon: 'glaive' }, hpM: 1.25, dmgM: 1.15, defM: 1.05, expM: 1.25, speed: 5.6, aggro: 12, range: 2.6, atkInt: 1.6, hit: 1.3, scale: 1.05, labelY: 3.3 },
   // --- Hotan ---
   icewolf:   { name: 'Buz Kurdu', model: 'quad', look: { fur: 0xe8eef4, dark: 0x8aa8c8, eye: 0x3ad8ff }, hpM: 1.15, dmgM: 1.0, defM: 0.9, expM: 1.05, speed: 7, aggro: 12, range: 2.0, atkInt: 1.3, hit: 1.2, scale: 1.1, labelY: 2.6, status: { kind: 'slow', chance: 0.15, dur: 3 } },
-  bear:      { name: 'Dağ Ayısı', model: 'quad', look: { fur: 0x4a3222, dark: 0x2a1a10, body: [1.2, 1.1, 1.9], legH: 0.75, noTail: true }, hpM: 1.7, dmgM: 1.3, defM: 1.3, expM: 1.45, speed: 4.6, aggro: 8, range: 2.6, atkInt: 1.9, hit: 1.9, scale: 1.35, labelY: 3.4, status: { kind: 'stun', chance: 0.08, dur: 1.2 } },
+  bear:      { name: 'Kar Yetisi', model: 'quad', look: { fur: 0x4a3222, dark: 0x2a1a10, body: [1.2, 1.1, 1.9], legH: 0.75, noTail: true }, hpM: 1.7, dmgM: 1.3, defM: 1.3, expM: 1.45, speed: 4.6, aggro: 8, range: 2.6, atkInt: 1.9, hit: 1.9, scale: 1.35, labelY: 3.4, status: { kind: 'stun', chance: 0.08, dur: 1.2 } },
   ghost:     { name: 'Hayalet Savaşçı', model: 'char', char: 'ghost', look: { h: 2.4, ghost: true }, magic: true, hpM: 1.2, dmgM: 1.25, defM: 1.0, expM: 1.3, speed: 5.5, aggro: 12, range: 7, atkInt: 1.8, hit: 1.3, scale: 1.15, labelY: 3.3, status: { kind: 'freeze', chance: 0.07, dur: 1.5 } },
   stonegolem:{ name: 'Taş Dev', model: 'golem', look: { c: 0x8a8a92 }, hpM: 1.9, dmgM: 1.3, defM: 1.6, expM: 1.55, speed: 3.8, aggro: 9, range: 2.9, atkInt: 2.0, hit: 2.0, scale: 1.6, labelY: 3.7, status: { kind: 'stun', chance: 0.1, dur: 1.3 } },
   hbandit:   { name: 'Tepe Haydudu', model: 'human', look: { robe: 0x2a4a2a, dark: 0x14240f, hat: 'band', weapon: 'spear' }, hpM: 1.3, dmgM: 1.2, defM: 1.1, expM: 1.3, speed: 5.8, aggro: 12, range: 2.8, atkInt: 1.5, hit: 1.3, scale: 1.05, labelY: 3.3 },
@@ -233,6 +233,28 @@ class Monster {
 
     this.group.position.set(home.x, terrainHeight(home.x, home.z), home.z);
     world.scene.add(this.group);
+    if (typeof MobModels !== 'undefined') MobModels.attach(this);
+  }
+
+  // İskeletli model animasyonları
+  _play(name, fade = 0.2) {
+    const a = this.actions && (this.actions[name] || this.actions.idle);
+    if (!a || this.base === a) return;
+    if (this.base) this.base.fadeOut(fade);
+    a.reset().setEffectiveWeight(1).fadeIn(fade).play();
+    this.base = a;
+  }
+  _oneShot(name, speed = 1) {
+    const a = this.actions && this.actions[name];
+    if (!a) return false;
+    a.reset(); a.timeScale = speed; a.setEffectiveWeight(1); a.fadeIn(0.08).play();
+    if (this.base) this.base.fadeOut(0.08);
+    const back = this.base; this.base = null; this._shot = { a, back, t: a.getClip().duration / speed - 0.12 };
+    return true;
+  }
+  onHit() {
+    if (!this.actions || this.dead || this._shot || !this.actions.hit) return;
+    if (Math.random() < 0.35) this._oneShot('hit', 1.4);
   }
 
   _stats(rank) {
@@ -255,7 +277,7 @@ class Monster {
     const rk = MOB_RANKS[this.rank];
     this.label = makeLabel(this.displayName, 'Sv. ' + this.level + (this.rank !== 'normal' ? ' · ' + rk.label : ''), rk.color, '#ffd9a0');
     this.label.scale.set(this.rank === 'normal' ? 3.8 : 4.6, this.rank === 'normal' ? 1.2 : 1.45, 1);
-    this.label.position.y = this.type.labelY / this.type.scale / (this.rank === 'giant' ? 1.1 : 1);
+    this.label.position.y = this.labelH || this.type.labelY / this.type.scale / (this.rank === 'giant' ? 1.1 : 1);
     this.group.add(this.label);
   }
 
@@ -273,7 +295,7 @@ class Monster {
   _tint() {
     const s = this.status;
     const c = s.freeze ? 0x2a5aa8 : s.burn ? 0x6a2200 : s.stun || s.knock ? 0x4a4a00 : s.slow ? 0x1a3a5a : s.bleed ? 0x5a0000 : 0x000000;
-    for (const m of this.mats) m.emissive.setHex(c);
+    for (const m of this.mats) m.emissive.setHex(c || m.userData.baseEm || 0);
   }
   // Unique özel saldırısı: oyuncunun altında kırmızı halka, 1.3 sn sonra alan hasarı
   _slam(dt, player, combat) {
@@ -314,6 +336,7 @@ class Monster {
   provoke() { this.provoked = true; if (this.state === 'idle' || this.state === 'return') this.state = 'chase'; }
 
   die() {
+    if (this.actions && this.actions.death) { if (this._shot) { this._shot.a.fadeOut(0.1); this._shot = null; } this._play('death', 0.12); }
     this.dead = true; this.state = 'dead'; this.deadT = 0; this.moving = false;
     this.label.visible = false;
     this.status = {}; this._tint();
@@ -328,6 +351,7 @@ class Monster {
     this.group.position.set(this.home.x, terrainHeight(this.home.x, this.home.z), this.home.z);
     this.group.rotation.z = 0; this.group.visible = true; this.group.scale.setScalar(this.baseScale);
     this.wanderTarget = null;
+    if (this.actions) { if (this.actions.death) this.actions.death.stop(); this.base = null; this._shot = null; this._play('idle', 0); }
   }
 
   _moveToward(tx, tz, speed, dt) {
@@ -348,22 +372,24 @@ class Monster {
     if (this.state === 'dead') {
       this.deadT += dt;
       const k = Math.min(1, this.deadT / 0.5);
-      this.group.rotation.z = k * (Math.PI / 2);
-      p.y = terrainHeight(p.x, p.z) + k * 0.35 * this.baseScale;
+      if (this.actions && this.actions.death) { if (this.deadT < 4.2) this.mixer.update(dt); if (this.fly) p.y = terrainHeight(p.x, p.z) + Math.max(0, this.fly * (1 - k)); }
+      else { this.group.rotation.z = k * (Math.PI / 2); p.y = terrainHeight(p.x, p.z) + k * 0.35 * this.baseScale; }
       if (this.deadT > 4) this.group.visible = false;
       if (this.deadT >= (this.respawnTime || RESPAWN_TIME)) { if (this.noRespawn) { this.removed = true; return; } this.respawn(); }
       return;
     }
 
     const dpx = player.pos.x - p.x, dpz = player.pos.z - p.z, dp = Math.hypot(dpx, dpz);
+    this.group.visible = dp < (CONFIG.isTouch ? 110 : 170);                          // sis ötesindekiler çizilmez
     if (dp > 140 && this.state === 'idle') return;          // uzaktaki canavarlar uyur
-    this.label.visible = dp < 48 && Settings.data.names;
+    this.label.visible = Settings.data.names && (combat.target === this || (this.state === 'chase' && dp < 30) || dp < 16 || this.rank === 'unique' && dp < 60);
     if (this.atkCd > 0) this.atkCd -= dt;
     if (this.attackAnim > 0) this.attackAnim = Math.max(0, this.attackAnim - dt);
     this._updateStatus(dt, combat);
     if (this.dead) return;
     if (this.disabled()) {
       this.moving = false;
+      if (this.mixer) { this._play('idle'); this.mixer.update(dt * 0.15); }
       if (this.status.knock) this.group.rotation.z = Math.min(1.2, this.group.rotation.z + dt * 8);
       p.y = terrainHeight(p.x, p.z);
       return;
@@ -433,6 +459,20 @@ class Monster {
   }
 
   _animate(dt) {
+    if (this.kind === 'gltf') {
+      const run = this.state === 'chase' || this.state === 'return';
+      if (this.attackAnim > 0 && !this._atkStarted) { this._atkStarted = true; if (!this._oneShot(this.actions.attack2 && Math.random() < 0.3 ? 'attack2' : 'attack', 1.25)) this._atkStarted = false; }
+      if (this.attackAnim <= 0) this._atkStarted = false;
+      if (this._shot) { this._shot.t -= dt * this.mixer.timeScale; if (this._shot.t <= 0) { this._shot.a.fadeOut(0.15); this._shot = null; } }
+      if (!this._shot) this._play(this.moving ? (run ? 'run' : 'walk') : 'idle');
+      this.mixer.timeScale = this.status.slow ? 0.5 : 1;
+      if (this.base && this.moving) this.base.timeScale = run ? Math.min(1.6, this.type.speed / 5.5) : 1;
+      this.mixer.update(dt);
+      if (this.headBone) this.headBone.scale.setScalar(0.74);
+      if (this.fly) this.body.position.y = this.fly + Math.sin(performance.now() * 0.002 + this.walkPhase) * 0.15;
+      if (this.tailPart) this.tailPart.rotation.x = Math.sin(performance.now() * 0.004 + this.walkPhase) * 0.08 - (this.attackAnim > 0 ? 0.5 * Math.sin((1 - this.attackAnim / 0.3) * Math.PI) : 0);
+      return;
+    }
     if (this.moving) this.walkPhase += dt * (this.state === 'chase' || this.state === 'return' ? 12 : 7);
     const s = this.moving ? Math.sin(this.walkPhase) * 0.8 : 0;
     const atk = this.attackAnim > 0 ? Math.sin((1 - this.attackAnim / 0.3) * Math.PI) : 0;

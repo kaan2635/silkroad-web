@@ -113,6 +113,7 @@ class Combat {
     if (m.dead) return;
     m.hp -= dmg;
     m.provoke();
+    if (m.onHit && m.hp > 0) m.onHit();
     this.player.combatT = 5;
     this.fx(m, String(dmg), crit ? 'crit' : dot ? 'dot' : (elem ? ELEM_CLS[elem] : 'hit'));
     if (!dot) { SFX.play(crit ? 'crit' : 'hit'); this.vfx.hit(m, elem, crit); }

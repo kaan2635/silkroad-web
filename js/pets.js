@@ -73,6 +73,12 @@ class PetSystem {
       const mane = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.4, 0.8), new THREE.MeshLambertMaterial({ color: 0x1a0a04 }));
       mane.position.set(0, 2.0, 1.0); q.group.add(mane);
       this.horse = q; this.p.group.add(q.group);
+      if (typeof MobModels !== 'undefined') MobModels.simple('horse', { h: 2.35, rot: -Math.PI / 2, colors: this.horseSpeed >= 2 ? { Main: 0xe8e4dc, Main_Light: 0xf4f0e8, Main_Dark: 0xb8b0a0, Hair: 0x3a3a3a } : null }, r => {
+        if (this.horse !== q) return;
+        for (const c of [...q.group.children]) if (c !== saddle && c !== mane) q.group.remove(c);
+        q.group.remove(mane); saddle.position.set(0, 1.62, -0.05); saddle.scale.set(0.75, 1, 0.9);
+        q.group.add(r.holder); q.legs = []; q.mixer = r.mixer; q.actions = r.actions; q.cur = null;
+      });
       this.p.model.position.y = 1.05;
       this.p.mounted = true; this.p.mountSpeed = this.horseSpeed || 1.7; this.mounted = true;
       SFX.play('step'); this.hud.log('Atına bindin. (Saldırırsan inersin.)');
@@ -158,8 +164,15 @@ class PetSystem {
     if (pl.dead) { if (this.mounted) this.toggleMount(false); }
     // at: bacak animasyonu
     if (this.horse) {
-      const s = pl.moving ? Math.sin(performance.now() * 0.018) * 0.7 : 0;
-      this.horse.legs.forEach((l, i) => { l.rotation.x = (i === 0 || i === 3 ? s : -s); });
+      const h = this.horse;
+      if (h.mixer) {
+        const want = h.actions[pl.moving ? 'run' : 'idle'] || h.actions.idle;
+        if (want && h.cur !== want) { if (h.cur) h.cur.fadeOut(0.2); want.reset().fadeIn(0.2).play(); h.cur = want; }
+        h.mixer.update(dt);
+      } else {
+        const s = pl.moving ? Math.sin(performance.now() * 0.018) * 0.7 : 0;
+        h.legs.forEach((l, i) => { l.rotation.x = (i === 0 || i === 3 ? s : -s); });
+      }
     }
     // tilki: yakındaki ganimeti topla
     const g = this.grab;

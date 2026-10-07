@@ -143,7 +143,7 @@ class NPCManager {
       const y = terrainHeight(def.x, def.z);
       g.position.set(def.x, y, def.z);
       const label = makeLabel(def.name, def.title, '#ffe08a', '#a8f0a0');
-      label.position.y = 3.3;
+      label.position.y = 3.25; label.scale.set(4.3, 1.34, 1);
       g.add(label);
       const mk = new THREE.Sprite(new THREE.SpriteMaterial({ map: this.tex['!'], transparent: true, depthTest: false }));
       mk.scale.set(1.5, 1.5, 1); mk.position.y = 4.6; mk.visible = false; mk.renderOrder = 10;
@@ -152,7 +152,7 @@ class NPCManager {
       hit.position.y = 1.5;
       g.add(hit);
       world.scene.add(g);
-      const npc = { ...def, look, group: g, model: h, hit, marker: mk, mark: null, heading: Math.atan2(-def.x, -def.z), t: Math.random() * 6, act: 0 };
+      const npc = { ...def, look, group: g, model: h, label, hit, marker: mk, mark: null, heading: Math.atan2(-def.x, -def.z), t: Math.random() * 6, act: 0 };
       hit.userData.npc = npc;
       g.rotation.y = npc.heading;
       world.obstacles.push({ x: def.x, z: def.z, r: 0.9, type: 'npc' });
@@ -185,6 +185,7 @@ class NPCManager {
       n.heading += angleDiff(n.heading, near < 14 ? Math.atan2(dx, dz) : home) * Math.min(1, dt * (near < 14 ? 6 : 1.5));
       n.group.rotation.y = n.heading;
       if (n.marker.visible) n.marker.position.y = 4.6 + Math.sin(n.t * 3) * 0.18;
+      n.label.visible = near < 24;
       const M = n.model, t = n.t, anim = n.look.anim;
       M.group.scale.y = 1 + Math.sin(t * 1.8) * 0.008;   // nefes
       let rl = Math.sin(t * 1.6) * 0.05, rr = -Math.sin(t * 1.6) * 0.05, rzr = 0.1, rzl = -0.1;

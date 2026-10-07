@@ -218,7 +218,7 @@
     startScreen.classList.add('hidden');
     document.getElementById('travel').classList.add('hidden');
     hud.show();
-    setTimeout(() => document.getElementById('help').classList.add('gone'), 30000);
+    if (sameChar) document.getElementById('help').classList.add('gone'); else setTimeout(() => document.getElementById('help').classList.add('gone'), 15000);
     started = true;
     nameInput.blur();
     hud.log('İpek Yolu\'na hoş geldin, ' + name + '!');
@@ -236,6 +236,9 @@
   nameInput.addEventListener('keydown', e => { if (e.key === 'Enter') start(); });
 
   // --- Tıklama / dokunma: önce canavar, sonra zemin ---
+  const ctxBtn = document.getElementById('ctx-btn');
+  let ctxNpc = null, fDown = false;
+  ctxBtn.addEventListener('click', () => { if (ctxNpc) { ui.openNpc(ctxNpc); ctxNpc = null; ctxBtn.classList.add('hidden'); } });
   function handleClicks() {
     for (const c of input.clicks) {
       if (player.dead) continue;
@@ -282,9 +285,17 @@
       quests.update();
       ui.update();
       if (wmap.open) wmap.draw();
+      // yakındaki NPC için bağlam düğmesi (F / dokun)
+      {
+        let near = null, nd = NPC_RANGE;
+        if (!ui.npc && !player.dead) for (const n of npcs.list) { const d = Math.hypot(player.pos.x - n.x, player.pos.z - n.z); if (d < nd) { nd = d; near = n; } }
+        if (near !== ctxNpc) { ctxNpc = near; ctxBtn.classList.toggle('hidden', !near); if (near) ctxBtn.innerHTML = (CONFIG.isTouch ? '' : '<b>F</b> ') + near.name + ' <small>' + near.title + '</small>'; }
+        if (near && input.isDown('KeyF') && !fDown) { ui.openNpc(near); }
+        fDown = input.isDown('KeyF');
+      }
       if (pendingNpc) {
         const d = Math.hypot(player.pos.x - pendingNpc.x, player.pos.z - pendingNpc.z);
-        if (player.manualMove || player.dead) pendingNpc = null;
+        if (player.manualMove || player.dead || (!player.target && d >= NPC_RANGE)) pendingNpc = null;
         else if (d < NPC_RANGE) { player.target = null; ui.openNpc(pendingNpc); pendingNpc = null; }
       }
       for (const pt of world.portals) if (!player.dead && Math.hypot(player.pos.x - pt.x, player.pos.z - pt.z) < 4) { travel(pt.zone, pt.arrive); break; }

@@ -89,9 +89,16 @@ class HUD {
     const d = document.createElement('div');
     d.className = cls; d.textContent = msg;
     if (color) d.style.color = color;
+    const last = this.el.log.lastChild;
+    if (last && last._msg === msg) {           // aynı mesaj tekrarlanırsa sayaç
+      last._n = (last._n || 1) + 1; last.textContent = msg + '  ×' + last._n;
+      last.style.animation = 'none'; void last.offsetWidth; last.style.animation = '';
+      clearTimeout(last._t); last._t = setTimeout(() => last.remove(), 7000); return;
+    }
+    d._msg = msg;
     this.el.log.appendChild(d);
-    while (this.el.log.children.length > (CONFIG.isTouch ? 3 : 6)) this.el.log.removeChild(this.el.log.firstChild);
-    setTimeout(() => d.remove(), 9000);
+    while (this.el.log.children.length > (CONFIG.isTouch ? 3 : 5)) this.el.log.removeChild(this.el.log.firstChild);
+    d._t = setTimeout(() => d.remove(), 7000);
   }
 
   floatText(pos, text, cls = '') {
@@ -100,7 +107,7 @@ class HUD {
     el.textContent = text;
     this.el.fx.appendChild(el);
     this.floats.push({ el, x: pos.x, y: pos.y, z: pos.z, t: 0, life: cls === 'lvl' ? 2.2 : 1.1 });
-    if (this.floats.length > 50) { const f = this.floats.shift(); f.el.remove(); }
+    if (this.floats.length > 30) { const f = this.floats.shift(); f.el.remove(); }
   }
 
   _updateFloats(dt) {

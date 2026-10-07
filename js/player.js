@@ -35,8 +35,12 @@ function buildHumanoid(o) {
   const skin = new THREE.MeshLambertMaterial({ color: o.skin || 0xe8b98a });
   const add = (parent, mesh, x, y, z) => { mesh.position.set(x, y, z); mesh.castShadow = true; parent.add(mesh); return mesh; };
 
-  const body = add(g, new THREE.Mesh(new THREE.CylinderGeometry(0.4, 0.52, 0.95, 10), robe), 0, 1.28, 0);       // gövde
-  add(g, new THREE.Mesh(new THREE.CylinderGeometry(0.43, 0.43, 0.14, 10), robeDark), 0, 1.0, 0);   // kemer
+  const body = add(g, new THREE.Mesh(new THREE.CylinderGeometry(0.36, 0.32, 0.62, 14), robe), 0, 1.5, 0);         // göğüs
+  add(g, new THREE.Mesh(new THREE.CylinderGeometry(0.32, 0.36, 0.3, 14), robe), 0, 1.06, 0);                         // karın
+  add(g, new THREE.Mesh(new THREE.CylinderGeometry(0.37, 0.37, 0.12, 14), robeDark), 0, 1.0, 0);                    // kemer
+  add(g, new THREE.Mesh(new THREE.CylinderGeometry(0.37, 0.44, 0.3, 14), robe), 0, 0.82, 0);                         // etek ucu
+  add(g, new THREE.Mesh(new THREE.SphereGeometry(0.4, 14, 8), robe), 0, 1.8, 0).scale.set(1.08, 0.42, 0.78);           // omuzlar
+  add(g, new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.12, 0.16, 8), skin), 0, 1.92, 0);                          // boyun
   add(g, new THREE.Mesh(new THREE.SphereGeometry(0.27, 12, 10), skin), 0, 2.0, 0);                  // kafa
   {                                                                                                  // yüz ve saç
     const dark = new THREE.MeshLambertMaterial({ color: 0x1a1410 });
@@ -51,17 +55,15 @@ function buildHumanoid(o) {
   if (o.hat === 'straw') hat = add(g, new THREE.Mesh(new THREE.ConeGeometry(0.75, 0.42, 14), new THREE.MeshLambertMaterial({ color: 0xd8b66a })), 0, 2.4, 0);
   if (o.hat === 'band') hat = add(g, new THREE.Mesh(new THREE.CylinderGeometry(0.285, 0.285, 0.1, 12), new THREE.MeshLambertMaterial({ color: 0xc0302a })), 0, 2.1, 0);
 
-  const limb = (w, h, d, mat, x, y) => {
-    const pivot = new THREE.Group(); pivot.position.set(x, y, 0);
-    const m = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), mat);
-    m.position.y = -h / 2; m.castShadow = true; pivot.add(m);
-    g.add(pivot);
-    return pivot;
-  };
-  const legL = limb(0.28, 0.82, 0.3, robeDark, -0.2, 0.82);
-  const legR = limb(0.28, 0.82, 0.3, robeDark, 0.2, 0.82);
-  const armL = limb(0.2, 0.78, 0.2, robe, -0.6, 1.66);
-  const armR = limb(0.2, 0.78, 0.2, robe, 0.6, 1.66);
+  // uzuvlar: yuvarlak hatlı kol ve bacaklar (pivot omuz / kalçada)
+  const piv = (x, y) => { const p = new THREE.Group(); p.position.set(x, y, 0); g.add(p); return p; };
+  const part = (p, geo, mat, y, z = 0) => { const m = new THREE.Mesh(geo, mat); m.position.set(0, y, z); m.castShadow = true; p.add(m); return m; };
+  const boots = new THREE.MeshLambertMaterial({ color: 0x2a1c12 });
+  const leg = x => { const p = piv(x, 0.82); part(p, new THREE.CylinderGeometry(0.15, 0.125, 0.46, 10), robeDark, -0.22); part(p, new THREE.CylinderGeometry(0.12, 0.1, 0.4, 10), robeDark, -0.58); part(p, new THREE.BoxGeometry(0.2, 0.12, 0.32), boots, -0.77, 0.05); return p; };
+  const arm = x => { const p = piv(x, 1.72); part(p, new THREE.SphereGeometry(0.13, 10, 8), robe, -0.02); part(p, new THREE.CylinderGeometry(0.115, 0.1, 0.42, 10), robe, -0.22); part(p, new THREE.CylinderGeometry(0.1, 0.085, 0.36, 10), robe, -0.56); part(p, new THREE.SphereGeometry(0.08, 8, 6), skin, -0.79); return p; };
+  const legL = leg(-0.19), legR = leg(0.19);
+  const armL = arm(-0.5), armR = arm(0.5);
+  armL.rotation.z = -0.08; armR.rotation.z = 0.08;
 
   const hand = new THREE.Group(); hand.position.set(0, -0.78, 0); armR.add(hand);
   const handL = new THREE.Group(); handL.position.set(0, -0.72, 0.05); armL.add(handL);
@@ -145,7 +147,7 @@ class Player {
     this.name = name;
     if (this.label) { this.group.remove(this.label); this.label.material.map.dispose(); this.label.material.dispose(); }
     this.label = makeLabel(name, 'Sv. ' + this.stats.level);
-    this.label.position.y = 3.3;
+    this.label.position.y = 3.3; this.label.visible = false;   // kendi adın sol üstte; ekranı boğmasın
     this.group.add(this.label);
   }
 
@@ -291,9 +293,41 @@ class Player {
       dx = -sy * f + cy * r;
       dz = -cy * f - sy * r;
     } else if (this.target) {
-      dx = this.target.x - pos.x; dz = this.target.z - pos.z;
+      // hedef bir engelin içindeyse kenarına çek
+      if (this.target !== this._fixedT) {
+        if (!this._fixedT || Math.hypot(this.target.x - this._fixedT.x, this.target.z - this._fixedT.z) > 3) {
+          this.detour = null; this.unstuck = 0;
+          this.path = typeof Nav !== 'undefined' ? Nav.path(this.world, pos.x, pos.z, this.target.x, this.target.z) : null;
+        }
+        this._fixedT = this.target;
+        for (const o of this.world.obstacles) {
+          const ox = this.target.x - o.x, oz = this.target.z - o.z, d = Math.hypot(ox, oz), min = o.r + 0.5;
+          if (d < min) { const ax = pos.x - o.x, az = pos.z - o.z, al = Math.hypot(ax, az) || 1; this.target.x = o.x + ax / al * min; this.target.z = o.z + az / al * min; }
+        }
+      }
+      if (this.path && this.path.length > 1 && Math.hypot(this.path[0].x - pos.x, this.path[0].z - pos.z) < 0.6) this.path.shift();
+      const tgt = this.detour || (this.path && this.path.length > 1 ? this.path[0] : this.target);
+      dx = tgt.x - pos.x; dz = tgt.z - pos.z;
       targetDist = Math.hypot(dx, dz);
-      if (targetDist < 0.25) { this.target = null; dx = dz = 0; }
+      if (this.detour) { this.detour.t -= dt; if (targetDist < 0.4 || this.detour.t <= 0) { this.detour = null; } }
+      else if (targetDist < 0.25 && tgt === this.target) { this.target = null; this.path = null; dx = dz = 0; }
+      // önündeki engelin etrafından dolaş
+      if (this.target && targetDist > 0.5) {
+        const L = Math.hypot(dx, dz), ux = dx / L, uz = dz / L;
+        let best = null, bt = 1e9;
+        for (const o of this.world.obstacles) {
+          const ox = o.x - pos.x, oz = o.z - pos.z;
+          if (Math.abs(ox) > 6 + o.r || Math.abs(oz) > 6 + o.r) continue;
+          const t = ox * ux + oz * uz; if (t <= 0 || t > Math.min(L, 2.5 + o.r)) continue;
+          const perp = Math.abs(ox * uz - oz * ux); if (perp > o.r + 0.55) continue;
+          if (t < bt) { bt = t; best = o; }
+        }
+        if (best) {
+          const ox = best.x - pos.x, oz = best.z - pos.z, side = (ox * uz - oz * ux) > 0 ? -1 : 1;
+          const k = 1.6;
+          dx = ux + uz * side * k; dz = uz - ux * side * k;
+        }
+      }
     }
 
     const len = Math.hypot(dx, dz);
@@ -314,8 +348,13 @@ class Player {
       pos.x = clamp(pos.x, -lim, lim); pos.z = clamp(pos.z, -lim, lim);
 
       const moved = Math.hypot(pos.x - px, pos.z - pz);
-      if (this.target && moved < step * 0.25) { this.stuckT += dt; if (this.stuckT > 0.4) { this.target = null; this.stuckT = 0; } }
-      else this.stuckT = 0;
+      if (this.target && moved < step * 0.25) {
+        this.stuckT += dt;
+        if (this.stuckT > 0.35 && !this.detour && (this.unstuck = (this.unstuck || 0) + 1) <= 3) {   // yana kaçış noktası dene
+          const a = Math.atan2(dx, dz) + (this.unstuck % 2 ? 1 : -1) * (1.2 + this.unstuck * 0.25);
+          this.detour = { x: pos.x + Math.sin(a) * 3, z: pos.z + Math.cos(a) * 3, t: 0.9 }; this.stuckT = 0;
+        } else if (this.stuckT > 0.6) { this.target = null; this.detour = null; this.stuckT = 0; this.unstuck = 0; }
+      } else { this.stuckT = 0; if (!this.detour && moved > step * 0.8) this.unstuck = 0; }
     }
 
     pos.y = terrainHeight(pos.x, pos.z);

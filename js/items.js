@@ -138,7 +138,7 @@ Object.assign(ITEM_BASES, {
   pet_pot:  { cat: 'use', use: 'petpot', icon: '🍖', name: 'Evcil Can İksiri', stack: 100, value: 40, sub: 'Savaş kurdunun canını yeniler', cd: 'petpot' },
   sg:     { cat: 'quest', icon: '💰', name: 'Çalıntı Mal', stack: 100, value: 0, sub: 'Hırsız Simsarı\'na sat' },
   q_scale: { cat: 'quest', icon: '🐍', name: 'Yılan Pulu', stack: 50, value: 0, sub: 'Görev eşyası' },
-  q_fur: { cat: 'quest', icon: '🐻', name: 'Ayı Postu', stack: 50, value: 0, sub: 'Görev eşyası' }
+  q_fur: { cat: 'quest', icon: '🐻', name: 'Yeti Postu', stack: 50, value: 0, sub: 'Görev eşyası' }
 });
 for (const k in BLUES) ITEM_BASES['ms_' + k] = { cat: 'mat', icon: '🔮', name: 'Büyü Taşı (' + BLUES[k].name + ')', stack: 50, value: 600, sub: 'Simya: eşyaya ' + BLUES[k].name + ' mavi statı ekler/artırır', stone: k };
 

@@ -337,6 +337,9 @@ class UI {
     if (open) {
       // dar ekranda tek pencere
       if (window.innerWidth < 900) for (const o in this.w) if (o !== k && o !== 'npc' && this.isOpen(o)) this.w[o].classList.add('hidden');
+      // geniş ekranda en çok iki pencere: en eskisi kapanır (ekranı boğmasın)
+      this._order = (this._order || []).filter(o => o !== k && this.isOpen(o)); this._order.push(k);
+      while (this._order.filter(o => o !== 'npc').length > 2) { const o = this._order.shift(); if (o !== 'npc') this.w[o].classList.add('hidden'); }
       if (k === 'inv') { this.sel = null; this.confirmDrop = false; }
       if (k === 'alc' && !this.alc.sel) { const w = this.inv.equip.weapon; this.alc.sel = w ? 'eq:weapon' : null; }
       this.refresh();

@@ -59,14 +59,14 @@ class LootManager {
       g.add(ring);
     }
     const label = makeLabel(m.text, m.sub, m.color, '#d8d8d8');
-    label.scale.set(3.4, 1.06, 1);
+    label.scale.set(2.7, 0.84, 1);
     label.position.y = 2.1;
     g.add(label);
     const hit = new THREE.Mesh(this.geo.hit, new THREE.MeshBasicMaterial({ visible: false }));
     hit.position.y = 0.9;
     g.add(hit);
     this.world.scene.add(g);
-    const d = { kind, group: g, mesh: m.mesh, label, hit, x, z, y, age: 0, cool: 0, bob: Math.random() * 6, ...data };
+    const d = { kind, group: g, mesh: m.mesh, label, hit, x, z, y, age: 0, cool: 0, bob: Math.random() * 6, rare: !!(m.beam || (data.item && data.item.plus)), ...data };
     if (data.from) {   // canavardan fırlayarak düşer
       d.pop = 0.45; d.fx = data.from.x; d.fz = data.from.z; d.cool = 0.5;
       g.position.set(d.fx, terrainHeight(d.fx, d.fz), d.fz);
@@ -79,7 +79,7 @@ class LootManager {
 
   remove(d) {
     this.world.scene.remove(d.group);
-    const shared = new Set([...Object.values(_dropGeo), ...Object.values(this.geo)]);
+    const shared = new Set([...Object.values(_dropGeo), ...Object.values(this.geo), ...Object.values(_wGeo)]);
     d.group.traverse(o => { if (o.isMesh) { if (!shared.has(o.geometry)) o.geometry.dispose(); if (o.material && o.material.dispose) o.material.dispose(); } });
     if (d.label.material.map) d.label.material.map.dispose();
     d.label.material.dispose();
@@ -170,7 +170,7 @@ class LootManager {
       d.mesh.rotation.y += dt * 1.6;
       d.mesh.position.y = 0.8 + Math.sin(d.bob) * 0.15;
       const dist = Math.hypot(d.x - p.pos.x, d.z - p.pos.z);
-      d.label.visible = dist < 30;
+      d.label.visible = dist < (d.rare ? 30 : 11);
       const range = PICKUP_RANGE + (p.pickRange || 0);
       if (!p.dead && d.cool <= 0 && dist < range) this._collect(d);
     }

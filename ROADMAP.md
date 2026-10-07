@@ -82,6 +82,18 @@ Tarayıcıda çalışan, Silkroad Online tarzı (ipek yolu temalı, tıkla-yür�
 - [x] Yatay yetenek ağacı (ustalık seviyesine göre basamaklar, kademe noktaları, ayrıntı paneli), sürükle-bırak hotbar
 - [x] Büyü efektleri: parçacık sistemi, element izli mermiler, buz dikenleri, dallı yıldırım, göktaşı, rün çemberi, aşılanmış silah parıltısı, berserk alevi, vuruş kıvılcımları
 
+**5G — Şehir, NPC, eşya ve ekonomi (TAMAM)**
+- [x] Çin mimarisi: kıvrık saçaklı salonlar, pagoda, takı kapılar, kuleler; bölgeye göre üslup; dükkân tabelaları
+- [x] NPC'ler dükkânlarının önünde, rol eşyaları ve hareketleriyle; dolaşan halk; F / dokun ile konuşma düğmesi
+- [x] Eşya ikon çeşitleri (derece, zırh türü, kademe çerçevesi), 3D ganimet modelleri
+- [x] Ekonomi: talep endeksi, vergi, doygunluk, geri alım, Emanet Pazarı, hesap defteri
+
+**5H — Gerçekçi modeller ve kolay kullanım (TAMAM)**
+- [x] İskeletli, animasyonlu canavar modelleri (bekleme, yürüme, koşma, saldırı, darbe, ölüm) ve at
+- [x] Profilden çekilmiş silahlar (jian, dao, mızrak, guandao, kompozit yay), metal parlaklığı; yeni zırh parçaları ve gövde
+- [x] Tıklayınca binaların etrafından dolaşan yol bulma (A*), takılma kurtarma
+- [x] Sade ekran: yakındaki / hedef canavar adları, kısa günlük ve tekrar sayacı, en çok iki pencere
+
 ## Faz 6 — Çok Oyunculu Altyapı
 - [ ] Node.js + WebSocket sunucusu, sunucu otoriteli hareket ve savaş
 - [ ] Hesap/giriş, karakter kaydı sunucuda

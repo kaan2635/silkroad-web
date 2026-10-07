@@ -70,6 +70,14 @@ Yetenek veya iksiri hotbara koymak için pencerede **📌**'a bas, sonra bir yuv
 **Evcil hayvanlar (P)**
 - Toplayıcı Tilki (yeni karakterle gelir) ve Altın Sincap yerdeki ganimeti toplar; filtre (hepsi / eşya / ekipman / altın), envanter dolarsa evcil çantası (16 / 32 yuva)
 
+**Görünüm**
+- Animasyonlu canavarlar (Quaternius / KayKit CC0), Çin tarzı şehirler, dükkân önlerinde NPC'ler ve dolaşan halk
+- Profilden çekilmiş silahlar, plakalı zırhlar, yerdeki ganimetin kendi modeli
+
+**Ekonomi (Pazar Ağası)**
+- Saatlik değişen talep endeksi, şehir vergisi, günün indirimi, çok satınca düşen NPC fiyatı, geri alım
+- Emanet Pazarı: eşyanı fiyat koyup ilana çıkar (oyun kapalıyken de satılır), diğer tüccarların ilanlarından al; hesap defteri
+
 **Arayüz ve efektler**
 - Silkroad tarzı pencereler ve boyalı ikonlar; ekrana göre otomatik ölçek ve ayarlardan arayüz boyutu; pencereler masaüstünde sürüklenir, yerini hatırlar
 - Buff ikonlarında kalan süre halkası, ipuçları, yatay yetenek ağacı, yetenekleri ve iksirleri hotbara sürükleyip bırakma
