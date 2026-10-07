@@ -1,19 +1,19 @@
-// Hotbar: 2 sayfa x 8 yuva. Yuva: { t: 'atk' } | { t: 'zerk' } | { t: 'sk', id } | { t: 'it', base }
-// Masaüstü: 1–8 (Shift+1–8 = diğer sayfa), F1/F2 sayfa. Mobil: ⇅ düğmesi sayfa değiştirir.
+// Hotbar: 4 sayfa x 8 yuva (iSRO gibi). Yuva: { t: 'atk' } | { t: 'zerk' } | { t: 'sk', id } | { t: 'it', base }
+// Masaüstü: 1–8 (Shift+1–8 = sonraki sayfa), F1–F4 sayfa. Mobil: ⇅ düğmesi sayfa değiştirir.
 // Yerleştirme modu: Yetenek / envanter penceresinde "📌" → bir yuvaya dokun.
-const HOTBAR_SLOTS = 8;
+const HOTBAR_SLOTS = 8, HOTBAR_PAGES = 4;
 
 class Hotbar {
   constructor(player) {
     this.p = player;
     this.page = 0;
-    this.pages = [new Array(HOTBAR_SLOTS).fill(null), new Array(HOTBAR_SLOTS).fill(null)];
+    this.pages = Array.from({ length: HOTBAR_PAGES }, () => new Array(HOTBAR_SLOTS).fill(null));
     this.placing = null;       // yerleştirilecek giriş
     this.onChange = null;
     this.reset();
   }
   reset() {
-    this.pages = [new Array(HOTBAR_SLOTS).fill(null), new Array(HOTBAR_SLOTS).fill(null)];
+    this.pages = Array.from({ length: HOTBAR_PAGES }, () => new Array(HOTBAR_SLOTS).fill(null));
     this.pages[0][0] = { t: 'atk' };
     this.pages[0][5] = { t: 'it', base: 'hp1' };
     this.pages[0][6] = { t: 'it', base: 'mp1' };
@@ -21,7 +21,8 @@ class Hotbar {
     this.pages[1][7] = { t: 'it', base: 'pill' };
   }
   get(page, i) { return this.pages[page] ? this.pages[page][i] : null; }
-  setPage(p) { this.page = clamp(p, 0, 1); this.changed(); }
+  setPage(p) { this.page = ((p % HOTBAR_PAGES) + HOTBAR_PAGES) % HOTBAR_PAGES; this.changed(); }
+  nextPage() { return (this.page + 1) % HOTBAR_PAGES; }
   changed() { if (this.onChange) this.onChange(); }
   same(a, b) { return a && b && a.t === b.t && a.id === b.id && a.base === b.base; }
   has(e) { return this.pages.some(pg => pg.some(x => this.same(x, e))); }
@@ -34,7 +35,7 @@ class Hotbar {
   // İlk boş yuvaya koy (yeni öğrenilen yetenek için)
   autoPlace(e) {
     if (this.has(e)) return true;
-    for (let p = 0; p < 2; p++) for (let i = 0; i < HOTBAR_SLOTS; i++) if (!this.pages[p][i]) { this.pages[p][i] = e; this.changed(); return true; }
+    for (let p = 0; p < HOTBAR_PAGES; p++) for (let i = 0; i < HOTBAR_SLOTS; i++) if (!this.pages[p][i]) { this.pages[p][i] = e; this.changed(); return true; }
     return false;
   }
   // Silinen / değişen iksir derecesi: hp1 → hp2 gibi daha iyi iksire geçir
@@ -57,8 +58,8 @@ class Hotbar {
       if (v.startsWith('i:') && ITEM_BASES[v.slice(2)]) return { t: 'it', base: v.slice(2) };
       return null;
     };
-    this.pages = [0, 1].map(p => { const a = new Array(HOTBAR_SLOTS).fill(null); (d.p[p] || []).slice(0, HOTBAR_SLOTS).forEach((v, i) => { a[i] = dec(v); }); return a; });
-    this.page = d.pg === 1 ? 1 : 0;
+    this.pages = Array.from({ length: HOTBAR_PAGES }, (_, p) => { const a = new Array(HOTBAR_SLOTS).fill(null); (d.p[p] || []).slice(0, HOTBAR_SLOTS).forEach((v, i) => { a[i] = dec(v); }); return a; });
+    this.page = clamp(d.pg | 0, 0, HOTBAR_PAGES - 1);
     this.changed();
   }
   // Giriş görünümü

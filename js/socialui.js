@@ -165,6 +165,7 @@ function initSocialUI(ui, soc) {
   }
   soc.openChat = openChat;
   ui.w.chat.addEventListener('click', e => {
+    const em = e.target.closest('[data-emo]'); if (em) { soc.emote(em.dataset.emo); SFX.play('ui'); return; }
     const t = e.target.closest('[data-ch]'); if (t) { st.chatTab = t.dataset.ch; SFX.play('tab'); refreshChat(); return; }
     const w = e.target.closest('[data-wn]'); if (w && w.dataset.wn !== pl.name) { st.chatTab = 'whisper'; st.lastWhisper = w.dataset.wn; refreshChat(); $('chat-input').focus(); }
   });
@@ -234,9 +235,10 @@ function initSocialUI(ui, soc) {
 
   // ---------- Küçük pencereler ----------
   function openDlg(kind, sim) { st.dlg = { kind, sim }; ui.toggle('dlg', true); refreshDlg(); }
+  soc.openRename = () => openDlg('rename', { bot: { name: '' } });
   function refreshDlg() {
     const d = st.dlg; if (!d) return;
-    const sim = d.sim, b = sim.bot;
+    const sim = d.sim, b = sim && sim.bot;
     let h = '';
     if (d.kind === 'info') {
       $('dlg-title').textContent = b.name;
@@ -250,6 +252,9 @@ function initSocialUI(ui, soc) {
       h += '<p class="soc-hint">Altının: <b>' + fmt(pl.stats.gold) + '</b></p>';
       list.forEach((x, i) => { const n = itemInfo(x.it); h += row(itemIcon(x.it.base), '<span style="color:' + n.color + '">' + esc(n.name) + (x.it.n > 1 ? ' x' + x.it.n : '') + '</span>', (n.stack ? n.sub : (itemStatText(n) + (n.req ? ' · Sv. ' + n.req : ''))), '<span class="price">' + fmt(x.price) + '</span>' + btn('buy', 'Al', 'small', ' data-i="' + i + '"')); });
       if (!list.length) h += '<p class="soc-empty">Tezgâh boşaldı. Bir saat sonra yeniden dolar.</p>';
+    } else if (d.kind === 'rename') {
+      $('dlg-title').textContent = 'Ad Değiştir';
+      h += '<p class="soc-hint">Yeni karakter adı (3–16 harf). Parşömen kullanılınca tükenir.</p><div class="soc-form"><input id="rn-input" maxlength="16" value="' + esc(pl.name) + '"><button data-sa="rnok">Değiştir</button></div>';
     } else if (d.kind === 'trade') {
       $('dlg-title').textContent = 'Takas · ' + b.name;
       const T = st.trade, items = T.sel.map(i => pl.inv.slots[i]).filter(Boolean);
@@ -266,6 +271,15 @@ function initSocialUI(ui, soc) {
     const ts = e.target.closest('[data-tsel]');
     if (ts) { const i = +ts.dataset.tsel, T = st.trade; T.sel = T.sel.includes(i) ? T.sel.filter(x => x !== i) : T.sel.concat(i); SFX.play('ui'); refreshDlg(); return; }
     const b = e.target.closest('[data-sa]'); if (!b || b.classList.contains('dis')) return;
+    if (b.dataset.sa === 'rnok') {
+      const nm = ($('rn-input').value || '').trim().replace(/[<>"&]/g, '');
+      if (nm.length < 3) { say({ ok: false, msg: 'Ad en az 3 harf olmalı.' }); return; }
+      if (Roster.some(x => x.name.toLowerCase() === nm.toLowerCase())) { say({ ok: false, msg: 'Bu ad kullanılıyor.' }); return; }
+      if (!pl.inv.take('rename', 1)) { say({ ok: false, msg: 'Ad Değiştirme Parşömeni yok.' }); return; }
+      const old = pl.name; pl.setName(nm); if (Eco.s) Eco.s.name = nm;
+      soc.chat.add('global', null, old + ' artık ' + nm + ' adını kullanıyor.');
+      say({ ok: true, msg: 'Yeni adın: ' + nm }); ui.toggle('dlg', false); return;
+    }
     if (b.dataset.sa === 'buy') say(soc.buyStall(d.sim, +b.dataset.i));
     else if (b.dataset.sa === 'tok') { const items = st.trade.sel.map(i => pl.inv.slots[i]).filter(Boolean); soc.tradeDo(d.sim.bot.id, st.trade.sel, soc.tradeOffer(d.sim.bot.id, items)); st.trade.sel = []; ui.toggle('dlg', false); return; }
     else if (b.dataset.sa === 'tno') { ui.toggle('dlg', false); return; }

@@ -25,6 +25,20 @@ const TRADE_GOODS = {
 const goodOrigin = base => ZONE_ORDER.find(z => TRADE_GOODS[z].base === base);
 
 // Kervan / taşıyıcı varlığı (canavarların saldırabileceği hedef)
+// Taşıyıcılar (iSRO: deve, öküz arabası, ticaret arabası): kapasite ve dayanıklılık çarpanları
+const TRANSPORTS = {
+  camel: { name: 'Kervan Devesi', cap: 1, hp: 1, armor: 0.6 },
+  ox:    { name: 'Öküz Arabası', cap: 1.6, hp: 1.8, armor: 0.5, cart: 0x7a5a3a },
+  wagon: { name: 'Ticaret Arabası', cap: 2.2, hp: 1.5, armor: 0.45, cart: 0x8a2a1a }
+};
+function addCart(group, color) {
+  const g = new THREE.Group(), wood = new THREE.MeshLambertMaterial({ color }), dark = new THREE.MeshLambertMaterial({ color: 0x2a1a0e });
+  const bed = new THREE.Mesh(new THREE.BoxGeometry(1.6, 0.5, 2.0), wood); bed.position.set(0, 1.0, -2.4); g.add(bed);
+  const cover = new THREE.Mesh(new THREE.CylinderGeometry(0.85, 0.85, 1.9, 10, 1, true, 0, Math.PI), new THREE.MeshLambertMaterial({ color: 0xe8dcc0, side: THREE.DoubleSide })); cover.rotation.z = Math.PI / 2; cover.rotation.y = Math.PI / 2; cover.position.set(0, 1.25, -2.4); g.add(cover);
+  for (const sx of [-1, 1]) for (const sz of [-1.9, -2.9]) { const w = new THREE.Mesh(new THREE.CylinderGeometry(0.45, 0.45, 0.12, 12), dark); w.rotation.z = Math.PI / 2; w.position.set(sx * 0.86, 0.45, sz); g.add(w); }
+  for (const sx of [-1, 1]) { const sh = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.08, 1.6), dark); sh.position.set(sx * 0.4, 0.95, -0.9); g.add(sh); }
+  group.add(g);
+}
 class CaravanEnt {
   constructor(world, x, z, hp, label, sub) {
     this.world = world;
@@ -119,7 +133,7 @@ class JobSystem {
   }
 
   // ---------- Tüccar ----------
-  capacity() { return 20 + 10 * (this.level() - 1); }
+  capacity() { return Math.round((20 + 10 * (this.level() - 1)) * (TRANSPORTS[this.trKind || 'camel'] || TRANSPORTS.camel).cap); }
   cargoCount() { let n = 0; for (const k in this.cargo) n += this.cargo[k]; return n; }
   // Bugünkü fiyat: uzak şehirde daha pahalı, günlük ±%8 dalgalanma
   price(base, zone = CUR_ZONE_ID) {
@@ -156,13 +170,16 @@ class JobSystem {
     this.changed();
     return { ok: true, msg: 'Mallar satıldı: +' + rev.toLocaleString('tr-TR') + ' altın (' + (profit >= 0 ? 'kâr ' : 'zarar ') + Math.abs(profit).toLocaleString('tr-TR') + ')' };
   }
-  summonTransport(hp) {
+  summonTransport(hp, kind) {
+    kind = TRANSPORTS[kind] ? kind : this.trKind || 'camel';
     if (this.job !== 'trader') { this.hud.log('Kervan devesi sadece Tüccarlar içindir.'); return false; }
-    if (this.transport) { this.hud.log('Deven zaten yanında.'); return false; }
+    if (this.transport) { if (this.cargoCount() || this.trKind === kind) { this.hud.log('Taşıyıcın zaten yanında.'); return false; } this.transport.remove(); this.transport = null; }
     if (this.p.mounted && this.combat.pets) this.combat.pets.toggleMount(false);
     const L = this.p.stats.level, P = this.p.pos;
-    const t = this.transport = new CaravanEnt(this.world, P.x - 2, P.z - 2, 400 + 150 * L, 'Kervan Devesi', '');
-    t.armor = 0.6;
+    const T = TRANSPORTS[kind]; this.trKind = kind;
+    const t = this.transport = new CaravanEnt(this.world, P.x - 2, P.z - 2, Math.round((400 + 150 * L) * T.hp), T.name, '');
+    t.armor = T.armor;
+    if (T.cart) addCart(t.group, T.cart);
     if (hp) t.hp = Math.min(t.maxHp, hp);
     t.onHurt = d => { this.hud.floatText({ x: t.x, y: t.group.position.y + 3, z: t.z }, '-' + d, 'player'); this._trLabel(); };
     t.onDie = () => {
@@ -182,7 +199,7 @@ class JobSystem {
     if (this.cargoCount()) return this.hud.log('Yüklü deveyi gönderemezsin. Önce malları sat.');
     this.transport.remove(); this.transport = null; this.changed();
   }
-  _trLabel() { const t = this.transport; if (t) t.setLabel('Kervan Devesi', 'Yük ' + this.cargoCount() + '/' + this.capacity() + ' · Can ' + Math.ceil(t.hp) + '/' + t.maxHp); }
+  _trLabel() { const t = this.transport; if (t) t.setLabel((TRANSPORTS[this.trKind || 'camel'] || TRANSPORTS.camel).name, 'Yük ' + this.cargoCount() + '/' + this.capacity() + ' · Can ' + Math.ceil(t.hp) + '/' + t.maxHp); }
 
   // Hırsız baskını: mallar yanındaysa ve şehir dışındaysan
   _spawnThieves(target, n, lvl) {
@@ -309,13 +326,14 @@ class JobSystem {
     return 'Kervan soygunu · deveyi düşür';
   }
 
-  serialize() { return { j: this.job, e: this.jexp, c: this.cargo, cc: this.cargoCost, tr: this.transport ? Math.ceil(this.transport.hp) : 0 }; }
+  serialize() { return { j: this.job, e: this.jexp, c: this.cargo, cc: this.cargoCost, tr: this.transport ? Math.ceil(this.transport.hp) : 0, tk: this.trKind || 'camel' }; }
   load(d) {
     if (!d) return;
     this.job = JOBS[d.j] ? d.j : null; this.jexp = Math.max(0, d.e | 0);
     this.cargo = {}; for (const k in d.c || {}) if (goodOrigin(k)) this.cargo[k] = Math.max(0, d.c[k] | 0);
     this.cargoCost = Math.max(0, d.cc | 0);
     if (this.job) this.p.setCape(JOBS[this.job].cape);
-    if (this.job === 'trader' && (d.tr > 0 || this.cargoCount())) this.summonTransport(d.tr || null);
+    this.trKind = TRANSPORTS[d.tk] ? d.tk : 'camel';
+    if (this.job === 'trader' && (d.tr > 0 || this.cargoCount())) this.summonTransport(d.tr || null, this.trKind);
   }
 }

@@ -150,6 +150,15 @@ class Player {
 
   get pos() { return this.group.position; }
 
+  // Otur / kalk (X)
+  toggleSit() {
+    if (this.dead || this.mounted) return false;
+    if (!this.sitting && this.combatT > 0) return 'Savaşta oturamazsın.';
+    this.sitting = !this.sitting; this.emote = null; this.target = null;
+    return true;
+  }
+  doEmote(kind) { if (this.dead || this.mounted) return; this.sitting = false; this.target = null; this.emote = { kind, t: kind === 'dance' ? 6 : 3 }; }
+
   // Irk: 'ch' Çin / 'eu' Avrupa — görünüm, eşya ve ustalıklar buna göre
   setRace(r) {
     this.race = r === 'eu' ? 'eu' : 'ch'; RACE = this.race; this.book.race = this.race;
@@ -315,6 +324,7 @@ class Player {
     if (jl > 0.2) { f = -input.joy.y; r = input.joy.x; }
     if (this.disabled()) { f = r = 0; this.target = null; }
     this.manualMove = !!(f || r);
+    if ((this.manualMove || this.target) && (this.sitting || this.emote)) { this.sitting = false; this.emote = null; }
 
     let dx = 0, dz = 0, targetDist = Infinity;
     if (this.manualMove) {
@@ -424,6 +434,22 @@ class Player {
     if (this.d.wtype === 'bow' && !this.moving && this.swingT <= 0) { this.armL.rotation.x = -0.4; }
     if (this.mounted) { this.legL.rotation.x = -1.3; this.legR.rotation.x = -1.3; this.legL.rotation.z = -0.35; this.legR.rotation.z = 0.35; this.armL.rotation.x = -0.6; if (this.swingT <= 0) this.armR.rotation.x = -0.6; }
     else { this.legL.rotation.z = 0; this.legR.rotation.z = 0; }
+    // oturma ve el hareketleri (iSRO: X ile oturunca hızlı yenilenme)
+    this.model.rotation.y = 0; this.model.rotation.x = 0;
+    if (this.sitting && !this.mounted) {
+      this.legL.rotation.x = this.legR.rotation.x = -1.5; this.legL.rotation.z = -0.25; this.legR.rotation.z = 0.25;
+      this.armL.rotation.x = this.armR.rotation.x = -0.5; this.model.position.y = -0.5;
+    } else if (!this.mounted && this.model.position.y < 0) this.model.position.y = 0;
+    if (this.emote && !this.moving && this.swingT <= 0) {
+      const e = this.emote, t = performance.now() * 0.001;
+      e.t -= dt; if (e.t <= 0) this.emote = null;
+      if (e.kind === 'wave') { this.armR.rotation.x = -2.8; this.armR.rotation.z = 0.4 + Math.sin(t * 12) * 0.35; }
+      else if (e.kind === 'dance') { this.model.rotation.y = Math.sin(t * 6) * 0.6; this.armL.rotation.x = -2.4 + Math.sin(t * 8) * 0.6; this.armR.rotation.x = -2.4 - Math.sin(t * 8) * 0.6; this.legL.rotation.x = Math.max(0, Math.sin(t * 8)) * 0.6; this.legR.rotation.x = Math.max(0, -Math.sin(t * 8)) * 0.6; this.pos.y += Math.abs(Math.sin(t * 8)) * 0.18; }
+      else if (e.kind === 'bow') { this.model.rotation.x = 0.55; this.armL.rotation.x = this.armR.rotation.x = 0.3; }
+      else if (e.kind === 'cheer') { this.armL.rotation.x = this.armR.rotation.x = -2.9; this.armL.rotation.z = -0.3; this.armR.rotation.z = 0.3; this.pos.y += Math.abs(Math.sin(t * 9)) * 0.35; }
+      else if (e.kind === 'no') { this.model.rotation.y = Math.sin(t * 14) * 0.25; this.armL.rotation.x = this.armR.rotation.x = -0.9; this.armL.rotation.z = 0.9; this.armR.rotation.z = -0.9; }
+      else if (e.kind === 'cry') { this.model.rotation.x = 0.25; this.armL.rotation.x = this.armR.rotation.x = -2.2; this.armL.rotation.z = 0.6; this.armR.rotation.z = -0.6; }
+    }
     const bob = this.mounted ? Math.abs(Math.sin(performance.now() * 0.018)) * 0.12 * this.walkBlend : Math.abs(Math.sin(this.walkPhase)) * 0.12 * this.walkBlend + Math.sin(performance.now() * 0.002) * 0.015 * (1 - this.walkBlend);
     this.pos.y += bob;
   }
@@ -433,7 +459,8 @@ class Player {
     if (this.d.regen) s.hp = Math.min(s.maxHp, s.hp + s.maxHp * this.d.regen / 100 * dt);
     if (this.d.mregen) s.mp = Math.min(s.maxMp, s.mp + s.maxMp * this.d.mregen / 100 * dt);
     if (this.combatT > 0) return;               // savaşırken doğal yenilenme yok
-    s.hp = Math.min(s.maxHp, s.hp + s.maxHp * 0.012 * dt);
-    s.mp = Math.min(s.maxMp, s.mp + s.maxMp * 0.02 * dt);
+    const sit = this.sitting ? 4 : 1;           // otururken çok daha hızlı
+    s.hp = Math.min(s.maxHp, s.hp + s.maxHp * 0.012 * sit * dt);
+    s.mp = Math.min(s.maxMp, s.mp + s.maxMp * 0.02 * sit * dt);
   }
 }

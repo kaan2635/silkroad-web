@@ -16,7 +16,7 @@ function shopStock(kind) {
   } else if (kind === 'armor') {
     for (const d of SHOP_DEGREES) for (const T of TIERS) for (const at of raceArmors()) for (const p of ARMOR_PARTS) out.push(p + '_' + at + '_' + d + T.suf);
   } else if (kind === 'stable') {
-    out.push('horse', 'camel', 'pet_grab', 'pet_atk', 'pet_pot');
+    out.push('horse', 'camel', 'ox', 'pet_grab', 'pet_atk', 'pet_pot', 'pet_food');
   } else if (kind === 'acc') {
     for (const d of SHOP_DEGREES) for (const T of TIERS) for (const a of ['earring', 'necklace', 'ring']) out.push(a + '_' + d + T.suf);
     out.push('luck', 'tab_ms', 'tab_as');
@@ -74,9 +74,10 @@ class UI {
       else if (b) this._mallBuy(b.dataset.buy, +b.dataset.n, +b.dataset.c);
     });
     this.w.pet.addEventListener('click', e => {
-      const f = e.target.closest('[data-pf]'), b = e.target.closest('[data-pb]'), a = e.target.closest('[data-pa]');
+      const f = e.target.closest('[data-pf]'), b = e.target.closest('[data-pb]'), a = e.target.closest('[data-pa]'), fd = e.target.closest('[data-pfeed]');
       const P = this.pets;
-      if (f) { P.filter = f.dataset.pf; SFX.play('tab'); }
+      if (fd) { const old = P.akind; P.akind = fd.dataset.pfeed; P.feed(); P.akind = old; }
+      else if (f) { P.filter = f.dataset.pf; SFX.play('tab'); }
       else if (b) { if (!P.takeFromBag(+b.dataset.pb)) { SFX.play('error'); this.hud.log('Envanter dolu.'); } else SFX.play('tab'); }
       else if (a) {
         const k = a.dataset.pa;
@@ -732,7 +733,12 @@ class UI {
       inv.count(base) ? '<button data-pa="' + base + '">' + (on ? 'Gönder' : 'Çağır') + '</button>' : '<span class="qs">Yok</span>');
     let h = '<div class="hint">Evcil hayvan ve binek kartları envanterde durur; buradan ya da hotbardan çağırılır. Toplayıcı (Ahır: Tilki, Item Mall: Altın Sincap) yerdeki ganimeti senin için toplar; envanterin dolarsa kendi çantasına koyar.</div>';
     h += pet('pet_grab', P.grab && P.grabKind === 1) + pet('pet_grab2', P.grab && P.grabKind === 2) +
-      pet('pet_atk', !!P.atk, '', P.atk ? 'Can ' + Math.ceil(P.atk.hp) + ' / ' + P.atk.maxHp : null) +
+      Object.keys(ATK_PETS).map(k => {
+        const A = ATK_PETS[k], S = P.pstat(k), on = !!P.atk && P.akind === k, need = P.petExpNeed(S.lv);
+        if (!inv.count(A.item) && k !== 'wolf') return '';
+        return pet(A.item, on, '', 'Sv. ' + S.lv + ' · EXP %' + Math.floor(S.exp / need * 100) + ' · Tokluk %' + Math.round(S.hunger) + (on ? ' · Can ' + Math.ceil(P.atk.hp) + '/' + P.atk.maxHp : '') +
+          '<span class="sbar pet-h"><i style="width:' + S.hunger + '%;background:linear-gradient(#ffd27a,#a86a1a)"></i></span>' + (inv.count('pet_food') ? ' <button data-pfeed="' + k + '" class="small">Besle (' + inv.count('pet_food') + ')</button>' : ''));
+      }).join('') +
       pet('horse', P.mounted && (P.horseSpeed || 1.7) < 2) + pet('horse2', P.mounted && P.horseSpeed >= 2);
     h += '<h4>Toplama filtresi</h4><div class="filt">' + [['all', 'Hepsi'], ['items', 'Sadece eşya'], ['gear', 'Sadece ekipman'], ['gold', 'Sadece altın']].map(([k, n]) => '<button data-pf="' + k + '" class="' + (P.filter === k ? 'on' : '') + '">' + n + '</button>').join('') + '</div>';
     const size = P.pinvSize();

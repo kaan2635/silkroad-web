@@ -173,6 +173,18 @@ const QUEST_DEFS = [
     reward: { exp: 0, gold: 1500000, gear: { base: 'CHEST_14', rarity: 4 }, items: [['immortal', 3]] } }
 ];
 QUEST_DEFS.forEach(q => { q.zone = q.zone || 'jangan'; });
+// Günlük ve tekrarlanabilir görevler (her şehir): bölgedeki herhangi bir canavarı avla
+for (const id of ['jangan', 'donwhang', 'hotan', 'samarkand', 'asiaminor', 'constantinople', 'alexandria', 'shambhala']) {
+  const Z = ZONES[id]; if (!Z || !Z.spawns) continue;
+  const lo = Math.min(...Z.spawns.map(x => x[4]));
+  QUEST_DEFS.push({ id: 'd_' + id, zone: id, name: 'Günlük: ' + Z.name + ' Avı', giver: 'captain', minLevel: lo, type: 'killzone', n: 40, noun: 'Canavar', daily: true,
+    desc: Z.name + ' çevresindeki canavarlar her gün çoğalıyor. Bugün bölgede 40 canavar avla. (Her gün yenilenir)',
+    reward: { expPct: 0.08, gold: 2000 + lo * 150, items: [['arena_coin', 3], ['silkbag', 1]] } });
+  QUEST_DEFS.push({ id: 'r_' + id, zone: id, name: 'Tekrar: Bölge Devriyesi', giver: 'merchant', minLevel: lo, type: 'killzone', n: 15, noun: 'Canavar', repeat: true,
+    desc: 'Kervan yolları için devriye: bölgede 15 canavar avla. Teslim ettikten sonra yeniden alınabilir.',
+    reward: { expPct: 0.025, gold: 400 + lo * 40, items: [['pill', 3]] } });
+}
+const todayStr = () => { const d = new Date(); return d.getFullYear() + '-' + (d.getMonth() + 1) + '-' + d.getDate(); };
 
 class QuestManager {
   constructor(player, hud, world) {
@@ -189,7 +201,8 @@ class QuestManager {
 
   // none | locked | active | ready | done
   status(q) {
-    const st = this.state[q.id];
+    let st = this.state[q.id];
+    if (st && q.daily && st.s === 'done' && st.day !== todayStr()) { delete this.state[q.id]; st = null; }     // günlük görev yenilendi
     if (st) return st.s;
     if (this.p.stats.level < q.minLevel) return 'locked';
     if (q.after && !(this.state[q.after] && this.state[q.after].s === 'done')) return 'locked';
@@ -232,7 +245,13 @@ class QuestManager {
 
   _npcName(id, zone = CUR_ZONE_ID) { return (ZONES[zone].npc && ZONES[zone].npc[id]) || id; }
 
-  onKill(typeKey) { for (const q of this.defs) if (q.type === 'kill' && q.target === typeKey) this._add(q, 1); }
+  onKill(typeKey) {
+    const T = MONSTER_TYPES[typeKey], anyMob = T && !T.unique && !T.job;
+    for (const q of this.defs) {
+      if (q.type === 'kill' && q.target === typeKey) this._add(q, 1);
+      else if (q.type === 'killzone' && anyMob && q.zone === CUR_ZONE_ID) this._add(q, 1);
+    }
+  }
   onCollect() { this._syncCollect(); }
   // Toplama görevleri: ilerleme = envanterdeki adet
   _syncCollect() {
@@ -271,6 +290,7 @@ class QuestManager {
   rewardText(q) {
     const r = q.reward, a = [];
     if (r.exp) a.push(r.exp + ' EXP');
+    if (r.expPct) a.push(Math.round(this.p.stats.maxExp * r.expPct).toLocaleString('tr-TR') + ' EXP');
     if (r.gold) a.push(r.gold + ' altın');
     for (const [b, n] of r.items || []) a.push(ITEM_BASES[b].name + (n > 1 ? ' x' + n : ''));
     if (r.gear) { const g = this._gearBase(r.gear.base); a.push((r.gear.rarity ? RARITY[r.gear.rarity].name + ' ' : '') + ITEM_BASES[g].name); }
@@ -289,7 +309,10 @@ class QuestManager {
     s.silk = (s.silk || 0) + 10;
     for (const [b, n] of r.items || []) inv.add(makeStack(b, n));
     if (r.gear) { const g = this._gearBase(r.gear.base); inv.add(makeItem(g, r.gear.rarity, 0, rollBlues(g, r.gear.rarity))); }
-    if (r.exp && this.combat) { this.combat.fx(this.p, '+' + r.exp + ' EXP', 'exp'); this.combat.gainExp(r.exp); }
+    const ex = (r.exp || 0) + (r.expPct ? Math.round(this.p.stats.maxExp * r.expPct) : 0);
+    if (ex && this.combat) { this.combat.fx(this.p, '+' + ex + ' EXP', 'exp'); this.combat.gainExp(ex); }
+    if (q.daily) st.day = todayStr();
+    if (q.repeat) delete this.state[id];
     SFX.play('levelup');
     this.hud.log('Görev teslim edildi: ' + q.name + ' (' + this.rewardText(q) + ')', 'lvl');
     this._changed();
@@ -327,7 +350,7 @@ class QuestManager {
   objectiveText(q) {
     const st = this.state[q.id];
     if (st.s === 'ready') return 'Tamamlandı — ' + this._npcName(this.turnTo(q), q.zone) + '\'e git';
-    if (q.type === 'kill' || q.type === 'collect') return q.noun + ': ' + st.p + '/' + q.n;
+    if (q.type === 'kill' || q.type === 'collect' || q.type === 'killzone') return q.noun + ': ' + st.p + '/' + q.n;
     if (q.type === 'visit') return q.target + ' bölgesini keşfet';
     return '';
   }

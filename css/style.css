@@ -662,3 +662,5 @@ body.touch #party-frames .pf { width: 118px; padding: 2px 5px 3px; }
 .fus-list button { font-size: 12px !important; padding: 4px 7px !important; }
 .alc-recipe { display: flex; gap: 10px; align-items: flex-start; margin: 10px 0; padding: 8px; background: #0007; border: 1px solid #3a2814; border-radius: 3px; font-size: 12.5px; }
 .alc-recipe .ico { width: 40px; height: 40px; flex: 0 0 40px; } .alc-recipe b { display: block; color: var(--gold); } .alc-recipe small { display: block; color: var(--dim); margin-bottom: 3px; } .alc-recipe .bad { color: #ff8a7a; }
+#emotes { display: flex; flex-wrap: wrap; gap: 4px; padding: 6px 0 2px; }
+#emotes button { padding: 4px 8px !important; font-size: 12px !important; }

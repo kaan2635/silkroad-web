@@ -31,7 +31,7 @@ class HUD {
     this.el.zerk.innerHTML = '<i></i><i></i><i></i><i></i><i></i>';
     this.zerkOrbs = [...this.el.zerk.children];
     this.el.zerk.addEventListener('click', () => this.combat && this.combat.activateZerk());
-    this.el.page.addEventListener('click', () => { if (this.hotbar) { this.hotbar.setPage(1 - this.hotbar.page); SFX.play('tab'); } });
+    this.el.page.addEventListener('click', () => { if (this.hotbar) { this.hotbar.setPage(this.hotbar.nextPage()); SFX.play('tab'); } });
 
     $('btn-respawn').addEventListener('click', () => this.combat && this.combat.respawn());
     $('btn-rez').addEventListener('click', () => this.combat && this.combat.resurrect());

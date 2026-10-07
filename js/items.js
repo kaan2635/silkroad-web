@@ -187,8 +187,13 @@ Object.assign(ITEM_BASES, {
   q_tail: { cat: 'quest', icon: '🦂', name: 'Akrep İğnesi', stack: 50, value: 0, sub: 'Görev eşyası' },
   horse:  { cat: 'use', use: 'horse', keep: true, icon: '🐴', name: 'At Kartı', stack: 1, value: 2500, sub: 'Atını çağırır / iner. Atlıyken %70 daha hızlı (saldırınca inersin)', cd: 'mount' },
   camel:  { cat: 'use', use: 'camel', icon: '🐫', name: 'Kervan Devesi Düdüğü', stack: 20, value: 400, sub: 'Ticaret malı taşıyan kervan devesini çağırır (Tüccar)', cd: 'camel' },
+  ox:     { cat: 'use', use: 'camel', tr: 'ox', icon: '🐂', name: 'Öküz Arabası Düdüğü', stack: 20, value: 3500, sub: 'Öküz arabası: 1,6 kat yük, 1,8 kat dayanıklılık (Tüccar)', cd: 'camel' },
+  wagon:  { cat: 'use', use: 'camel', tr: 'wagon', keep: true, icon: '🛒', name: 'Ticaret Arabası', stack: 1, value: 0, sub: 'Kalıcı: 2,2 kat yük taşıyan ticaret arabası (Tüccar)', cd: 'camel' },
   pet_grab: { cat: 'use', use: 'grabpet', keep: true, icon: '🦊', name: 'Toplayıcı Tilki', stack: 1, value: 4000, sub: 'Çağır / gönder. Yerdeki ganimeti senin için toplar', cd: 'pet' },
   pet_atk:  { cat: 'use', use: 'atkpet', keep: true, icon: '🐺', name: 'Savaş Kurdu', stack: 1, value: 8000, sub: 'Çağır / gönder. Hedefine saldırır, seninle güçlenir', cd: 'pet' },
+  pet_atk2: { cat: 'use', use: 'atkpet', akind: 'tiger', keep: true, icon: '🐯', name: 'Kaplan Yavrusu', stack: 1, value: 0, sub: 'Saldırı evcili: kurttan %30 güçlü, dayanıklı', cd: 'pet' },
+  pet_atk3: { cat: 'use', use: 'atkpet', akind: 'dragon', keep: true, icon: '🐲', name: 'Ejder Yavrusu', stack: 1, value: 0, sub: 'Saldırı evcili: uzaktan ateş püskürtür (%50 güçlü)', cd: 'pet' },
+  pet_food: { cat: 'use', use: 'petfood', icon: '🥩', name: 'Evcil Yemi', stack: 100, value: 50, sub: 'Saldırı evcilinin tokluğunu %40 doldurur. Aç evcil çağrılamaz', cd: 'petpot' },
   pet_pot:  { cat: 'use', use: 'petpot', icon: '🍖', name: 'Evcil Can İksiri', stack: 100, value: 40, sub: 'Savaş kurdunun canını yeniler', cd: 'petpot' },
   sg:     { cat: 'quest', icon: '💰', name: 'Çalıntı Mal', stack: 100, value: 0, sub: 'Hırsız Simsarı\'na sat' },
   q_scale: { cat: 'quest', icon: '🐍', name: 'Yılan Pulu', stack: 50, value: 0, sub: 'Görev eşyası' },
@@ -235,6 +240,7 @@ Object.assign(ITEM_BASES, {
   pumpkin:  { cat: 'mat', icon: '🎃', name: 'Bal Kabağı', stack: 999, value: 0, sub: 'Cadılar Bayramı etkinliği: Etkinlik penceresinde (J) ödüllerle değiştir' },
   snowflake:{ cat: 'mat', icon: '❄️', name: 'Kar Tanesi', stack: 999, value: 0, sub: 'Kış Şenliği etkinliği: Etkinlik penceresinde (J) ödüllerle değiştir' },
   gchat:    { cat: 'mat', icon: '📢', name: 'Küresel Sohbet Parşömeni', stack: 50, value: 0, sub: 'Sohbette Küresel kanaldan tüm sunucuya mesaj gönderir (/k mesaj)' },
+  rename:   { cat: 'use', use: 'rename', icon: '🪪', name: 'Ad Değiştirme Parşömeni', stack: 5, value: 0, sub: 'Karakterinin adını değiştirir', cd: 'reset' },
   silkbag:  { cat: 'use', use: 'silkbag', icon: '🧧', name: 'Silk Kesesi', stack: 50, value: 0, sub: 'Açınca 5–15 Silk verir', cd: 'silkbag' }
 });
 // --- Simya genişlemesi: Özellik Taşları, Gelişmiş İksir, Kanıt Taşı, söküm özleri, sentez tabletleri ---
@@ -264,8 +270,8 @@ for (const [job, nm] of [['trader', 'Tüccar'], ['hunter', 'Avcı'], ['thief', '
 const MALL = [
   { id: 'prem', name: '🎟️ Premium', items: [['prem', 1, 50], ['bless', 1, 30], ['rez', 3, 20], ['hammer', 3, 15]] },
   { id: 'alc', name: '⚗️ Simya', items: [['adv_elx', 1, 40], ['proof', 1, 15], ['tab_ms', 1, 12], ['tab_as', 1, 15], ['as_patk', 1, 15], ['as_matk', 1, 15], ['as_pdef', 1, 12], ['immortal', 1, 25], ['astral', 3, 30], ['luck', 5, 15], ['elx_w', 5, 25], ['elx_a', 5, 20], ['elx_s', 5, 20], ['elx_c', 5, 20], ['ms_str', 1, 15], ['ms_int', 1, 15], ['ms_hp', 1, 15], ['ms_crit', 1, 20]] },
-  { id: 'pet', name: '🐾 Evcil & Binek', items: [['pet_grab2', 1, 150], ['pet_grab', 1, 60], ['pet_atk', 1, 100], ['pet_pot', 20, 10], ['horse2', 1, 120], ['horse', 1, 40]] },
-  { id: 'scroll', name: '📜 Parşömen', items: [['gchat', 5, 10], ['fw_inv3', 1, 30], ['rev', 5, 10], ['spd', 5, 10], ['zerk', 3, 20], ['ret', 10, 5], ['reset_stat', 1, 80], ['reset_skill', 1, 120]] },
+  { id: 'pet', name: '🐾 Evcil & Binek', items: [['pet_atk2', 1, 150], ['pet_atk3', 1, 250], ['pet_food', 20, 8], ['wagon', 1, 90], ['pet_grab2', 1, 150], ['pet_grab', 1, 60], ['pet_atk', 1, 100], ['pet_pot', 20, 10], ['horse2', 1, 120], ['horse', 1, 40]] },
+  { id: 'scroll', name: '📜 Parşömen', items: [['gchat', 5, 10], ['rename', 1, 60], ['fw_inv3', 1, 30], ['rev', 5, 10], ['spd', 5, 10], ['zerk', 3, 20], ['ret', 10, 5], ['reset_stat', 1, 80], ['reset_skill', 1, 120]] },
   { id: 'devil', name: '😈 Şeytan Ruhu', items: DEVILS.map((x, i) => ['devil_' + (i + 1), 1, ITEM_BASES['devil_' + (i + 1)].silk]) },
   { id: 'avatar', name: '👘 Avatar', items: Object.keys(AVATARS).filter(id => !AVATARS[id].event).map(id => [id, 1, AVATARS[id].silk]) },
   { id: 'exp', name: '🎒 Genişletme', items: [['inv_exp', 1, 100], ['st_exp', 1, 60]] }

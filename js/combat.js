@@ -40,10 +40,11 @@ class Combat {
       else if (e.code === 'Space') { e.preventDefault(); this.toggleAttack(); }
       else if (e.code === 'Escape') { this.clearTarget(); }
       else if (e.code === 'KeyZ') this.activateZerk();
-      else if (e.code === 'F1' || e.code === 'F2') { e.preventDefault(); if (this.hotbar) this.hotbar.setPage(e.code === 'F1' ? 0 : 1); }
+      else if (e.code === 'KeyX') { const r = this.player.toggleSit(); if (typeof r === 'string') this.hud.log(r, 'dmg'); else if (r) this.hud.log(this.player.sitting ? 'Oturdun: can ve mana 4 kat hızlı dolar.' : 'Kalktın.'); }
+      else if (/^F[1-4]$/.test(e.code)) { e.preventDefault(); if (this.hotbar) this.hotbar.setPage(+e.code.slice(1) - 1); }
       else {
         const m = /^Digit([1-8])$/.exec(e.code);
-        if (m && this.hotbar) { const i = parseInt(m[1], 10) - 1; this.useSlot(this.hotbar.get(e.shiftKey ? 1 - this.hotbar.page : this.hotbar.page, i), i); }
+        if (m && this.hotbar) { const i = parseInt(m[1], 10) - 1; this.useSlot(this.hotbar.get(e.shiftKey ? this.hotbar.nextPage() : this.hotbar.page, i), i); }
       }
     });
   }
@@ -57,6 +58,7 @@ class Combat {
   clearTarget() { this.target = null; this.attacking = false; this.queued = null; }
   startAttack() {
     if (this.pets) this.pets.onAction();
+    this.player.sitting = false; this.player.emote = null;
     if (!this.target) { const t = this.mm.nearest(this.player.pos, 20); if (t) this.target = t; }
     if (!this.target) { this.hud.log('Hedef yok. Bir canavara dokun / tıkla.'); return; }
     this.attacking = true;
@@ -151,6 +153,7 @@ class Combat {
     if (this.loot) this.loot.dropFrom(m);
     if (this.quests) this.quests.onKill(m.typeKey);
     if (this.auto) this.auto.onKill(m);
+    if (this.pets) this.pets.onKill(exp);
     if (this.social) this.social.onKill(m);
     if (this.events) this.events.onKill(m);
     if (m.onKilled) m.onKilled(this);
@@ -308,13 +311,14 @@ class Combat {
     if (inv.count(base) <= 0) { this.hud.log(b.name + ' kalmadı.'); SFX.play('error'); return false; }
     if (s.level < (b.req || 1)) { this.hud.log(b.name + ' için ' + b.req + '. seviye gerekli.'); SFX.play('error'); return false; }
     let ok = true, cd = 1;
-    if (['horse', 'camel', 'grabpet', 'atkpet', 'petpot'].includes(b.use)) {
+    if (['horse', 'camel', 'grabpet', 'atkpet', 'petpot', 'petfood'].includes(b.use)) {
       if (!this.pets || !this.pets.useItem(b)) return false;
-      cd = b.use === 'petpot' ? 1 : 2;
+      cd = b.use === 'petpot' || b.use === 'petfood' ? 1 : 2;
       if (!b.keep) inv.take(base, 1);
       this._setCd(key, cd);
       return true;
     }
+    if (b.use === 'rename') { if (this.social && this.social.openRename) this.social.openRename(); return true; }
     if (['premium', 'bless', 'repair', 'resetstat', 'resetskill', 'invexp', 'stexp', 'silkbag', 'rez'].includes(b.use)) {
       if (b.use === 'rez') { this.hud.log('Diriliş Parşömeni ölünce ölüm ekranından kullanılır.'); return false; }
       if (b.use === 'premium') { pl.premT = (pl.premT || 0) + 3600; this.fx(pl, 'PREMIUM!', 'buff'); }
@@ -405,6 +409,7 @@ class Combat {
     if (!r) { this.hud.log(s.name + ' henüz öğrenilmedi.'); return; }
     if (s.type === 'passive') { this.hud.log(s.name + ' kalıcı bir yetenektir.'); return; }
     if (this.pets && (s.type === 'atk' || s.type === 'nuke' || s.type === 'dash')) this.pets.onAction();
+    if (!(this.social && this.social.stall.open)) { pl.sitting = false; pl.emote = null; }
     if (pl.disabled()) { this.hud.log('Hareket edemiyorsun!'); SFX.play('error'); return; }
     if (this.cd[id] > 0) { this.hud.log(s.name + ' bekleme süresinde.'); return; }
     if (this.gcd > 0) return;

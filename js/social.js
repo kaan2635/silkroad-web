@@ -862,8 +862,18 @@ class Social {
     if (this.party.length && (t.party -= dt) <= 0) { t.party = 45 + Math.random() * 45; const id = this.party[Math.floor(Math.random() * this.party.length)]; this.chat.add('party', Roster[id].name, CHAT_LINES.party[Math.floor(Math.random() * CHAT_LINES.party.length)]); }
   }
   // Oyuncunun yazdığı mesaj
+  // El hareketleri: /selam /dans /eğil /sevin /hayır /ağla /otur
+  emote(kind) {
+    const pl = this.player, EM = { wave: '👋', dance: '💃', bow: '🙇', cheer: '🎉', no: '🙅', cry: '😢' };
+    if (kind === 'sit') { const r = pl.toggleSit(); if (typeof r === 'string') this.hud.log(r, 'dmg'); return; }
+    pl.doEmote(kind); this.combat.fx(pl, EM[kind] || '', 'buff');
+    const near = this.sims.filter(s => !s.engaged && !s.dead && this.near(s, 14));
+    if (near.length && Math.random() < 0.7) { const s = near[Math.floor(Math.random() * near.length)]; setTimeout(() => this.chat.add('local', s.bot.name, { wave: 'selam :)', dance: 'hahaha güzel dans', bow: 'saygılar', cheer: 'yaşasııın', no: 'neden ki?', cry: 'ağlama ya :(' }[kind] || ':)'), 900 + Math.random() * 1500); }
+  }
   say(ch, text, to) {
     text = (text || '').trim().slice(0, 120); if (!text) return { ok: false };
+    const emo = { '/selam': 'wave', '/dans': 'dance', '/eğil': 'bow', '/egil': 'bow', '/sevin': 'cheer', '/hayır': 'no', '/hayir': 'no', '/ağla': 'cry', '/agla': 'cry', '/otur': 'sit' }[text.toLocaleLowerCase('tr-TR')];
+    if (emo) { this.emote(emo); return { ok: true }; }
     const m = /^\/(w|p|g|u|k)\s+(.*)$/i.exec(text);
     if (m) { const map = { w: 'whisper', p: 'party', g: 'guild', u: 'union', k: 'global' }; ch = map[m[1].toLowerCase()]; text = m[2]; if (ch === 'whisper') { const sp = text.indexOf(' '); to = sp > 0 ? text.slice(0, sp) : text; text = sp > 0 ? text.slice(sp + 1) : ''; } }
     if (ch === 'party' && !this.party.length) return { ok: false, msg: 'Partin yok.' };

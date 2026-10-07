@@ -1,4 +1,10 @@
 // Binek ve evcil hayvanlar: At (binek, hız), Toplayıcı Tilki (ganimeti toplar), Savaş Kurdu (hedefine saldırır).
+// Saldırı evcilleri: tür başına seviye, deneyim ve tokluk (iSRO: HGP)
+const ATK_PETS = {
+  wolf:   { name: 'Savaş Kurdu', item: 'pet_atk', dmg: 1, hp: 1, color: '#9fe3ff', look: { fur: 0x8a8a92, dark: 0x4a4a52, body: [0.6, 0.55, 1.2], legH: 0.55, eye: 0xffd23a } },
+  tiger:  { name: 'Kaplan Yavrusu', item: 'pet_atk2', dmg: 1.3, hp: 1.2, color: '#ffb84a', look: { fur: 0xe0862a, dark: 0x2a1a0a, body: [0.62, 0.55, 1.25], legH: 0.5, eye: 0x7aff6a }, stripes: 0x1a1008 },
+  dragon: { name: 'Ejder Yavrusu', item: 'pet_atk3', dmg: 1.5, hp: 1.1, color: '#ff7a6a', ranged: true, look: { fur: 0x9a1a1a, dark: 0x3a0808, body: [0.5, 0.5, 1.1], legH: 0.4, eye: 0xffe060 }, wings: 0x5a0a0a }
+};
 class PetSystem {
   constructor(player, world, combat, loot, hud) {
     this.p = player; this.world = world; this.combat = combat; this.loot = loot; this.hud = hud;
@@ -10,6 +16,32 @@ class PetSystem {
     this.filter = 'all';            // all | items | gold | gear
     this.pinv = new Array(32).fill(null);   // evcil çantası
     this.onChange = null;
+    this.akind = 'wolf';            // etkin saldırı evcili türü
+    this.ps = {};                   // tür -> { lv, exp, hunger }
+  }
+  pstat(k = this.akind) { return this.ps[k] || (this.ps[k] = { lv: 1, exp: 0, hunger: 100 }); }
+  petExpNeed(lv) { return Math.round(120 * Math.pow(lv, 1.7)); }
+  // Saldırı evcili deneyimi: oyuncunun kazandığı EXP'nin bir kısmı
+  onKill(exp) {
+    if (!this.atk) return;
+    const P = this.pstat(), A = ATK_PETS[this.akind];
+    if (P.lv >= this.p.stats.level) return;
+    P.exp += Math.max(1, Math.round(exp * 0.35));
+    while (P.exp >= this.petExpNeed(P.lv) && P.lv < this.p.stats.level) {
+      P.exp -= this.petExpNeed(P.lv); P.lv++;
+      this.atk.maxHp = this._petHp(); this.atk.hp = this.atk.maxHp;
+      this.hud.banner(A.name + ' Sv. ' + P.lv, 'Evcilin güçlendi', 'quest'); SFX.play('levelup');
+      this.atk.label.material.map.dispose(); this.atk.group.remove(this.atk.label);
+      this.atk.label = makeLabel(A.name, 'Sv. ' + P.lv, A.color, '#ffe9a8'); this.atk.label.scale.set(3, 0.95, 1); this.atk.label.position.y = 2.2; this.atk.group.add(this.atk.label);
+    }
+    this.changed();
+  }
+  _petHp() { const P = this.pstat(); return Math.round((80 + 40 * P.lv + 6 * this.p.stats.level) * ATK_PETS[this.akind].hp); }
+  feed() {
+    const P = this.pstat();
+    if (P.hunger >= 100) { this.hud.log('Evcilin tok.'); return false; }
+    if (!this.p.inv.take('pet_food', 1)) { this.hud.log('Evcil Yemi yok (Ahır).'); return false; }
+    P.hunger = Math.min(100, P.hunger + 40); SFX.play('potion'); this.hud.log(ATK_PETS[this.akind].name + ' beslendi: tokluk %' + Math.round(P.hunger)); this.changed(); return true;
   }
   pinvSize() { return this.p.inv.count('pet_grab2') ? 32 : 16; }
   changed() { if (this.onChange) this.onChange(); }
@@ -44,16 +76,21 @@ class PetSystem {
 
   useItem(b) {
     if (b.use === 'horse') { this.horseSpeed = b.speed || 1.7; return this.toggleMount(); }
-    if (b.use === 'camel') return this.jobs ? this.jobs.summonTransport() : false;
+    if (b.use === 'camel') return this.jobs ? this.jobs.summonTransport(null, b.tr || 'camel') : false;
     if (b.use === 'grabpet') {
       const k = b.pet || 1;
       if (this.grab && this.grabKind !== k) { this.toggleGrab(false); this.grabKind = k; return this.toggleGrab(true); }
       this.grabKind = k; return this.toggleGrab();
     }
-    if (b.use === 'atkpet') return this.toggleAtk();
+    if (b.use === 'atkpet') {
+      const k = b.akind || 'wolf';
+      if (this.atk && this.akind !== k) { this.toggleAtk(false); this.akind = k; return this.toggleAtk(true); }
+      this.akind = k; return this.toggleAtk();
+    }
+    if (b.use === 'petfood') return this.feed();
     if (b.use === 'petpot') {
-      if (!this.atk) { this.hud.log('Savaş kurdun çağrılı değil.'); return false; }
-      if (this.atk.hp >= this.atk.maxHp) { this.hud.log('Kurdun canı dolu.'); return false; }
+      if (!this.atk) { this.hud.log('Saldırı evcilin çağrılı değil.'); return false; }
+      if (this.atk.hp >= this.atk.maxHp) { this.hud.log('Evcilinin canı dolu.'); return false; }
       this.atk.hp = Math.min(this.atk.maxHp, this.atk.hp + Math.round(this.atk.maxHp * 0.4)); SFX.play('potion'); return true;
     }
     return false;
@@ -95,14 +132,17 @@ class PetSystem {
   // ---------- Evcil hayvan ortak ----------
   _make(kind) {
     const fox = kind === 'grab', sq = fox && this.grabKind === 2;
-    const q = buildQuad(sq ? { fur: 0xe8b030, dark: 0xfff0c0, body: [0.4, 0.4, 0.75], legH: 0.3, eye: 0x1a1a1a } : fox ? { fur: 0xe07a2a, dark: 0xf0e0d0, body: [0.45, 0.4, 0.9], legH: 0.35, eye: 0x1a1a1a } : { fur: 0x8a8a92, dark: 0x4a4a52, body: [0.6, 0.55, 1.2], legH: 0.55, eye: 0xffd23a });
+    const A = ATK_PETS[this.akind] || ATK_PETS.wolf;
+    const q = buildQuad(sq ? { fur: 0xe8b030, dark: 0xfff0c0, body: [0.4, 0.4, 0.75], legH: 0.3, eye: 0x1a1a1a } : fox ? { fur: 0xe07a2a, dark: 0xf0e0d0, body: [0.45, 0.4, 0.9], legH: 0.35, eye: 0x1a1a1a } : A.look);
+    if (!fox && A.stripes) for (let i = 0; i < 3; i++) { const st = new THREE.Mesh(new THREE.BoxGeometry(0.66, 0.08, 0.1), new THREE.MeshLambertMaterial({ color: A.stripes })); st.position.set(0, 0.95, -0.3 + i * 0.3); q.group.add(st); }
+    if (!fox && A.wings) for (const sx of [-1, 1]) { const w = new THREE.Mesh(new THREE.BoxGeometry(0.9, 0.05, 0.6), new THREE.MeshLambertMaterial({ color: A.wings })); w.position.set(sx * 0.6, 1.05, 0); w.rotation.z = sx * 0.4; q.group.add(w); q.wings = (q.wings || []).concat(w); }
     if (sq) { const t = new THREE.Mesh(new THREE.SphereGeometry(0.32, 10, 8), new THREE.MeshLambertMaterial({ color: 0xffd23a, emissive: 0x3a2a00 })); t.scale.set(0.8, 1.4, 0.8); t.position.set(0, 0.85, -0.55); q.group.add(t); }
     const g = new THREE.Group(); g.add(q.group);
     const P = this.p.pos; g.position.set(P.x - 1.5, P.y, P.z - 1.5);
-    const label = makeLabel(sq ? 'Altın Sincap' : fox ? 'Toplayıcı Tilki' : 'Savaş Kurdu', fox ? 'Toplayıcı' : 'Sv. ' + this.p.stats.level, sq ? '#ffd23a' : '#9fe3ff', '#ffe9a8');
+    const label = makeLabel(sq ? 'Altın Sincap' : fox ? 'Toplayıcı Tilki' : A.name, fox ? 'Toplayıcı' : 'Sv. ' + this.pstat().lv, sq ? '#ffd23a' : fox ? '#9fe3ff' : A.color, '#ffe9a8');
     label.scale.set(3, 0.95, 1); label.position.y = fox ? 1.6 : 2.2; g.add(label);
     this.world.scene.add(g);
-    return { group: g, legs: q.legs, heading: 0, phase: 0, get x() { return g.position.x; }, get z() { return g.position.z; }, label };
+    return { group: g, legs: q.legs, wings: q.wings || null, fly: !fox && !!A.wings, heading: 0, phase: 0, get x() { return g.position.x; }, get z() { return g.position.z; }, label };
   }
   _remove(pet) { if (pet) this.world.scene.remove(pet.group); }
   _move(pet, tx, tz, speed, dt) {
@@ -121,7 +161,8 @@ class PetSystem {
     const s = moving ? Math.sin(pet.phase) * 0.8 : 0;
     pet.legs.forEach((l, i) => { l.rotation.x = (i === 0 || i === 3 ? s : -s); });
     pet.group.rotation.y = pet.heading;
-    pet.group.position.y = terrainHeight(pet.group.position.x, pet.group.position.z);
+    pet.group.position.y = terrainHeight(pet.group.position.x, pet.group.position.z) + (pet.fly ? 0.9 + Math.sin(performance.now() * 0.004) * 0.15 : 0);
+    if (pet.wings) pet.wings.forEach((w, i) => { w.rotation.z = (i ? 1 : -1) * (0.3 + Math.sin(performance.now() * 0.012) * 0.4); });
   }
   _follow(pet, dt, side) {
     const P = this.p.pos, a = this.p.heading + side;
@@ -143,18 +184,20 @@ class PetSystem {
     const on = force === undefined ? !this.atk : force;
     if (on && !this.atk) {
       if (Date.now() < this.atkDeadUntil) { this.hud.log('Kurdun dinleniyor (' + Math.ceil((this.atkDeadUntil - Date.now()) / 1000) + ' sn).'); return false; }
-      const L = this.p.stats.level;
+      const L = this.p.stats.level, P = this.pstat();
+      if (P.hunger <= 0) { this.hud.log(ATK_PETS[this.akind].name + ' çok aç. Önce Evcil Yemi ver (Ahır).', 'dmg'); return false; }
       this.atk = this._make('atk');
-      Object.assign(this.atk, { maxHp: 80 + 40 * L, hp: this._savedHp || 80 + 40 * L, cd: 0, r: 0.6, dead: false, attackAnim: 0 });
+      const mh = this._petHp();
+      Object.assign(this.atk, { maxHp: mh, hp: Math.min(mh, this._savedHp || mh), cd: 0, r: 0.6, dead: false, attackAnim: 0 });
       this._savedHp = null;
       const pet = this.atk;
       pet.hurt = (dmg, m) => {
         if (pet.dead) return;
         const d = Math.max(1, Math.round(dmg * (0.9 + Math.random() * 0.2) * 100 / (100 + L * 3)));
         pet.hp -= d; this.hud.floatText({ x: pet.x, y: pet.group.position.y + 1.8, z: pet.z }, '-' + d, 'player');
-        if (pet.hp <= 0) { pet.dead = true; this._remove(pet); this.atk = null; this.atkDeadUntil = Date.now() + 60000; this.hud.log('Savaş kurdun yaralandı ve geri çekildi. (60 sn)', 'dmg'); }
+        if (pet.hp <= 0) { pet.dead = true; this._remove(pet); this.atk = null; this.atkDeadUntil = Date.now() + 60000; this.hud.log(ATK_PETS[this.akind].name + ' yaralandı ve geri çekildi. (60 sn)', 'dmg'); }
       };
-      this.hud.log('Savaş Kurdu çağrıldı.'); SFX.play('item');
+      this.hud.log(ATK_PETS[this.akind].name + ' çağrıldı (Sv. ' + this.pstat().lv + ').'); SFX.play('item');
     } else if (!on && this.atk) { this._savedHp = this.atk.hp; this._remove(this.atk); this.atk = null; }
     return true;
   }
@@ -190,22 +233,25 @@ class PetSystem {
       } else moving = this._follow(g, dt, 0.9);
       this._anim(g, moving);
     }
-    // savaş kurdu: oyuncunun hedefine saldır
+    // saldırı evcili: oyuncunun hedefine saldırır; çağrılıyken acıkır
     const a = this.atk;
     if (a) {
+      const P = this.pstat(); P.hunger = Math.max(0, P.hunger - dt / 90);
+      if (P.hunger <= 0) { this.toggleAtk(false); this.hud.log(ATK_PETS[this.akind].name + ' acıktı ve döndü. Evcil Yemi ver.', 'dmg'); return; }
       const t = this.combat.target && !this.combat.target.dead && this.combat.attacking ? this.combat.target : null;
       let moving = false;
       if (a.cd > 0) a.cd -= dt;
       if (t && Math.hypot(t.x - pl.pos.x, t.z - pl.pos.z) < 30) {
-        const d = Math.hypot(t.x - a.x, t.z - a.z);
-        if (d > 2.2 + (t.type.hit || 1) * 0.5) moving = this._move(a, t.x, t.z, 9, dt) > 0;
+        const d = Math.hypot(t.x - a.x, t.z - a.z), A = ATK_PETS[this.akind], P = this.pstat();
+        if (d > (A.ranged ? 9 : 2.2 + (t.type.hit || 1) * 0.5)) moving = this._move(a, t.x, t.z, 9, dt) > 0;
         else {
           a.heading = Math.atan2(t.x - a.x, t.z - a.z);
           if (a.cd <= 0) {
             a.cd = 1.3; a.attackAnim = 0.3;
-            const d0 = pl.d, K = 40 + 10 * pl.stats.level;
-            const dmg = Math.max(1, Math.round((d0.phyMin + d0.phyMax) * 0.22 * K / (K + t.pdef) * (0.9 + Math.random() * 0.2)));
-            this.combat.damageMonster(t, dmg, false, null);
+            const d0 = pl.d, K = 40 + 10 * pl.stats.level, hungry = P.hunger < 20 ? 0.6 : 1;
+            const dmg = Math.max(1, Math.round((d0.phyMin + d0.phyMax) * 0.2 * A.dmg * (1 + P.lv * 0.012) * hungry * K / (K + (A.ranged ? t.mdef : t.pdef)) * (0.9 + Math.random() * 0.2)));
+            if (A.ranged) this.combat.vfx.projectile({ x: a.x, y: a.group.position.y + 1.2, z: a.z }, t, 'fire', () => { if (!t.dead) this.combat.damageMonster(t, dmg, false, 'fire'); });
+            else this.combat.damageMonster(t, dmg, false, null);
             if (!t.dead && !t.targetEnt && Math.random() < 0.35) t.targetEnt = a;
           }
         }
@@ -216,11 +262,13 @@ class PetSystem {
     }
   }
 
-  serialize() { return { m: this.mounted, hs: this.horseSpeed || 1.7, g: !!this.grab, gk: this.grabKind, f: this.filter, b: this.pinv.map(Inventory.enc), a: this.atk ? Math.round(this.atk.hp) : (this._savedHp || 0), ao: !!this.atk }; }
+  serialize() { return { m: this.mounted, hs: this.horseSpeed || 1.7, g: !!this.grab, gk: this.grabKind, f: this.filter, b: this.pinv.map(Inventory.enc), a: this.atk ? Math.round(this.atk.hp) : (this._savedHp || 0), ao: !!this.atk, ak: this.akind, ps: this.ps }; }
   load(d) {
     if (!d) return;
     this.grabKind = d.gk === 2 ? 2 : 1; this.filter = ['all', 'items', 'gold', 'gear'].includes(d.f) ? d.f : 'all';
     this.horseSpeed = d.hs || 1.7;
+    this.akind = ATK_PETS[d.ak] ? d.ak : 'wolf';
+    if (d.ps) for (const k in ATK_PETS) if (d.ps[k]) this.ps[k] = { lv: clamp(d.ps[k].lv | 0, 1, 140), exp: Math.max(0, d.ps[k].exp | 0), hunger: clamp(+d.ps[k].hunger || 0, 0, 100) };
     (d.b || []).slice(0, 32).forEach((a, i) => { this.pinv[i] = Inventory.dec(a); });
     if (d.g) this.toggleGrab(true);
     if (d.ao) { this._savedHp = d.a || null; this.toggleAtk(true); }
