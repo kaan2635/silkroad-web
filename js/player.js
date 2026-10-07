@@ -26,24 +26,6 @@ function makeLabel(name, sub, nameColor = '#ffe9a8', subColor = '#bfe3ff') {
   return sp;
 }
 
-// Silah görselleri (sağ kola takılır). Ortak geometriler.
-const WEAPON_GEO = {};
-function weaponMesh(type) {
-  const steel = new THREE.MeshLambertMaterial({ color: 0xc9d2d8 }), gold = new THREE.MeshLambertMaterial({ color: 0xd8a830 }), wood = new THREE.MeshLambertMaterial({ color: 0x6a4a2a });
-  const g = new THREE.Group();
-  const box = (w, h, d, m, x, y, z) => { const b = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), m); b.position.set(x, y, z); b.castShadow = true; g.add(b); return b; };
-  if (type === 'sword') { box(0.06, 0.06, 1.15, steel, 0, 0, 0.55); box(0.24, 0.05, 0.08, gold, 0, 0, 0); }
-  else if (type === 'blade') { box(0.05, 0.16, 1.05, steel, 0, 0.05, 0.5); box(0.26, 0.06, 0.08, gold, 0, 0, 0); }
-  else if (type === 'spear') { box(0.06, 0.06, 2.6, wood, 0, 0, 0.6); const tip = new THREE.Mesh(new THREE.ConeGeometry(0.1, 0.45, 6), steel); tip.rotation.x = Math.PI / 2; tip.position.set(0, 0, 2.1); g.add(tip); box(0.14, 0.14, 0.06, new THREE.MeshLambertMaterial({ color: 0xc0302a }), 0, 0, 1.8); }
-  else if (type === 'glaive') { box(0.06, 0.06, 2.4, wood, 0, 0, 0.5); box(0.06, 0.34, 0.75, steel, 0, 0.12, 1.85); }
-  else if (type === 'bow') {
-    const arc = new THREE.Mesh(new THREE.TorusGeometry(0.75, 0.04, 6, 16, Math.PI), wood);
-    arc.rotation.y = Math.PI / 2; arc.rotation.z = Math.PI / 2; arc.position.set(0, 0, 0.1); g.add(arc);
-    box(0.01, 0.01, 1.5, new THREE.MeshBasicMaterial({ color: 0xeeeeee }), 0, 0, 0.1).rotation.x = Math.PI / 2;
-  }
-  return g;
-}
-
 // İnsansı model: oyuncu, NPC ve haydutlar için ortak
 // o: { robe, robeDark, skin, hat: 'straw' | 'band' | null, weapon }
 function buildHumanoid(o) {
@@ -75,19 +57,13 @@ function buildHumanoid(o) {
   const hand = new THREE.Group(); hand.position.set(0, -0.78, 0); armR.add(hand);
   const handL = new THREE.Group(); handL.position.set(0, -0.72, 0.05); armL.add(handL);
   const h = { group: g, legL, legR, armL, armR, hand, handL, robe, robeDark, body, hat, weapon: null, shield: null };
-  h.setWeapon = type => {
+  h.setWeapon = (type, o) => {
     if (h.weapon) { hand.remove(h.weapon); h.weapon = null; }
-    if (type) { h.weapon = weaponMesh(type); hand.add(h.weapon); if (type === 'bow') { h.weapon.rotation.x = -Math.PI / 2; h.weapon.position.z = 0.1; } }
+    if (type) { h.weapon = weaponMesh(type, o); hand.add(h.weapon); if (type === 'bow') { h.weapon.rotation.x = -Math.PI / 2; h.weapon.position.z = 0.1; } }
   };
-  h.setShield = on => {
+  h.setShield = (on, o) => {
     if (h.shield) { handL.remove(h.shield); h.shield = null; }
-    if (on) {
-      const s = new THREE.Mesh(new THREE.CylinderGeometry(0.42, 0.42, 0.08, 14), new THREE.MeshLambertMaterial({ color: 0x8a2a1c }));
-      s.rotation.z = Math.PI / 2; s.position.set(-0.12, 0, 0.1); s.castShadow = true;
-      const boss = new THREE.Mesh(new THREE.SphereGeometry(0.12, 8, 6), new THREE.MeshLambertMaterial({ color: 0xd8a830 }));
-      boss.position.set(-0.17, 0, 0.1);
-      h.shield = new THREE.Group(); h.shield.add(s, boss); handL.add(h.shield);
-    }
+    if (on) { h.shield = shieldMesh(o); handL.add(h.shield); }
   };
   h.setWeapon(o.weapon === undefined ? 'sword' : o.weapon);
   return h;
@@ -124,7 +100,7 @@ class Player {
     this.speedScrollT = 0;
 
     this.stats = { level: 1, hp: 150, maxHp: 150, mp: 120, maxMp: 120, exp: 0, maxExp: 120, gold: 0,
-      str: 20, int: 20, statPts: 0, zerk: 0, STR: 20, INT: 20 };
+      str: 20, int: 20, statPts: 0, zerk: 0, STR: 20, INT: 20, silk: 0 };
     this.d = {};                       // türetilmiş değerler
     this.inv = new Inventory(this);
     this.book = new SkillBook(this);
@@ -167,14 +143,13 @@ class Player {
   // Ekipmana göre görünüm: silah, kalkan, giysi rengi
   refreshLook() {
     const eq = this.inv.equip;
-    this.h.setWeapon(this.inv.weaponType());
-    this.h.setShield(!!eq.shield);
-    const ch = eq.chest && ITEM_BASES[eq.chest.base];
-    const look = ARMOR_LOOK[ch ? ch.atype : 'none'];
-    this.h.robe.color.setHex(look[0]); this.h.robeDark.color.setHex(look[1]);
-    if (this.h.hat) this.h.hat.visible = !eq.head;
+    const opt = it => (it ? { d: ITEM_BASES[it.base].d, tier: ITEM_BASES[it.base].tier || 0, plus: it.plus || 0, rarity: it.rarity || 0 } : null);
+    this.h.setWeapon(this.inv.weaponType(), opt(eq.weapon));
+    this.h.setShield(!!eq.shield, opt(eq.shield));
+    dressHumanoid(this.h, eq);
     this.recalc();
   }
+
 
   // Meslek pelerini (Tüccar sarı, Avcı mavi, Hırsız kırmızı)
   setCape(color) {
@@ -274,6 +249,8 @@ class Player {
     for (const k in this.status) { const st = this.status[k]; st.t -= dt; if (st.t <= 0) { delete this.status[k]; expired = true; } }
     if (this.zerkT > 0) { this.zerkT -= dt; if (this.zerkT <= 0) { this.zerkT = 0; expired = true; } }
     if (this.speedScrollT > 0) { this.speedScrollT -= dt; if (this.speedScrollT <= 0) expired = true; }
+    if (this.premT > 0) this.premT -= dt;
+    if (this.blessT > 0) this.blessT -= dt;
     if (expired) this.recalc();
 
     this.shieldMesh.visible = !!(this.buffs.cd_shield || this.absorb);
@@ -283,6 +260,8 @@ class Player {
     }
     this.aura.visible = !!this.imbue;
     if (this.imbue) { this.aura.material.color.setHex(ELEM_COLOR[this.imbue.elem]); this.aura.rotation.z += dt * 2; }
+    const gl = this.h.weapon && this.h.weapon.userData.glow;
+    if (gl) gl.opacity = 0.22 + Math.sin(performance.now() * 0.005) * 0.12;
     this.zerkAura.intensity = this.zerkT > 0 ? 1.4 + Math.sin(performance.now() * 0.01) * 0.4 : 0;
     if (this.swingT > 0) this.swingT = Math.max(0, this.swingT - dt);
     if (this.combatT > 0) this.combatT -= dt;

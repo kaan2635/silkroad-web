@@ -9,14 +9,14 @@ function shopStock(kind) {
     POT_GRADES.forEach((g, i) => { out.push('hp' + (i + 1)); out.push('mp' + (i + 1)); });
     out.push('pill', 'ret', 'rev', 'spd');
   } else if (kind === 'weapon') {
-    for (const d of SHOP_DEGREES) { for (const t in WEAPON_TYPES) out.push(t + '_' + d); out.push('shield_' + d); }
+    for (const d of SHOP_DEGREES) for (const T of TIERS) { for (const t in WEAPON_TYPES) out.push(t + '_' + d + T.suf); out.push('shield_' + d + T.suf); }
     out.push('arrow');
   } else if (kind === 'armor') {
-    for (const d of SHOP_DEGREES) for (const at in ARMOR_TYPES) for (const p of ARMOR_PARTS) out.push(p + '_' + at + '_' + d);
+    for (const d of SHOP_DEGREES) for (const T of TIERS) for (const at in ARMOR_TYPES) for (const p of ARMOR_PARTS) out.push(p + '_' + at + '_' + d + T.suf);
   } else if (kind === 'stable') {
     out.push('horse', 'camel', 'pet_grab', 'pet_atk', 'pet_pot');
   } else if (kind === 'acc') {
-    for (const d of SHOP_DEGREES) for (const a of ['earring', 'necklace', 'ring']) out.push(a + '_' + d);
+    for (const d of SHOP_DEGREES) for (const T of TIERS) for (const a of ['earring', 'necklace', 'ring']) out.push(a + '_' + d + T.suf);
     out.push('luck');
   }
   return out;
@@ -42,7 +42,8 @@ class UI {
     this.p = player; this.inv = player.inv; this.hud = hud; this.quests = quests; this.wmap = wmap; this.combat = combat; this.hb = hotbar;
     const $ = id => document.getElementById(id);
     this.$ = $;
-    this.w = { inv: $('inv'), npc: $('npc-win'), q: $('qlog'), map: $('wmap'), char: $('charw'), sk: $('skillw'), alc: $('alchw') };
+    this.w = { inv: $('inv'), npc: $('npc-win'), q: $('qlog'), map: $('wmap'), char: $('charw'), sk: $('skillw'), alc: $('alchw'), mall: $('mallw'), pet: $('petw') };
+    this.mallTab = 'prem';
     this.equipEl = $('equip'); this.gridEl = $('inv-grid'); this.infoEl = $('inv-info'); this.footEl = $('inv-foot');
     this.npcTitle = $('npc-title'); this.npcTabs = $('npc-tabs'); this.npcBody = $('npc-body'); this.npcFoot = $('npc-foot'); this.npcMsgEl = $('npc-msg');
     this.qBody = $('qlog-body');
@@ -61,6 +62,26 @@ class UI {
     $('btn-skill').addEventListener('click', () => this.toggle('sk'));
     $('btn-quest').addEventListener('click', () => this.toggle('q'));
     $('btn-map').addEventListener('click', () => this.toggle('map'));
+    $('btn-mall').addEventListener('click', () => this.toggle('mall'));
+    $('btn-pet').addEventListener('click', () => this.toggle('pet'));
+    $('petbar').addEventListener('click', () => this.toggle('pet', true));
+    this.w.mall.addEventListener('click', e => {
+      const t = e.target.closest('[data-mt]'), b = e.target.closest('[data-buy]');
+      if (t) { this.mallTab = t.dataset.mt; SFX.play('tab'); this.refreshMall(); }
+      else if (b) this._mallBuy(b.dataset.buy, +b.dataset.n, +b.dataset.c);
+    });
+    this.w.pet.addEventListener('click', e => {
+      const f = e.target.closest('[data-pf]'), b = e.target.closest('[data-pb]'), a = e.target.closest('[data-pa]');
+      const P = this.pets;
+      if (f) { P.filter = f.dataset.pf; SFX.play('tab'); }
+      else if (b) { if (!P.takeFromBag(+b.dataset.pb)) { SFX.play('error'); this.hud.log('Envanter dolu.'); } else SFX.play('tab'); }
+      else if (a) {
+        const k = a.dataset.pa;
+        if (k === 'all') { const n = P.takeAll(); this.hud.log(n ? n + ' eşya envantere alındı.' : 'Alınacak eşya yok / envanter dolu.'); }
+        else { const base = k; if (this.inv.count(base)) this.combat.useItem(base); else { this.hud.log(ITEM_BASES[base].name + ' sende yok. Ahır veya Item Mall\'dan al.'); SFX.play('error'); } }
+      }
+      this.refreshPet();
+    });
     $('btn-menu').addEventListener('click', () => { $('menu-btns').classList.toggle('open'); SFX.play('tab'); });
     $('menu-btns').addEventListener('click', e => { if (e.target.closest('button') && e.target.id !== 'btn-menu') $('menu-btns').classList.remove('open'); });
     $('place-cancel').addEventListener('click', () => { this.hb.placing = null; });
@@ -130,6 +151,8 @@ class UI {
       else if (e.code === 'KeyK') this.toggle('sk');
       else if (e.code === 'KeyL') this.toggle('q');
       else if (e.code === 'KeyM') this.toggle('map');
+      else if (e.code === 'KeyB') this.toggle('mall');
+      else if (e.code === 'KeyP') this.toggle('pet');
       else if (e.code === 'Escape') {
         window.__escClosed = !!document.querySelector('.win:not(.hidden)') || !!this.hb.placing;
         this.hb.placing = null;
@@ -168,6 +191,8 @@ class UI {
     if (this.isOpen('char')) this.refreshChar();
     if (this.isOpen('sk')) this.refreshSk();
     if (this.isOpen('alc')) this.refreshAlc();
+    if (this.isOpen('mall')) this.refreshMall();
+    if (this.isOpen('pet')) this.refreshPet();
     if (this.npc) this.refreshNpc();
   }
 
@@ -180,7 +205,7 @@ class UI {
         (n.req > 1 ? '<div class="in-req' + (lvl < n.req ? ' bad' : '') + '">Gerekli seviye: ' + n.req + '</div>' : '');
     }
     let h = '<div class="in-name" style="color:' + n.color + '">' + n.name + '</div>' +
-      '<div class="in-sub">' + (it.rarity ? n.rarityName + ' · ' : '') + n.d + '. derece ' + n.typeName + '</div>' +
+      '<div class="in-sub">' + (it.rarity ? '<b style="color:' + n.color + '">' + n.rarityName + '</b> · ' : '') + n.d + '. derece · ' + (n.tier + 1) + '/3 kademe · ' + n.typeName + '</div>' +
       '<div class="in-st">' + itemStatText(n).split(' · ').join('<br>') + '</div>';
     const bt = blueText(n);
     if (bt) h += '<div class="in-blue">' + bt + '</div>';
@@ -193,9 +218,9 @@ class UI {
   _slot(item, attrs, sel, emptyIcon) {
     if (!item) return '<div class="islot empty' + (sel ? ' sel' : '') + '" ' + attrs + '>' + (emptyIcon || '') + '</div>';
     const n = itemInfo(item);
-    return '<div class="islot' + (sel ? ' sel' : '') + (n.broken ? ' broken' : '') + '" ' + attrs + ' style="border-color:' + n.color + '" title="' + n.name + '">' +
+    return '<div class="islot' + (sel ? ' sel' : '') + (n.broken ? ' broken' : '') + (n.seal ? ' seal' : '') + '" ' + attrs + ' style="border-color:' + n.color + '" title="' + n.name + '">' +
       n.icon + (item.plus ? '<i class="plus">+' + item.plus + '</i>' : '') + (n.stack && item.n > 1 ? '<i class="num">' + item.n + '</i>' : '') +
-      (!n.stack ? '<i class="deg">' + n.d + '</i>' : '') + '</div>';
+      (!n.stack ? '<i class="deg">' + n.d + (n.tier ? '.' + (n.tier + 1) : '') + '</i>' : '') + '</div>';
   }
 
   // ---------- Envanter ----------
@@ -226,7 +251,7 @@ class UI {
       } else h += '<button data-act="unequip">Çıkar</button><button data-act="alc">⚗️ Simya</button>';
       this.infoEl.innerHTML = h + '</div>';
     }
-    this.footEl.innerHTML = '💰 <b>' + s.gold.toLocaleString('tr-TR') + '</b> &nbsp; 🎒 <b>' + (INV_SIZE - inv.freeCount()) + '/' + INV_SIZE + '</b>' +
+    this.footEl.innerHTML = '💰 <b>' + s.gold.toLocaleString('tr-TR') + '</b> &nbsp; 🎒 <b>' + (inv.slots.length - inv.freeCount()) + '/' + inv.slots.length + '</b> &nbsp; 🧶 <b>' + (s.silk || 0) + '</b> Silk' +
       '<span class="stt">⚔ ' + this.p.d.phyMin + '–' + this.p.d.phyMax + ' &nbsp; 🔮 ' + this.p.d.magMin + '–' + this.p.d.magMax + ' &nbsp; 🛡 ' + this.p.d.pdef + ' / ' + this.p.d.mdef + '</span>';
   }
 
@@ -318,10 +343,10 @@ class UI {
   }
   refreshAlc() {
     const inv = this.inv, a = this.alc, it = this._alcItem(a.sel);
-    if (a.sel && (!it || !isGear(it.base))) a.sel = null;
+    if (a.sel && (!it || !isGear(it.base) || ITEM_BASES[it.base].cat === 'avatar')) a.sel = null;
     const gear = [];
-    for (const k in inv.equip) if (inv.equip[k]) gear.push(['eq:' + k, inv.equip[k], true]);
-    inv.slots.forEach((x, i) => { if (x && isGear(x.base)) gear.push(['sl:' + i, x, false]); });
+    for (const k in inv.equip) if (inv.equip[k] && ITEM_BASES[inv.equip[k].base].cat !== 'avatar') gear.push(['eq:' + k, inv.equip[k], true]);
+    inv.slots.forEach((x, i) => { if (x && isGear(x.base) && ITEM_BASES[x.base].cat !== 'avatar') gear.push(['sl:' + i, x, false]); });
     let h = '<div class="alc-list">' + (gear.length ? gear.map(([src, x, worn]) => {
       const n = itemInfo(x);
       return '<div class="alc-it' + (src === a.sel ? ' on' : '') + '" data-src="' + src + '">' + this._slot(x, '', false) + '<span style="color:' + n.color + '">' + n.name + (worn ? ' ✔' : '') + '</span></div>';
@@ -329,7 +354,7 @@ class UI {
     if (!a.sel) h += '<div class="hint">Güçlendirmek istediğin eşyayı seç.</div>';
     else {
       const x = this._alcItem(a.sel), n = itemInfo(x), elx = elixirFor(x.base), have = inv.count(elx);
-      const lucky = a.lucky && inv.count('luck') > 0, astral = a.astral && inv.count('astral') > 0;
+      const lucky = a.lucky && inv.count('luck') > 0, astral = a.astral && inv.count('astral') > 0, imm = a.imm && inv.count('immortal') > 0;
       const ch = alchemyChance(x, lucky);
       h += '<div class="alc-main"><div class="alc-card">' + this.itemCard(x) + '</div><div class="alc-ctl">' +
         '<h4>⚗️ Güçlendirme (+)</h4>' +
@@ -337,8 +362,9 @@ class UI {
           '<div class="cr"><span>' + ITEM_BASES[elx].name + '</span><b' + (have ? '' : ' class="bad"') + '>' + have + '</b></div>' +
           '<div class="cr"><span>+' + x.plus + ' → +' + (x.plus + 1) + ' başarı şansı</span><b>%' + Math.round(ch * 100) + '</b></div>' +
           '<button data-act="tlucky" class="tg' + (lucky ? ' on' : '') + '">✨ Şans Tozu (' + inv.count('luck') + ')</button> ' +
-          '<button data-act="tastral" class="tg' + (astral ? ' on' : '') + '">🔷 Koruma Taşı (' + inv.count('astral') + ')</button>' +
-          '<div class="hint">Başarısız olursa eşya +0\'a düşer' + (astral ? ' — Koruma Taşı ile sadece 1 seviye düşer.' : '. Koruma Taşı bunu engeller.') + '</div>' +
+          '<button data-act="tastral" class="tg' + (astral ? ' on' : '') + '">🔷 Koruma Taşı (' + inv.count('astral') + ')</button> ' +
+          '<button data-act="timm" class="tg' + (imm ? ' on' : '') + '">💠 Ölümsüz Taş (' + inv.count('immortal') + ')</button>' +
+          '<div class="hint">Başarısız olursa eşya +0\'a düşer' + (imm ? ' — Ölümsüz Taş ile hiç düşmez.' : astral ? ' — Koruma Taşı ile sadece 1 seviye düşer.' : '. Koruma Taşı / Ölümsüz Taş (Item Mall) bunu engeller.') + '</div>' +
           '<button data-act="enhance" class="big"' + (have ? '' : ' disabled') + '>Güçlendir</button>');
       const stones = Object.keys(BLUES).filter(k => inv.count('ms_' + k) > 0 && BLUE_BY_KIND[ITEM_BASES[x.base].cat].includes(k));
       h += '<h4>🔮 Büyü Taşı (mavi stat)</h4>' + (stones.length ? '<div class="seg">' + stones.map(k => '<button data-stone="' + k + '" class="tg' + (a.stone === k ? ' on' : '') + '">' + BLUES[k].name + ' (' + inv.count('ms_' + k) + ')</button>').join('') + '</div>' +
@@ -351,6 +377,7 @@ class UI {
     const a = this.alc, inv = this.inv, x = this._alcItem(a.sel);
     if (act === 'tlucky') { a.lucky = !a.lucky; SFX.play('tab'); return this.refreshAlc(); }
     if (act === 'tastral') { a.astral = !a.astral; SFX.play('tab'); return this.refreshAlc(); }
+    if (act === 'timm') { a.imm = !a.imm; SFX.play('tab'); return this.refreshAlc(); }
     if (!x) return;
     if (act === 'enhance') {
       if (x.plus >= MAX_PLUS) return;
@@ -365,12 +392,13 @@ class UI {
         SFX.play('upgrade'); this.hud.log(itemInfo(x).name + ' güçlendirildi!', 'lvl');
         if (x.plus >= 7) this.hud.banner('+' + x.plus + '!', itemInfo(x).baseName, 'quest');
       } else {
-        const old = x.plus;
-        if (astral) { inv.take('astral', 1); x.plus = Math.max(0, x.plus - 1); } else x.plus = 0;
+        const old = x.plus, imm = a.imm && inv.count('immortal') > 0;
+        if (imm) inv.take('immortal', 1);
+        else if (astral) { inv.take('astral', 1); x.plus = Math.max(0, x.plus - 1); } else x.plus = 0;
         a.msg = { text: '❌ Başarısız. +' + old + ' → +' + x.plus, color: '#ff8a7a' };
         SFX.play('fail');
       }
-      this.p.recalc(); inv.changed();
+      this.p.refreshLook(); inv.changed();
     } else if (act === 'stone' && a.stone) {
       const k = a.stone, base = 'ms_' + k, b = ITEM_BASES[x.base];
       if (!inv.take(base, 1)) return;
@@ -383,9 +411,51 @@ class UI {
         else { x.blues.push([k, Math.max(1, Math.round(mx * 0.3))]); a.msg = { text: '✅ Yeni mavi stat: ' + BLUES[k].fmt(x.blues[x.blues.length - 1][1]), color: BLUE_COLOR }; SFX.play('upgrade'); }
         if (k === 'dur') x.dur = Math.min(maxDur(x), x.dur);
       } else { a.msg = { text: '❌ Taş tutmadı.', color: '#ff8a7a' }; SFX.play('fail'); }
-      this.p.recalc(); inv.changed();
+      this.p.refreshLook(); inv.changed();
     }
     this.refreshAlc();
+  }
+
+  // ---------- Item Mall ----------
+  refreshMall() {
+    const s = this.p.stats, tab = MALL.find(t => t.id === this.mallTab) || MALL[0];
+    let h = '<div class="mall-head"><span class="silk">🧶 <b>' + (s.silk || 0).toLocaleString('tr-TR') + '</b> Silk</span>' +
+      '<small>Silk kazan: seviye atlama +5 · görev +10 · Unique +50 · günlük giriş +20 · Şampiyon/Dev canavarlardan Silk Kesesi</small></div>' +
+      '<div class="mtabs">' + MALL.map(t => '<button data-mt="' + t.id + '" class="' + (t.id === tab.id ? 'on' : '') + '">' + t.name + '</button>').join('') + '</div>';
+    h += '<div class="mall-grid">' + tab.items.map(([base, n, c]) => {
+      const b = ITEM_BASES[base];
+      const sub = b.cat === 'avatar' ? EQUIP_SLOTS[b.slot].name + ' · ' + b.fb.map(x => BLUES[x[0]].fmt(x[1])).join(', ') : (b.sub || '');
+      const own = b.keep && this.inv.count(base) ? ' <small class="own">✔ sende var</small>' : '';
+      return '<div class="mall-it"><div class="mi-ic">' + b.icon + '</div><div class="mi-nm">' + b.name + (n > 1 ? ' x' + n : '') + own + '<small>' + sub + '</small></div>' +
+        '<button data-buy="' + base + '" data-n="' + n + '" data-c="' + c + '"' + ((s.silk || 0) < c ? ' class="dis"' : '') + '>🧶 ' + c + '</button></div>';
+    }).join('') + '</div>';
+    this.$('mall-body').innerHTML = h;
+  }
+  _mallBuy(base, n, c) {
+    const s = this.p.stats, b = ITEM_BASES[base];
+    if ((s.silk || 0) < c) { SFX.play('error'); this.hud.log('Yeterli Silk yok.'); return; }
+    if (!this.inv.canAdd(base, n)) { SFX.play('error'); this.hud.log('Envanterde yer yok.'); return; }
+    s.silk -= c;
+    this.inv.add(isStack(base) ? makeStack(base, n) : makeItem(base));
+    SFX.play('coin');
+    this.hud.log('Item Mall: ' + b.name + (n > 1 ? ' x' + n : '') + ' alındı (envanter).', 'lvl', '#ff9ae8');
+    this.refreshMall();
+  }
+
+  // ---------- Evcil hayvanlar ----------
+  refreshPet() {
+    const P = this.pets, inv = this.inv;
+    const pet = (base, on, label, extra) => this._row(ITEM_BASES[base].icon, ITEM_BASES[base].name + (on ? ' <small class="own">çağrılı</small>' : ''), extra || ITEM_BASES[base].sub,
+      inv.count(base) ? '<button data-pa="' + base + '">' + (on ? 'Gönder' : 'Çağır') + '</button>' : '<span class="qs">Yok</span>');
+    let h = '<div class="hint">Evcil hayvan ve binek kartları envanterde durur; buradan ya da hotbardan (📌) çağırılır. Toplayıcı (Ahır: Tilki, Item Mall: Altın Sincap) yerdeki ganimeti senin için toplar; envanterin dolarsa kendi çantasına koyar.</div>';
+    h += pet('pet_grab', P.grab && P.grabKind === 1) + pet('pet_grab2', P.grab && P.grabKind === 2) +
+      pet('pet_atk', !!P.atk, '', P.atk ? 'Can ' + Math.ceil(P.atk.hp) + ' / ' + P.atk.maxHp : null) +
+      pet('horse', P.mounted && (P.horseSpeed || 1.7) < 2) + pet('horse2', P.mounted && P.horseSpeed >= 2);
+    h += '<h4>Toplama filtresi</h4><div class="filt">' + [['all', 'Hepsi'], ['items', 'Sadece eşya'], ['gear', 'Sadece ekipman'], ['gold', 'Sadece altın']].map(([k, n]) => '<button data-pf="' + k + '" class="' + (P.filter === k ? 'on' : '') + '">' + n + '</button>').join('') + '</div>';
+    const size = P.pinvSize();
+    h += '<h4>🎒 Evcil çantası (' + P.pinv.slice(0, size).filter(Boolean).length + '/' + size + ') <button data-pa="all" class="small">Hepsini envantere al</button></h4>' +
+      '<div class="st-grid">' + P.pinv.slice(0, size).map((it, i) => this._slot(it, 'data-pb="' + i + '"', false, '')).join('') + '</div>';
+    this.$('pet-body').innerHTML = h;
   }
 
   // ---------- Görev günlüğü ----------
@@ -406,6 +476,7 @@ class UI {
     const mk = this.quests.markerFor(npc.id);
     this.tab = mk ? 'quests' : tabs[0][0];
     this.msg = null; this.sellConfirm = null;
+    this.filter.d = SHOP_DEGREES.filter(d => degreeReq(d) <= this.p.stats.level).pop() || SHOP_DEGREES[0];
     if (window.innerWidth < 900) for (const k in this.w) if (k !== 'npc') this.toggle(k, false, true);
     this.w.npc.classList.remove('hidden');
     this.refreshNpc();
@@ -422,7 +493,7 @@ class UI {
     const t = this.tab;
     this.npcBody.innerHTML = t.startsWith('buy:') ? this._buyHTML(t.slice(4)) : t === 'sell' ? this._sellHTML() : t === 'repair' ? this._repairHTML() :
       t === 'storage' ? this._storageHTML() : t === 'tele' ? this._teleHTML() : t === 'job' ? this._jobHTML() : t === 'trade' ? this._tradeHTML() : t === 'den' ? this._denHTML() : t === 'unique' ? this._uniqueHTML() : this._questHTML();
-    this.npcFoot.innerHTML = '💰 <b>' + s.gold.toLocaleString('tr-TR') + '</b> &nbsp; 🎒 ' + (INV_SIZE - this.inv.freeCount()) + '/' + INV_SIZE;
+    this.npcFoot.innerHTML = '💰 <b>' + s.gold.toLocaleString('tr-TR') + '</b> &nbsp; 🎒 ' + (this.inv.slots.length - this.inv.freeCount()) + '/' + this.inv.slots.length;
     this.npcMsgEl.innerHTML = this.msg ? '<span style="color:' + this.msg.color + '">' + this.msg.text + '</span>' : '';
   }
 
@@ -453,10 +524,17 @@ class UI {
   _buyHTML(kind) {
     let list = shopStock(kind), filt = '';
     const lvl = this.p.stats.level;
+    const degF = SHOP_DEGREES.map(d => '<button data-f="d:' + d + '" class="' + (this.filter.d === d ? 'on' : '') + '">' + d + '. derece</button>').join('');
     if (kind === 'armor') {
-      filt = '<div class="filt">' + Object.keys(ARMOR_TYPES).map(a => '<button data-f="at:' + a + '" class="' + (this.filter.at === a ? 'on' : '') + '">' + ARMOR_TYPES[a].name + '</button>').join('') +
-        SHOP_DEGREES.map(d => '<button data-f="d:' + d + '" class="' + (this.filter.d === d ? 'on' : '') + '">' + d + '. derece</button>').join('') + '</div>';
+      filt = '<div class="filt">' + Object.keys(ARMOR_TYPES).map(a => '<button data-f="at:' + a + '" class="' + (this.filter.at === a ? 'on' : '') + '">' + ARMOR_TYPES[a].name + '</button>').join('') + degF + '</div>';
       list = list.filter(b => ITEM_BASES[b].atype === this.filter.at && ITEM_BASES[b].d === this.filter.d);
+    } else if (kind === 'weapon') {
+      const wt = this.filter.wt || this.inv.weaponType() || 'blade';
+      filt = '<div class="filt">' + [...Object.keys(WEAPON_TYPES), 'shield'].map(t => '<button data-f="wt:' + t + '" class="' + (wt === t ? 'on' : '') + '">' + (t === 'shield' ? 'Kalkan' : WEAPON_TYPES[t].name) + '</button>').join('') + degF + '</div>';
+      list = list.filter(b => b === 'arrow' || ((ITEM_BASES[b].wtype || 'shield') === wt && ITEM_BASES[b].d === this.filter.d));
+    } else if (kind === 'acc') {
+      filt = '<div class="filt">' + degF + '</div>';
+      list = list.filter(b => !ITEM_BASES[b].d || ITEM_BASES[b].d === this.filter.d);
     }
     return filt + list.map(base => {
       const b = ITEM_BASES[base], price = buyPrice(base);
@@ -542,7 +620,7 @@ class UI {
     const inv = this.inv;
     return '<div class="hint">Eşyaya dokun: envanterden depoya / depodan envantere taşınır. Depo tüm karakterlerinde ortaktır.</div>' +
       '<div class="st-wrap"><div><h4>🎒 Envanter</h4><div class="st-grid">' + inv.slots.map((it, i) => this._slot(it, 'data-act="dep" data-i="' + i + '"', false, '')).join('') + '</div></div>' +
-      '<div><h4>📦 Depo (' + (STORAGE_SIZE - inv.freeCount(inv.storage)) + '/' + STORAGE_SIZE + ')</h4><div class="st-grid">' + inv.storage.map((it, i) => this._slot(it, 'data-act="wd" data-i="' + i + '"', false, '')).join('') + '</div></div></div>';
+      '<div><h4>📦 Depo (' + (inv.storage.length - inv.freeCount(inv.storage)) + '/' + inv.storage.length + ')</h4><div class="st-grid">' + inv.storage.map((it, i) => this._slot(it, 'data-act="wd" data-i="' + i + '"', false, '')).join('') + '</div></div></div>';
   }
 
   _npcAct(btn) {

@@ -79,9 +79,12 @@ class LootManager {
 
   // Canavar öldüğünde ganimet saç (seviye ve rütbeye göre)
   dropFrom(m) {
-    const L = m.level, k = m.dropMult || 1;
+    const L = m.level, k = (m.dropMult || 1) * (this.player.premT > 0 ? 1.3 : 1);
     const spot = () => { const a = Math.random() * 6.283, r = 0.6 + Math.random() * (1.4 + Math.min(4, k * 0.3)); return [m.x + Math.cos(a) * r, m.z + Math.sin(a) * r]; };
-    const item = it => this.spawn('item', ...spot(), { item: it });
+    const item = it => {
+      if (it.rarity && this.hud) { const n = itemInfo(it); this.hud.banner(RARITY[it.rarity].name + '!', n.name, 'seal'); this.hud.log('✨ ' + RARITY[it.rarity].name + ' düştü: ' + n.name, 'lvl', n.color); SFX.play('levelup'); }
+      return this.spawn('item', ...spot(), { item: it });
+    };
     const chance = p => Math.random() < Math.min(0.95, p * k);
     const rolls = Math.min(8, Math.max(1, Math.round(k)));
     // altın
@@ -92,8 +95,7 @@ class LootManager {
     if (m.rank === 'unique') {
       for (let i = 0; i < 2; i++) {
         const g = randomGear(L + 4), q = Math.random();
-        g.rarity = q < 0.06 ? 3 : q < 0.32 ? 2 : 1; g.blues = rollBlues(g.base, g.rarity); g.dur = maxDur(g);
-        item(g);
+        item(makeSeal(g.base, q < 0.08 ? 3 : q < 0.35 ? 2 : 1));
       }
       item(makeStack('elx_w', 2)); item(makeStack('elx_a', 3)); item(makeStack('luck', 2));
       if (Math.random() < 0.5) item(makeStack('astral', 1));
@@ -108,6 +110,7 @@ class LootManager {
     if (chance(0.012)) item(makeStack('ms_' + Object.keys(BLUES)[Math.floor(Math.random() * 6)], 1));
     if (chance(0.003)) item(makeStack('astral', 1));
     if (chance(0.006)) item(makeStack('zerk', 1));
+    if (Math.random() < (m.rank === 'unique' ? 1 : m.rank === 'giant' ? 0.25 : m.rank === 'champion' ? 0.04 : 0.002)) item(makeStack('silkbag', m.rank === 'unique' ? 3 : 1));
     // görev eşyası
     const q = QUEST_DROPS[m.typeKey];
     if (q && this.quests && this.quests.wantsItem(q) && Math.random() < 0.45) item(makeStack(q, 1));

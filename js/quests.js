@@ -196,13 +196,14 @@ class QuestManager {
     if (q.type === 'collect' && !inv.take(q.target, q.n)) return { ok: false, msg: 'Görev eşyaları eksik.' };
     st.s = 'done';
     if (r.gold) s.gold += r.gold;
+    s.silk = (s.silk || 0) + 10;
     for (const [b, n] of r.items || []) inv.add(makeStack(b, n));
     if (r.gear) { const g = this._gearBase(r.gear.base); inv.add(makeItem(g, r.gear.rarity, 0, rollBlues(g, r.gear.rarity))); }
     if (r.exp && this.combat) { this.combat.fx(this.p, '+' + r.exp + ' EXP', 'exp'); this.combat.gainExp(r.exp); }
     SFX.play('levelup');
     this.hud.log('Görev teslim edildi: ' + q.name + ' (' + this.rewardText(q) + ')', 'lvl');
     this._changed();
-    return { ok: true, msg: '✅ ' + q.name + ' tamamlandı! ' + this.rewardText(q) };
+    return { ok: true, msg: '✅ ' + q.name + ' tamamlandı! ' + this.rewardText(q) + ' · 10 Silk' };
   }
 
   // Bir NPC'nin penceresinde gösterilecek görevler

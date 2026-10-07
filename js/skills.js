@@ -149,6 +149,14 @@ class SkillBook {
     if (got) this.changed();
     return got;
   }
+  // Ustalık sıfırlama: harcanan bütün SP geri
+  refund() {
+    let n = 0;
+    for (const k in this.mastery) { for (let m = 1; m <= this.mastery[k]; m++) n += masteryCost(m); this.mastery[k] = 0; }
+    for (const id in this.rank) { const s = SKILLS_BY_ID[id]; for (let r = 1; r <= this.rank[id]; r++) n += rankCost(s, r); }
+    this.rank = {}; this.sp += n; this.changed();
+    return n;
+  }
   passives() {
     const t = {};
     for (const id in this.rank) {

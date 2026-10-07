@@ -5,6 +5,7 @@ const STORAGE_SIZE = 48;
 class Inventory {
   constructor(player) {
     this.p = player;
+    this.invSize = INV_SIZE; this.stSize = STORAGE_SIZE;
     this.slots = new Array(INV_SIZE).fill(null);
     this.storage = new Array(STORAGE_SIZE).fill(null);
     this.equip = {};
@@ -119,6 +120,13 @@ class Inventory {
     return { ok: true, msg: itemInfo(it).name + ' çıkarıldı.' };
   }
 
+  // Mall: kalıcı genişletme
+  expand(kind) {
+    if (kind === 'inv') { if (this.invSize >= 96) return false; this.invSize += 16; while (this.slots.length < this.invSize) this.slots.push(null); }
+    else { if (this.stSize >= 120) return false; this.stSize += 24; while (this.storage.length < this.stSize) this.storage.push(null); }
+    this.changed(); return true;
+  }
+
   // Depo
   deposit(i) {
     const it = this.slots[i]; if (!it) return false;
@@ -148,7 +156,7 @@ class Inventory {
       const A = ITEM_BASES[a.base], B = ITEM_BASES[b.base];
       return (order[A.cat] - order[B.cat]) || ((B.d || 0) - (A.d || 0)) || (a.base < b.base ? -1 : a.base > b.base ? 1 : 0);
     });
-    this.slots = new Array(INV_SIZE).fill(null);
+    this.slots = new Array(this.invSize).fill(null);
     merged.forEach((it, i) => { this.slots[i] = it; });
     this.changed();
   }
@@ -191,13 +199,14 @@ class Inventory {
   serialize() {
     const eq = {};
     for (const k in this.equip) eq[k] = Inventory.enc(this.equip[k]);
-    return { slots: this.slots.map(Inventory.enc), equip: eq, storage: this.storage.map(Inventory.enc) };
+    return { slots: this.slots.map(Inventory.enc), equip: eq, storage: this.storage.map(Inventory.enc), isz: this.invSize, ssz: this.stSize };
   }
   load(d) {
-    this.slots = new Array(INV_SIZE).fill(null);
-    this.storage = new Array(STORAGE_SIZE).fill(null);
-    (d.slots || []).slice(0, INV_SIZE).forEach((a, i) => { this.slots[i] = Inventory.dec(a); });
-    (d.storage || []).slice(0, STORAGE_SIZE).forEach((a, i) => { this.storage[i] = Inventory.dec(a); });
+    this.invSize = clamp(d.isz | 0 || INV_SIZE, INV_SIZE, 96); this.stSize = clamp(d.ssz | 0 || STORAGE_SIZE, STORAGE_SIZE, 120);
+    this.slots = new Array(this.invSize).fill(null);
+    this.storage = new Array(this.stSize).fill(null);
+    (d.slots || []).slice(0, this.invSize).forEach((a, i) => { this.slots[i] = Inventory.dec(a); });
+    (d.storage || []).slice(0, this.stSize).forEach((a, i) => { this.storage[i] = Inventory.dec(a); });
     for (const k in this.equip) this.equip[k] = Inventory.dec((d.equip || {})[k]);
     this.recalc();
     this.changed();

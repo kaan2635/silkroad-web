@@ -20,6 +20,7 @@
       <div class="bar mp"><div id="mp-fill" class="fill"></div><span id="mp-text"></span></div>
       <div class="prow"><div id="zerk" title="Berserk (Z)"></div><div id="pgold">💰 0</div></div>
       <div id="buffs"></div>
+      <div id="petbar"></div>
     </div>
 
     <div id="target-frame" class="panel hidden">
@@ -62,6 +63,8 @@
       <button id="btn-skill" title="Yetenekler (K)">📖<i id="badge-k" class="badge hidden">!</i></button>
       <button id="btn-quest" title="Görevler (L)">📜</button>
       <button id="btn-map" title="Harita (M)">🗺️</button>
+      <button id="btn-pet" title="Evcil hayvanlar (P)">🐾</button>
+      <button id="btn-mall" title="Item Mall (B)">🛒</button>
       <button id="btn-settings" title="Ayarlar (Esc)">⚙️</button>
     </div>
 
@@ -88,6 +91,16 @@
     <div id="alchw" class="win hidden">
       <div class="win-head"><span>⚗️ Simya</span><button class="x">✕</button></div>
       <div id="alch-body"></div>
+    </div>
+
+    <div id="mallw" class="win hidden">
+      <div class="win-head"><span>🛒 Item Mall</span><button class="x">✕</button></div>
+      <div id="mall-body"></div>
+    </div>
+
+    <div id="petw" class="win hidden">
+      <div class="win-head"><span>🐾 Evcil Hayvanlar ve Binek</span><button class="x">✕</button></div>
+      <div id="pet-body"></div>
     </div>
 
     <div id="npc-win" class="win hidden">
@@ -121,6 +134,7 @@
       <h1>ÖLDÜN</h1>
       <p class="sub">Canavarlar seni yendi.</p>
       <button id="btn-respawn">Şehirde Yeniden Doğ</button>
+      <button id="btn-rez" class="hidden">🕯️ Burada Diril</button>
     </div>
   </div>
 
@@ -175,6 +189,7 @@
   <script src="js/assets.js"></script>
   <script src="js/town3d.js"></script>
   <script src="js/fx.js"></script>
+  <script src="js/looks.js"></script>
   <script src="js/player.js"></script>
   <script src="js/npc.js"></script>
   <script src="js/monsters.js"></script>

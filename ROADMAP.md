@@ -69,6 +69,12 @@ Tarayıcıda çalışan, Silkroad Online tarzı (ipek yolu temalı, tıkla-yür�
 - [x] Avcı: kervan koruma görevi (3 hırsız dalgası); Hırsız: muhafızlı kervan soygunu, çalıntı malı harabelerdeki simsara satma
 - [x] Ahır: At (binek, %70 hız), Toplayıcı Tilki (ganimeti toplar), Savaş Kurdu (hedefe saldırır), evcil can iksiri
 
+**5E — Eşya derinliği, görünüm, Item Mall (TAMAM)**
+- [x] Derece başına 3 ara kademe, Seal of Star / Moon / Sun eşyalar ve duyuruları
+- [x] Ekipmanın derecesi, kademesi, mührü ve +seviyesi karakterde görünür; silah parlaması
+- [x] Toplayıcı evcil hayvan: filtre, evcil çantası, evcil çubuğu ve penceresi
+- [x] Item Mall ve Silk: premium, simya, evcil/binek, parşömen, avatar, genişletme
+
 ## Faz 6 — Çok Oyunculu Altyapı
 - [ ] Node.js + WebSocket sunucusu, sunucu otoriteli hareket ve savaş
 - [ ] Hesap/giriş, karakter kaydı sunucuda

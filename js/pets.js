@@ -6,12 +6,50 @@ class PetSystem {
     this.grab = null; this.atk = null;
     this.atkDeadUntil = 0;
     this.jobs = null;
+    this.grabKind = 1;              // 1: Toplayıcı Tilki, 2: Altın Sincap (Item Mall)
+    this.filter = 'all';            // all | items | gold | gear
+    this.pinv = new Array(32).fill(null);   // evcil çantası
+    this.onChange = null;
   }
+  pinvSize() { return this.p.inv.count('pet_grab2') ? 32 : 16; }
+  changed() { if (this.onChange) this.onChange(); }
+  // Filtreye göre toplanacak mı?
+  wants(d) {
+    if (d.kind === 'gold') return this.filter === 'all' || this.filter === 'gold';
+    if (this.filter === 'gold') return false;
+    if (this.filter === 'gear') return isGear(d.item.base);
+    return true;
+  }
+  // Tilki/sincap toplar: önce oyuncu envanteri, dolarsa evcil çantası
+  _petCollect(d) {
+    if (d.kind === 'gold' || this.p.inv.canAdd(d.item.base, d.item.n || 1)) return this.loot._collect(d);
+    const arr = this.pinv.slice(0, this.pinvSize());
+    const it = d.item, n = itemInfo(it);
+    if (!this.p.inv.add(it, arr, true)) { d.cool = 6; this.hud.log('Envanter ve evcil çantası dolu!', 'dmg'); return; }
+    arr.forEach((x, i) => { this.pinv[i] = x; });
+    this.hud.log((this.grabKind === 2 ? 'Sincap' : 'Tilki') + ' çantasına koydu: ' + n.name, 'sys', n.color);
+    SFX.play('item');
+    this.loot.remove(d);
+    this.changed();
+  }
+  // Evcil çantasından oyuncu envanterine
+  takeFromBag(i) {
+    const it = this.pinv[i]; if (!it) return false;
+    const copy = isStack(it.base) ? makeStack(it.base, it.n) : it;
+    const ok = this.p.inv.add(copy);
+    if (!ok) { if (isStack(it.base)) it.n = copy.n; this.changed(); return false; }
+    this.pinv[i] = null; this.changed(); return true;
+  }
+  takeAll() { let n = 0; for (let i = 0; i < this.pinv.length; i++) if (this.pinv[i] && this.takeFromBag(i)) n++; return n; }
 
   useItem(b) {
-    if (b.use === 'horse') return this.toggleMount();
+    if (b.use === 'horse') { this.horseSpeed = b.speed || 1.7; return this.toggleMount(); }
     if (b.use === 'camel') return this.jobs ? this.jobs.summonTransport() : false;
-    if (b.use === 'grabpet') return this.toggleGrab();
+    if (b.use === 'grabpet') {
+      const k = b.pet || 1;
+      if (this.grab && this.grabKind !== k) { this.toggleGrab(false); this.grabKind = k; return this.toggleGrab(true); }
+      this.grabKind = k; return this.toggleGrab();
+    }
     if (b.use === 'atkpet') return this.toggleAtk();
     if (b.use === 'petpot') {
       if (!this.atk) { this.hud.log('Savaş kurdun çağrılı değil.'); return false; }
@@ -36,7 +74,7 @@ class PetSystem {
       mane.position.set(0, 2.0, 1.0); q.group.add(mane);
       this.horse = q; this.p.group.add(q.group);
       this.p.model.position.y = 1.05;
-      this.p.mounted = true; this.p.mountSpeed = 1.7; this.mounted = true;
+      this.p.mounted = true; this.p.mountSpeed = this.horseSpeed || 1.7; this.mounted = true;
       SFX.play('step'); this.hud.log('Atına bindin. (Saldırırsan inersin.)');
     } else {
       if (this.horse) this.p.group.remove(this.horse.group);
@@ -50,11 +88,12 @@ class PetSystem {
 
   // ---------- Evcil hayvan ortak ----------
   _make(kind) {
-    const fox = kind === 'grab';
-    const q = buildQuad(fox ? { fur: 0xe07a2a, dark: 0xf0e0d0, body: [0.45, 0.4, 0.9], legH: 0.35, eye: 0x1a1a1a } : { fur: 0x8a8a92, dark: 0x4a4a52, body: [0.6, 0.55, 1.2], legH: 0.55, eye: 0xffd23a });
+    const fox = kind === 'grab', sq = fox && this.grabKind === 2;
+    const q = buildQuad(sq ? { fur: 0xe8b030, dark: 0xfff0c0, body: [0.4, 0.4, 0.75], legH: 0.3, eye: 0x1a1a1a } : fox ? { fur: 0xe07a2a, dark: 0xf0e0d0, body: [0.45, 0.4, 0.9], legH: 0.35, eye: 0x1a1a1a } : { fur: 0x8a8a92, dark: 0x4a4a52, body: [0.6, 0.55, 1.2], legH: 0.55, eye: 0xffd23a });
+    if (sq) { const t = new THREE.Mesh(new THREE.SphereGeometry(0.32, 10, 8), new THREE.MeshLambertMaterial({ color: 0xffd23a, emissive: 0x3a2a00 })); t.scale.set(0.8, 1.4, 0.8); t.position.set(0, 0.85, -0.55); q.group.add(t); }
     const g = new THREE.Group(); g.add(q.group);
     const P = this.p.pos; g.position.set(P.x - 1.5, P.y, P.z - 1.5);
-    const label = makeLabel(fox ? 'Toplayıcı Tilki' : 'Savaş Kurdu', fox ? 'Evcil' : 'Sv. ' + this.p.stats.level, '#9fe3ff', '#ffe9a8');
+    const label = makeLabel(sq ? 'Altın Sincap' : fox ? 'Toplayıcı Tilki' : 'Savaş Kurdu', fox ? 'Toplayıcı' : 'Sv. ' + this.p.stats.level, sq ? '#ffd23a' : '#9fe3ff', '#ffe9a8');
     label.scale.set(3, 0.95, 1); label.position.y = fox ? 1.6 : 2.2; g.add(label);
     this.world.scene.add(g);
     return { group: g, legs: q.legs, heading: 0, phase: 0, get x() { return g.position.x; }, get z() { return g.position.z; }, label };
@@ -63,10 +102,13 @@ class PetSystem {
   _move(pet, tx, tz, speed, dt) {
     const g = pet.group.position, dx = tx - g.x, dz = tz - g.z, d = Math.hypot(dx, dz);
     if (d < 0.05) return 0;
-    const st = Math.min(d, speed * dt);
+    const st = Math.min(d, speed * dt), ox = g.x, oz = g.z;
     g.x += dx / d * st; g.z += dz / d * st;
     pet.heading = Math.atan2(dx, dz); pet.phase += dt * 14;
     pushOut(g, 0.4, this.world.obstacles);
+    // duvara / engele takıldıysa hedefin yanına sıçra
+    if (Math.hypot(g.x - ox, g.z - oz) < st * 0.3) { pet.stuck = (pet.stuck || 0) + dt; if (pet.stuck > 0.8) { g.x = tx - dx / d * 1.5; g.z = tz - dz / d * 1.5; pet.stuck = 0; } }
+    else pet.stuck = 0;
     return d - st;
   }
   _anim(pet, moving) {
@@ -86,8 +128,9 @@ class PetSystem {
 
   toggleGrab(force) {
     const on = force === undefined ? !this.grab : force;
-    if (on && !this.grab) { this.grab = this._make('grab'); this.grab.target = null; this.hud.log('Toplayıcı Tilki çağrıldı.'); SFX.play('item'); }
+    if (on && !this.grab) { this.grab = this._make('grab'); this.grab.target = null; this.hud.log((this.grabKind === 2 ? 'Altın Sincap' : 'Toplayıcı Tilki') + ' çağrıldı. Yerdeki ganimeti toplar (🐾 penceresinden filtre).'); SFX.play('item'); }
     else if (!on && this.grab) { this._remove(this.grab); this.grab = null; }
+    this.changed();
     return true;
   }
   toggleAtk(force) {
@@ -123,14 +166,14 @@ class PetSystem {
     if (g) {
       if (g.target && (!this.loot.drops.includes(g.target))) g.target = null;
       if (!g.target) {
-        let best = null, bd = 16;
-        for (const d of this.loot.drops) { const dd = Math.hypot(d.x - pl.pos.x, d.z - pl.pos.z); if (dd < bd && d.cool <= 0) { bd = dd; best = d; } }
+        let best = null, bd = this.grabKind === 2 ? 24 : 16;
+        for (const d of this.loot.drops) { const dd = Math.hypot(d.x - pl.pos.x, d.z - pl.pos.z); if (dd < bd && d.cool <= 0 && this.wants(d)) { bd = dd; best = d; } }
         g.target = best;
       }
       let moving;
       if (g.target) {
-        moving = this._move(g, g.target.x, g.target.z, 12, dt) > 0;
-        if (Math.hypot(g.target.x - g.x, g.target.z - g.z) < 1.2) { this.loot._collect(g.target); g.target = null; }
+        moving = this._move(g, g.target.x, g.target.z, this.grabKind === 2 ? 16 : 12, dt) > 0;
+        if (Math.hypot(g.target.x - g.x, g.target.z - g.z) < 1.2) { this._petCollect(g.target); g.target = null; }
       } else moving = this._follow(g, dt, 0.9);
       this._anim(g, moving);
     }
@@ -160,11 +203,14 @@ class PetSystem {
     }
   }
 
-  serialize() { return { m: this.mounted, g: !!this.grab, a: this.atk ? Math.round(this.atk.hp) : (this._savedHp || 0), ao: !!this.atk }; }
+  serialize() { return { m: this.mounted, hs: this.horseSpeed || 1.7, g: !!this.grab, gk: this.grabKind, f: this.filter, b: this.pinv.map(Inventory.enc), a: this.atk ? Math.round(this.atk.hp) : (this._savedHp || 0), ao: !!this.atk }; }
   load(d) {
     if (!d) return;
+    this.grabKind = d.gk === 2 ? 2 : 1; this.filter = ['all', 'items', 'gold', 'gear'].includes(d.f) ? d.f : 'all';
+    this.horseSpeed = d.hs || 1.7;
+    (d.b || []).slice(0, 32).forEach((a, i) => { this.pinv[i] = Inventory.dec(a); });
     if (d.g) this.toggleGrab(true);
     if (d.ao) { this._savedHp = d.a || null; this.toggleAtk(true); }
-    if (d.m && this.p.inv.count('horse')) this.toggleMount(true);
+    if (d.m && (this.p.inv.count('horse') || this.p.inv.count('horse2'))) this.toggleMount(true);
   }
 }

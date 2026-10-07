@@ -31,6 +31,7 @@ class HUD {
     this.el.page.addEventListener('click', () => { if (this.hotbar) { this.hotbar.setPage(1 - this.hotbar.page); SFX.play('tab'); } });
 
     $('btn-respawn').addEventListener('click', () => this.combat && this.combat.respawn());
+    $('btn-rez').addEventListener('click', () => this.combat && this.combat.resurrect());
     const bt = $('btn-target');
     if (bt) bt.addEventListener('click', () => { if (this.combat) { this.combat.targetNearest(); this.combat.startAttack(); } });
   }
@@ -63,7 +64,11 @@ class HUD {
     hb.pages[hb.page].forEach((e, i) => { if (e && e.t === 'sk' && e.id === id) { const el = this.slots[i].el; el.classList.add('flash'); setTimeout(() => el.classList.remove('flash'), 150); } });
   }
 
-  showDeath(v) { this.el.death.classList.toggle('hidden', !v); }
+  showDeath(v) {
+    this.el.death.classList.toggle('hidden', !v);
+    const n = this.player.inv.count('rez'), b = document.getElementById('btn-rez');
+    if (b) { b.classList.toggle('hidden', !n); b.textContent = '🕯️ Burada Diril (' + n + ')'; }
+  }
 
   // Bölge / görev afişi (ekranın üstünde birkaç saniye)
   banner(title, sub, cls = 'region') {
@@ -194,8 +199,19 @@ class HUD {
     for (const id in pl.buffs) b += chip(pl.buffs[id].icon, pl.buffs[id].t);
     if (pl.absorb) b += chip('🌟', pl.absorb.t);
     if (pl.speedScrollT > 0) b += chip('🐎', pl.speedScrollT);
+    if (pl.premT > 0) b += chip('🎟️', pl.premT);
+    if (pl.blessT > 0) b += chip('📗', pl.blessT);
     for (const k in pl.status) b += chip(STATUS_ICONS[k] || '❗', pl.status[k].t, true);
     if (b !== this._lastBuffs) { e.buffs.innerHTML = b; this._lastBuffs = b; }
+    // evcil hayvan çubuğu
+    const P = this.pets;
+    if (P) {
+      let pb = '';
+      if (P.grab) { const n = P.pinv.slice(0, P.pinvSize()).filter(Boolean).length; pb += '<span>' + (P.grabKind === 2 ? '🐿️' : '🦊') + '<small>' + n + '/' + P.pinvSize() + '</small></span>'; }
+      if (P.atk) pb += '<span>🐺<i style="width:' + Math.round(P.atk.hp / P.atk.maxHp * 100) + '%"></i></span>';
+      if (P.mounted) pb += '<span>' + (P.horseSpeed >= 2 ? '🏇' : '🐴') + '</span>';
+      if (pb !== this._lastPet) { document.getElementById('petbar').innerHTML = pb; this._lastPet = pb; }
+    }
 
     this._updateFloats(dt);
     this._drawMinimap();

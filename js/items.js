@@ -1,12 +1,16 @@
 // Eşya verileri (Silkroad tarzı): 10 derece, 5 silah türü + kalkan, 6 parça zırh (kumaş/hafif/ağır),
 // küpe/kolye/yüzük, mühürler (Yıldız/Ay/Güneş), mavi statlar, dayanıklılık, simya (+12), yığınlanan sarf malzemeleri.
 
+// Nadirlik: normal + Silkroad'daki üç mühür (Seal of Star / Moon / Sun)
 const RARITY = [
-  { name: 'Sıradan',      color: '#e8e8e8', hex: 0xe8e8e8, mult: 1.0,  val: 1.0, blues: [0, 1] },
-  { name: 'Yıldız Mührü', color: '#ffe066', hex: 0xffe066, mult: 1.18, val: 4,   blues: [2, 3] },
-  { name: 'Ay Mührü',     color: '#ffb44a', hex: 0xffb44a, mult: 1.32, val: 9,   blues: [3, 4] },
-  { name: 'Güneş Mührü',  color: '#ff6a3a', hex: 0xff6a3a, mult: 1.5,  val: 20,  blues: [4, 5] }
+  { name: 'Sıradan',      tr: 'Sıradan',      sym: '',  color: '#e8e8e8', hex: 0xe8e8e8, mult: 1.0,  val: 1.0, blues: [0, 1] },
+  { name: 'Seal of Star', tr: 'Yıldız Mührü', sym: '★ ', color: '#ffe066', hex: 0xffe066, mult: 1.2,  val: 4,   blues: [2, 3] },
+  { name: 'Seal of Moon', tr: 'Ay Mührü',     sym: '☾ ', color: '#ffb44a', hex: 0xffb44a, mult: 1.35, val: 9,   blues: [3, 4] },
+  { name: 'Seal of Sun',  tr: 'Güneş Mührü',  sym: '☀ ', color: '#ff6a3a', hex: 0xff6a3a, mult: 1.55, val: 20,  blues: [4, 5] }
 ];
+// Her derecede 3 ara seviye (kademe): gerekli seviye derece başı +0 / +3 / +5
+const TIERS = [{ suf: '', add: 0 }, { suf: 'b', add: 3 }, { suf: 'c', add: 5 }];
+const TIER_ADJ = { weapon: ['', 'Keskin ', 'Usta İşi '], armor: ['', 'Sağlam ', 'Usta İşi '], shield: ['', 'Sağlam ', 'Usta İşi '], acc: ['', 'Parlak ', 'Kusursuz '] };
 const BLUE_COLOR = '#6ab4ff';
 const MAX_DEGREE = 10;
 const degreeReq = d => (d - 1) * 8 + 1;              // 1, 9, 17, 25 ... 73
@@ -24,7 +28,10 @@ const EQUIP_SLOTS = {
   earring:  { name: 'Küpe',    icon: '🔸' },
   necklace: { name: 'Kolye',   icon: '📿' },
   ring1:    { name: 'Yüzük',   icon: '💍' },
-  ring2:    { name: 'Yüzük',   icon: '💍' }
+  ring2:    { name: 'Yüzük',   icon: '💍' },
+  av_hat:   { name: 'Avatar Şapka', icon: '🎩' },
+  av_dress: { name: 'Avatar Giysi', icon: '👘' },
+  av_attach:{ name: 'Avatar Süs',   icon: '🪽' }
 };
 const ARMOR_PARTS = ['head', 'shoulder', 'chest', 'hands', 'legs', 'feet'];
 const PART_W = { head: 0.15, shoulder: 0.12, chest: 0.30, hands: 0.10, legs: 0.22, feet: 0.11 };
@@ -55,7 +62,7 @@ const BLUES = {
 };
 const BLUE_BY_KIND = {
   weapon: ['str', 'int', 'crit', 'dur'], shield: ['str', 'int', 'hp', 'dur'],
-  armor: ['str', 'int', 'hp', 'mp', 'dur'], acc: ['str', 'int', 'hp', 'mp']
+  armor: ['str', 'int', 'hp', 'mp', 'dur'], acc: ['str', 'int', 'hp', 'mp'], avatar: []
 };
 
 // --- Taban eşyalar (programla üretilir) ---
@@ -64,37 +71,38 @@ const ITEM_BASES = {};
   const P = d => 8 + d * 14 + d * d * 3;       // silah fiziksel taban saldırı
   const D = d => 6 + d * 10 + d * d * 2;       // tam setin taban savunması
   for (let d = 1; d <= MAX_DEGREE; d++) {
-    const req = degreeReq(d), val = Math.round(60 * d * d + 40 * d);
-    for (const t in WEAPON_TYPES) {
-      const w = WEAPON_TYPES[t], two = w.oneHand || w.ranged ? 1 : 1.35;
-      ITEM_BASES[t + '_' + d] = {
-        cat: 'weapon', wtype: t, slot: 'weapon', d, req, icon: w.icon,
-        name: DEG_PREFIX[d - 1] + ' ' + WEAPON_NOUN[t],
-        phy: Math.round(P(d) * w.phy * two), mag: Math.round(P(d) * w.mag * two), value: val * (two > 1 ? 1.3 : 1)
-      };
-    }
-    ITEM_BASES['shield_' + d] = { cat: 'shield', slot: 'shield', d, req, icon: '🛡️', name: DEG_PREFIX[d - 1] + ' Kalkanı',
-      pdef: Math.round(D(d) * 0.35), mdef: Math.round(D(d) * 0.3), block: 10 + d, value: val * 0.8 };
-    for (const at in ARMOR_TYPES) {
-      const a = ARMOR_TYPES[at];
-      for (const p of ARMOR_PARTS) {
-        ITEM_BASES[p + '_' + at + '_' + d] = {
-          cat: 'armor', atype: at, slot: p, d, req, icon: EQUIP_SLOTS[p].icon,
-          name: DEG_PREFIX[d - 1] + ' ' + a.name + ' ' + PART_NAME[p],
-          pdef: Math.max(1, Math.round(D(d) * PART_W[p] * a.phy)), mdef: Math.max(1, Math.round(D(d) * PART_W[p] * a.mag)),
-          hp: a.hp ? Math.round((8 + d * 9) * PART_W[p] * 4 * a.hp) : 0, mp: a.mp ? Math.round((8 + d * 9) * PART_W[p] * 4 * a.mp) : 0,
-          value: val * PART_W[p] * 2.2
-        };
+    TIERS.forEach((T, ti) => {
+      const dd = d + ti * 0.33, req = degreeReq(d) + T.add, val = Math.round(60 * dd * dd + 40 * dd), sf = T.suf;
+      const common = { d, tier: ti, req };
+      for (const t in WEAPON_TYPES) {
+        const w = WEAPON_TYPES[t], two = w.oneHand || w.ranged ? 1 : 1.35;
+        ITEM_BASES[t + '_' + d + sf] = { ...common, cat: 'weapon', wtype: t, slot: 'weapon', icon: w.icon,
+          name: TIER_ADJ.weapon[ti] + DEG_PREFIX[d - 1] + ' ' + WEAPON_NOUN[t],
+          phy: Math.round(P(dd) * w.phy * two), mag: Math.round(P(dd) * w.mag * two), value: val * (two > 1 ? 1.3 : 1) };
       }
-    }
-    ITEM_BASES['earring_' + d] = { cat: 'acc', slot: 'earring', d, req, icon: '🔸', name: DEG_PREFIX[d - 1] + ' Küpesi',
-      mdef: Math.round(D(d) * 0.12), mp: 10 + d * 12, value: val * 0.9 };
-    ITEM_BASES['necklace_' + d] = { cat: 'acc', slot: 'necklace', d, req, icon: '📿', name: DEG_PREFIX[d - 1] + ' Kolyesi',
-      pdef: Math.round(D(d) * 0.08), mdef: Math.round(D(d) * 0.08), hp: 15 + d * 15, value: val };
-    ITEM_BASES['ring_' + d] = { cat: 'acc', slot: 'ring', d, req, icon: '💍', name: DEG_PREFIX[d - 1] + ' Yüzüğü',
-      pdef: Math.round(D(d) * 0.1), hp: 10 + d * 12, value: val * 0.85 };
+      ITEM_BASES['shield_' + d + sf] = { ...common, cat: 'shield', slot: 'shield', icon: '🛡️', name: TIER_ADJ.shield[ti] + DEG_PREFIX[d - 1] + ' Kalkanı',
+        pdef: Math.round(D(dd) * 0.35), mdef: Math.round(D(dd) * 0.3), block: 10 + d + ti, value: val * 0.8 };
+      for (const at in ARMOR_TYPES) {
+        const a = ARMOR_TYPES[at];
+        for (const p of ARMOR_PARTS) {
+          ITEM_BASES[p + '_' + at + '_' + d + sf] = { ...common, cat: 'armor', atype: at, slot: p, icon: EQUIP_SLOTS[p].icon,
+            name: TIER_ADJ.armor[ti] + DEG_PREFIX[d - 1] + ' ' + a.name + ' ' + PART_NAME[p],
+            pdef: Math.max(1, Math.round(D(dd) * PART_W[p] * a.phy)), mdef: Math.max(1, Math.round(D(dd) * PART_W[p] * a.mag)),
+            hp: a.hp ? Math.round((8 + dd * 9) * PART_W[p] * 4 * a.hp) : 0, mp: a.mp ? Math.round((8 + dd * 9) * PART_W[p] * 4 * a.mp) : 0,
+            value: val * PART_W[p] * 2.2 };
+        }
+      }
+      ITEM_BASES['earring_' + d + sf] = { ...common, cat: 'acc', slot: 'earring', icon: '🔸', name: TIER_ADJ.acc[ti] + DEG_PREFIX[d - 1] + ' Küpesi',
+        mdef: Math.round(D(dd) * 0.12), mp: Math.round(10 + dd * 12), value: val * 0.9 };
+      ITEM_BASES['necklace_' + d + sf] = { ...common, cat: 'acc', slot: 'necklace', icon: '📿', name: TIER_ADJ.acc[ti] + DEG_PREFIX[d - 1] + ' Kolyesi',
+        pdef: Math.round(D(dd) * 0.08), mdef: Math.round(D(dd) * 0.08), hp: Math.round(15 + dd * 15), value: val };
+      ITEM_BASES['ring_' + d + sf] = { ...common, cat: 'acc', slot: 'ring', icon: '💍', name: TIER_ADJ.acc[ti] + DEG_PREFIX[d - 1] + ' Yüzüğü',
+        pdef: Math.round(D(dd) * 0.1), hp: Math.round(10 + dd * 12), value: val * 0.85 };
+    });
   }
 })();
+// Seviyeye göre en uygun kademe soneki ('', 'b', 'c')
+function tierFor(d, level) { let s = ''; TIERS.forEach(T => { if (degreeReq(d) + T.add <= level) s = T.suf; }); return s; }
 
 // --- Sarf ve malzemeler (yığınlanır) ---
 const POT_GRADES = [
@@ -134,15 +142,52 @@ Object.assign(ITEM_BASES, {
 });
 for (const k in BLUES) ITEM_BASES['ms_' + k] = { cat: 'mat', icon: '🔮', name: 'Büyü Taşı (' + BLUES[k].name + ')', stack: 50, value: 600, sub: 'Simya: eşyaya ' + BLUES[k].name + ' mavi statı ekler/artırır', stone: k };
 
+// --- Item Mall (Silk ile): avatarlar, premium, simya, evcil, genişletme ---
+const AVATARS = {
+  av_hat_straw:  { slot: 'av_hat', name: 'Gezgin Şapkası', icon: '👒', look: { kind: 'hat', c1: 0xe8c070, c2: 0xc0302a }, fb: [['hp', 3]], silk: 40 },
+  av_hat_ears:   { slot: 'av_hat', name: 'Tilki Kulakları', icon: '🦊', look: { kind: 'ears', c1: 0xe07a2a }, fb: [['crit', 2]], silk: 60 },
+  av_hat_crown:  { slot: 'av_hat', name: 'Altın Taç', icon: '👑', look: { kind: 'crown' }, fb: [['str', 3], ['int', 3]], silk: 120 },
+  av_dress_red:  { slot: 'av_dress', name: 'İmparatorluk Cübbesi', icon: '👘', look: { c1: 0xa8181e, c2: 0x3a0808, c3: 0xffd23a }, fb: [['hp', 5], ['str', 2]], silk: 100 },
+  av_dress_blue: { slot: 'av_dress', name: 'Bilge Cübbesi', icon: '🥻', look: { c1: 0x1e4aa8, c2: 0x0a1a48, c3: 0xe8e8ff }, fb: [['mp', 5], ['int', 2]], silk: 100 },
+  av_dress_white:{ slot: 'av_dress', name: 'Ak Kaplan Giysisi', icon: '🐯', look: { c1: 0xf0f0f0, c2: 0x2a2a2a, c3: 0xe07a2a }, fb: [['hp', 4], ['crit', 2]], silk: 140 },
+  av_att_flag:   { slot: 'av_attach', name: 'Savaş Sancağı', icon: '🚩', look: { kind: 'flag', c1: 0xc0302a }, fb: [['str', 2]], silk: 60 },
+  av_att_halo:   { slot: 'av_attach', name: 'Işık Halesi', icon: '😇', look: { kind: 'halo', c1: 0xfff0a0 }, fb: [['int', 3]], silk: 90 },
+  av_att_wings:  { slot: 'av_attach', name: 'Anka Kanatları', icon: '🪽', look: { kind: 'wings', c1: 0xff7a2a }, fb: [['hp', 3], ['mp', 3]], silk: 150 }
+};
+for (const id in AVATARS) { const a = AVATARS[id]; ITEM_BASES[id] = { cat: 'avatar', slot: a.slot, d: 1, tier: 0, req: 1, icon: a.icon, name: a.name, look: a.look, fb: a.fb, value: a.silk * 10, silk: a.silk }; }
+Object.assign(ITEM_BASES, {
+  prem:     { cat: 'use', use: 'premium', icon: '🎟️', name: 'Premium Bilet', stack: 20, value: 0, sub: '60 dk: EXP ve SP +%50, ganimet +%30', cd: 'prem' },
+  bless:    { cat: 'use', use: 'bless', icon: '📗', name: 'Bereket Parşömeni', stack: 20, value: 0, sub: '30 dk: EXP ve SP +%100', cd: 'prem' },
+  rez:      { cat: 'use', use: 'rez', icon: '🕯️', name: 'Diriliş Parşömeni', stack: 20, value: 0, sub: 'Öldüğün yerde tam canla dirilirsin, EXP kaybetmezsin' },
+  hammer:   { cat: 'use', use: 'repair', icon: '🔨', name: 'Tamir Çekici', stack: 20, value: 0, sub: 'Tüm eşyalarını her yerde tamir eder', cd: 'hammer' },
+  reset_stat:  { cat: 'use', use: 'resetstat', icon: '🔄', name: 'Stat Sıfırlama Parşömeni', stack: 5, value: 0, sub: 'GÜÇ/ZEKÂ puanlarını geri verir', cd: 'reset' },
+  reset_skill: { cat: 'use', use: 'resetskill', icon: '♻️', name: 'Ustalık Sıfırlama Parşömeni', stack: 5, value: 0, sub: 'Harcanan tüm SP\'yi geri verir', cd: 'reset' },
+  inv_exp:  { cat: 'use', use: 'invexp', icon: '🎒', name: 'Envanter Genişletme', stack: 5, value: 0, sub: 'Envantere kalıcı +16 yuva (en çok 96)', cd: 'reset' },
+  st_exp:   { cat: 'use', use: 'stexp', icon: '📦', name: 'Depo Genişletme', stack: 5, value: 0, sub: 'Depoya kalıcı +24 yuva (en çok 120)', cd: 'reset' },
+  immortal: { cat: 'mat', icon: '💠', name: 'Ölümsüz Taş', stack: 20, value: 0, sub: 'Simya başarısız olursa eşyanın +seviyesi hiç düşmez' },
+  pet_grab2:{ cat: 'use', use: 'grabpet', keep: true, pet: 2, icon: '🐿️', name: 'Altın Sincap', stack: 1, value: 0, sub: 'Premium toplayıcı: daha geniş alan, daha hızlı, 32 yuvalı çanta', cd: 'pet' },
+  horse2:   { cat: 'use', use: 'horse', keep: true, speed: 2.0, icon: '🏇', name: 'Savaş Atı Kartı', stack: 1, value: 0, sub: 'Atlıyken %100 daha hızlı', cd: 'mount' },
+  silkbag:  { cat: 'use', use: 'silkbag', icon: '🧧', name: 'Silk Kesesi', stack: 50, value: 0, sub: 'Açınca 5–15 Silk verir', cd: 'silkbag' }
+});
+const MALL = [
+  { id: 'prem', name: '🎟️ Premium', items: [['prem', 1, 50], ['bless', 1, 30], ['rez', 3, 20], ['hammer', 3, 15]] },
+  { id: 'alc', name: '⚗️ Simya', items: [['immortal', 1, 25], ['astral', 3, 30], ['luck', 5, 15], ['elx_w', 5, 25], ['elx_a', 5, 20], ['elx_s', 5, 20], ['elx_c', 5, 20], ['ms_str', 1, 15], ['ms_int', 1, 15], ['ms_hp', 1, 15], ['ms_crit', 1, 20]] },
+  { id: 'pet', name: '🐾 Evcil & Binek', items: [['pet_grab2', 1, 150], ['pet_grab', 1, 60], ['pet_atk', 1, 100], ['pet_pot', 20, 10], ['horse2', 1, 120], ['horse', 1, 40]] },
+  { id: 'scroll', name: '📜 Parşömen', items: [['rev', 5, 10], ['spd', 5, 10], ['zerk', 3, 20], ['ret', 10, 5], ['reset_stat', 1, 80], ['reset_skill', 1, 120]] },
+  { id: 'avatar', name: '👘 Avatar', items: Object.keys(AVATARS).map(id => [id, 1, AVATARS[id].silk]) },
+  { id: 'exp', name: '🎒 Genişletme', items: [['inv_exp', 1, 100], ['st_exp', 1, 60]] }
+];
+
 const isStack = b => !!(ITEM_BASES[b] && ITEM_BASES[b].stack);
-const isGear = b => { const c = ITEM_BASES[b] && ITEM_BASES[b].cat; return c === 'weapon' || c === 'shield' || c === 'armor' || c === 'acc'; };
+const isGear = b => { const c = ITEM_BASES[b] && ITEM_BASES[b].cat; return c === 'weapon' || c === 'shield' || c === 'armor' || c === 'acc' || c === 'avatar'; };
 function elixirFor(base) { const b = ITEM_BASES[base]; return b.cat === 'weapon' ? 'elx_w' : b.cat === 'shield' ? 'elx_s' : b.cat === 'armor' ? 'elx_a' : 'elx_c'; }
 const maxDur = it => { const b = ITEM_BASES[it.base]; const bl = (it.blues || []).find(x => x[0] === 'dur'); return Math.round((20 + b.d * 6) * (1 + (bl ? bl[1] * 0.2 : 0))); };
 
 let _itemUid = 1;
 function makeItem(base, rarity = 0, plus = 0, blues = null) {
   if (isStack(base)) return { uid: _itemUid++, base, n: Math.max(1, rarity || 1) };
-  const it = { uid: _itemUid++, base, rarity, plus, blues: blues || [], dur: 0 };
+  const fb = ITEM_BASES[base] && ITEM_BASES[base].fb;
+  const it = { uid: _itemUid++, base, rarity, plus, blues: fb ? fb.map(x => x.slice()) : (blues || []), dur: 0 };
   it.dur = maxDur(it);
   return it;
 }
@@ -174,14 +219,14 @@ function itemInfo(it) {
   const bl = {};
   for (const [kk, v] of it.blues || []) bl[kk] = (bl[kk] || 0) + v;
   const color = it.rarity > 0 ? r.color : (it.blues && it.blues.length ? BLUE_COLOR : r.color);
-  const typeName = b.cat === 'weapon' ? WEAPON_TYPES[b.wtype].name : b.cat === 'armor' ? ARMOR_TYPES[b.atype].name + ' ' + EQUIP_SLOTS[b.slot].name : (EQUIP_SLOTS[b.slot] || EQUIP_SLOTS.ring1).name;
+  const typeName = b.cat === 'avatar' ? EQUIP_SLOTS[b.slot].name : b.cat === 'weapon' ? WEAPON_TYPES[b.wtype].name : b.cat === 'armor' ? ARMOR_TYPES[b.atype].name + ' ' + EQUIP_SLOTS[b.slot].name : (EQUIP_SLOTS[b.slot] || EQUIP_SLOTS.ring1).name;
   return {
-    name: b.name + (it.plus ? ' (+' + it.plus + ')' : ''), baseName: b.name, cat: b.cat, slot: b.slot, req: b.req, d: b.d,
+    name: r.sym + b.name + (it.plus ? ' (+' + it.plus + ')' : ''), baseName: b.name, tier: b.tier || 0, cat: b.cat, slot: b.slot, req: b.req, d: b.d,
     wtype: b.wtype, atype: b.atype, typeName, icon: b.icon,
     phy: st(b.phy), mag: st(b.mag), pdef: st(b.pdef), mdef: st(b.mdef), hp: st(b.hp), mp: st(b.mp), block: b.block || 0,
     blues: bl, dur: it.dur, maxDur: maxDur(it), broken,
     value: Math.round(b.value * r.val * (1 + 0.35 * (it.plus || 0))),
-    color, hex: parseInt(color.slice(1), 16), rarityName: r.name
+    color, hex: parseInt(color.slice(1), 16), rarityName: it.rarity ? r.name + ' (' + r.tr + ')' : r.name, seal: it.rarity || 0
   };
 }
 function sellPrice(it) {
@@ -214,6 +259,8 @@ function alchemyChance(it, lucky) { return Math.min(0.97, PLUS_CHANCE[(it.plus |
 function randomGear(level, rng = Math.random, rareBoost = 1) {
   let d = degreeOf(level);
   if (d > 1 && rng() < 0.3) d--;
+  let sf = tierFor(d, level + 2);
+  if (sf && rng() < 0.35) sf = sf === 'c' ? 'b' : '';
   const r = rng();
   const kind = r < 0.3 ? 'weapon' : r < 0.38 ? 'shield' : r < 0.82 ? 'armor' : 'acc';
   let base;
@@ -221,10 +268,16 @@ function randomGear(level, rng = Math.random, rareBoost = 1) {
   else if (kind === 'shield') base = 'shield_' + d;
   else if (kind === 'armor') base = ARMOR_PARTS[Math.floor(rng() * 6)] + '_' + Object.keys(ARMOR_TYPES)[Math.floor(rng() * 3)] + '_' + d;
   else base = ['earring', 'necklace', 'ring'][Math.floor(rng() * 3)] + '_' + d;
+  base += sf;
+  // Mühür şansı (ekipman düşüşü başına): Star %7, Moon %2.2, Sun %0.6 — rütbe ile artar
   const q = rng();
-  const rarity = q < 0.0018 * rareBoost ? 3 : q < 0.007 * rareBoost ? 2 : q < 0.025 * rareBoost ? 1 : 0;
+  const rarity = q < 0.006 * rareBoost ? 3 : q < 0.028 * rareBoost ? 2 : q < 0.098 * rareBoost ? 1 : 0;
+  return makeSeal(base, rarity, rng, true);
+}
+// Belirli nadirlikte eşya üret (mühürlü eşyalar tam dayanıklı)
+function makeSeal(base, rarity, rng = Math.random, worn = false) {
   const it = makeItem(base, rarity, 0, rollBlues(base, rarity, rng));
-  it.dur = Math.max(1, Math.round(it.dur * (0.6 + rng() * 0.4)));
+  if (worn && !rarity) it.dur = Math.max(1, Math.round(it.dur * (0.6 + rng() * 0.4)));
   return it;
 }
 const potFor = (level, kind) => { let g = 1; POT_GRADES.forEach((p, i) => { if (level >= p.req) g = i + 1; }); return kind + g; };

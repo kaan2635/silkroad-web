@@ -31,7 +31,7 @@
   combat.loot = loot;
   const pets = new PetSystem(player, world, combat, loot, hud);
   const jobs = new JobSystem(player, world, monsters, combat, hud, loot);
-  combat.pets = pets; combat.jobs = jobs; pets.jobs = jobs; hud.jobs = jobs;
+  combat.pets = pets; combat.jobs = jobs; pets.jobs = jobs; hud.jobs = jobs; hud.pets = pets;
   player.onDeathMount = () => pets.toggleMount(false);
   const quests = new QuestManager(player, hud, world);
   quests.combat = combat; combat.quests = quests; loot.quests = quests; hud.quests = quests;
@@ -40,6 +40,7 @@
   quests.onChange = () => { npcs.refreshMarkers(quests); ui.refresh(); };
   combat.onLevel = lvl => { hotbar.upgradePots(lvl); ui.refresh(); };
   ui.mm = monsters; ui.jobs = jobs; ui.pets = pets;
+  pets.onChange = () => ui.refresh();
   jobs.onChange = () => ui.refresh();
   monsters.announce = (title, sub, kind) => {
     hud.banner(title, sub, kind === 'kill' ? 'quest' : 'unique');
@@ -100,7 +101,7 @@
       const s = player.stats;
       localStorage.setItem(CONFIG.saveKey, JSON.stringify({
         v: 2, name: player.name, x: player.pos.x, z: player.pos.z,
-        level: s.level, exp: s.exp, gold: s.gold, str: s.str, int: s.int, statPts: s.statPts, zerk: s.zerk,
+        level: s.level, exp: s.exp, gold: s.gold, silk: s.silk || 0, day: lastDay, str: s.str, int: s.int, statPts: s.statPts, zerk: s.zerk,
         hp: Math.round(s.hp), mp: Math.round(s.mp),
         inv: player.inv.serialize(), book: player.book.serialize(), hotbar: hotbar.serialize(),
         tod: world.timeOfDay, quests: quests.serialize(), death: combat.deathPos, recall: combat.recallPos,
@@ -111,7 +112,7 @@
   }
 
   // Kayıttan yükle (v1 → v2 göçü dahil)
-  let afterLoad = null;
+  let afterLoad = null, lastDay = '';
   function applySave(sv) {
     const s = player.stats;
     s.level = clamp(sv.level | 0 || 1, 1, MAX_LEVEL);
@@ -121,6 +122,8 @@
     if (sv.v === 2) {
       s.str = Math.max(20, sv.str | 0); s.int = Math.max(20, sv.int | 0);
       s.statPts = Math.max(0, sv.statPts | 0); s.zerk = clamp(+sv.zerk || 0, 0, ZERK_MAX);
+      s.silk = sv.silk === undefined ? 100 : Math.max(0, sv.silk | 0);      // Item Mall öncesi kayıtlara 100 Silk
+      lastDay = sv.day || '';
       player.inv.load(sv.inv || {});
       player.book.load(sv.book);
       hotbar.load(sv.hotbar);
@@ -135,6 +138,7 @@
       if (sv.mpPots) player.inv.addStack('mp1', clamp(sv.mpPots | 0, 0, 250));
       if (sv.stones) player.inv.addStack('elx_w', clamp(Math.ceil(sv.stones / 2), 0, 20));
       player.book.sp = 20 + 15 * (s.level - 1);
+      s.silk = 100;
       hud.log('Kaydın yeni sisteme taşındı: stat puanlarını (C) ve SP\'ni (K) dağıt!', 'lvl');
     }
     player.recalc();
@@ -189,7 +193,10 @@
         player.inv.equip.feet = makeItem('feet_' + pickA + '_1');
       }
       player.book.sp = 40;
+      player.stats.silk = 100;
+      player.inv.add(makeStack('pet_grab', 1));
       hotbar.reset();
+      hotbar.pages[1][0] = { t: 'it', base: 'pet_grab' };
       player.refreshLook();
       player.teleport(0, 7);
     }
@@ -213,6 +220,9 @@
     started = true;
     nameInput.blur();
     hud.log('İpek Yolu\'na hoş geldin, ' + name + '!');
+    const today = new Date().toISOString().slice(0, 10);
+    if (lastDay !== today) { lastDay = today; player.stats.silk = (player.stats.silk || 0) + 20; hud.log('🧶 Günlük giriş ödülü: +20 Silk (🛒 Item Mall)', 'lvl', '#ff9ae8'); }
+    if (!sameChar) hud.log('🦊 Toplayıcı Tilki envanterinde: 2. hotbar sayfasından çağır, ganimeti senin için toplasın.', 'lvl');
     if (!sameChar) {
       hud.log('📖 Yetenek penceresinden (K) SP harcayıp bir ustalık seç, yetenek öğren.', 'lvl');
       hud.log('Kaptan Lee\'nin başındaki ! işaretine bak: görevler seni bekliyor.');

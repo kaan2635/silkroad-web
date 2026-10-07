@@ -40,6 +40,9 @@ Yetenek veya iksiri hotbara koymak için pencerede **📌**'a bas, sonra bir yuv
 - Berserk: öldürdükçe dolan 5 küre; 30 sn boyunca saldırı ve hız artar
 
 **Eşyalar ve simya**
+- Her derecede 3 ara kademe (ör. Demir Bıçağı Sv. 17 → Keskin Demir Bıçağı Sv. 20 → Usta İşi Demir Bıçağı Sv. 22); toplam 30 seviye basamağı
+- **Seal of Star ★ / Seal of Moon ☾ / Seal of Sun ☀** eşyalar: daha güçlü taban stat ve çok mavi stat; düşünce ekranda duyurulur, Unique'ler garanti düşürür
+- Görünüm: silah ve zırhın derecesi, kademesi ve mührü karakterde görünür (renk, boy, miğfer, omuzluk, eldiven, çizme); +4'ten itibaren silah parlar (+6 mavi, +7 mor, +9 kırmızı, +11 altın)
 - 1.–10. derece ekipman, 12 yuva: silah, kalkan, 6 zırh parçası, küpe, kolye, 2 yüzük
 - Nadirlik: normal (mavi statlı olabilir), Yıldız / Ay / Güneş Mührü; mavi statlar (GÜÇ, ZEKÂ, can %, mana %, kritik, dayanıklılık)
 - Dayanıklılık ve tamir; kırık eşya gücünü kaybeder
@@ -57,6 +60,15 @@ Yetenek veya iksiri hotbara koymak için pencerede **📌**'a bas, sonra bir yuv
 **Meslekler, binek ve evcil hayvanlar**
 - Sv. 20'de Meslek Loncası: **Tüccar** (şehre özgü mallar, kervan devesi, yolda hırsız baskınları), **Avcı** (kervan koruma görevi), **Hırsız** (kervan soygunu, çalıntı malı simsara satma). 7 meslek seviyesi, meslek pelerini
 - At (binek, %70 hız), Toplayıcı Tilki (ganimeti toplar), Savaş Kurdu (hedefine saldırır)
+
+**Item Mall (🛒 / B) ve Silk**
+- Silk kazanma: yeni karakter 100, günlük giriş +20, seviye +5, görev +10, Unique +50, Şampiyon/Dev canavarlardan Silk Kesesi
+- Premium Bilet, Bereket Parşömeni, Diriliş Parşömeni, Tamir Çekici, Ölümsüz Taş, Koruma Taşı, Şans Tozu, iksir ve büyü taşı paketleri, Stat/Ustalık sıfırlama, envanter (96'ya kadar) ve depo (120'ye kadar) genişletme
+- Avatarlar: şapka, giysi, sırt süsü (taç, kanat, sancak, hale…) karakter görünümünü değiştirir, küçük statlar verir
+- Altın Sincap (premium toplayıcı), Savaş Atı
+
+**Evcil hayvanlar (🐾 / P)**
+- Toplayıcı Tilki (yeni karakterle gelir) ve Altın Sincap yerdeki ganimeti toplar; filtre (hepsi / eşya / ekipman / altın), envanter dolarsa evcil çantası (16 / 32 yuva)
 
 **Diğer**
 - Ses ve müzik (WebAudio, dosyasız), ayarlar (ses, kalite, gölge, FPS, kamera hassasiyeti, otomatik iksir, kayıt sıfırlama)

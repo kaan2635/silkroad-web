@@ -122,7 +122,9 @@ class Combat {
     m.die();
     if (this.target === m) { this.target = null; this.attacking = false; this.queued = null; }
     const pl = this.player, s = pl.stats;
-    const exp = Math.max(1, Math.round(m.exp * clamp(1 + 0.15 * (m.level - s.level), 0.05, 1.5)));
+    const bonus = 1 + (pl.premT > 0 ? 0.5 : 0) + (pl.blessT > 0 ? 1 : 0);
+    const exp = Math.max(1, Math.round(m.exp * clamp(1 + 0.15 * (m.level - s.level), 0.05, 1.5) * bonus));
+    if (m.rank === 'unique') { s.silk = (s.silk || 0) + 50; this.hud.log('+50 Silk (Unique)', 'lvl', '#ff9ae8'); }
     this.hud.log(m.displayName + ' öldürüldü. +' + exp + ' EXP', 'exp');
     SFX.play('kill');
     this.fx(pl, '+' + exp + ' EXP', 'exp');
@@ -175,7 +177,7 @@ class Combat {
     s.exp += n;
     let up = false;
     while (s.exp >= s.maxExp && s.level < MAX_LEVEL) {
-      s.exp -= s.maxExp; s.level++; s.str++; s.int++; s.statPts += 3;
+      s.exp -= s.maxExp; s.level++; s.str++; s.int++; s.statPts += 3; s.silk = (s.silk || 0) + 5;
       s.maxExp = expToNext(s.level); up = true;
     }
     if (s.level >= MAX_LEVEL) s.exp = 0;
@@ -223,6 +225,16 @@ class Combat {
     this.hud.showDeath(true);
     SFX.play('death');
   }
+  // Item Mall: Diriliş Parşömeni — öldüğün yerde tam canla
+  resurrect() {
+    const pl = this.player, s = pl.stats;
+    if (!pl.dead || !pl.inv.take('rez', 1)) return false;
+    pl.revive(); s.hp = s.maxHp; s.mp = s.maxMp;
+    this.hud.showDeath(false);
+    this.vfx.column(pl.pos.x, pl.pos.z, 0xfff0a0, 6, 1.2); SFX.play('levelup');
+    this.hud.log('Diriliş Parşömeni ile dirildin.', 'lvl');
+    return true;
+  }
   respawn() {
     const pl = this.player, s = pl.stats;
     pl.revive();
@@ -265,6 +277,27 @@ class Combat {
       cd = b.use === 'petpot' ? 1 : 2;
       if (!b.keep) inv.take(base, 1);
       this._setCd(key, cd);
+      return true;
+    }
+    if (['premium', 'bless', 'repair', 'resetstat', 'resetskill', 'invexp', 'stexp', 'silkbag', 'rez'].includes(b.use)) {
+      if (b.use === 'rez') { this.hud.log('Diriliş Parşömeni ölünce ölüm ekranından kullanılır.'); return false; }
+      if (b.use === 'premium') { pl.premT = (pl.premT || 0) + 3600; this.fx(pl, 'PREMIUM!', 'buff'); }
+      else if (b.use === 'bless') { pl.blessT = (pl.blessT || 0) + 1800; this.fx(pl, 'Bereket!', 'buff'); }
+      else if (b.use === 'repair') { if (!inv.repairCost()) { this.hud.log('Tamir edilecek eşya yok.'); return false; } inv.repairAll(); this.fx(pl, 'Tamir edildi', 'buff'); }
+      else if (b.use === 'resetstat') {
+        const base = 20 + s.level - 1, back = (s.str - base) + (s.int - base);
+        if (back <= 0) { this.hud.log('Dağıtılmış stat puanın yok.'); return false; }
+        s.str = base; s.int = base; s.statPts += back; pl.recalc(); s.hp = Math.min(s.hp, s.maxHp); this.hud.log(back + ' stat puanı geri verildi (C).', 'lvl');
+      } else if (b.use === 'resetskill') {
+        const n = pl.book.refund();
+        if (!n) { this.hud.log('Harcanmış SP yok.'); return false; }
+        pl.recalc(); this.hud.log(n.toLocaleString('tr-TR') + ' SP geri verildi (K).', 'lvl');
+      } else if (b.use === 'invexp' || b.use === 'stexp') {
+        if (!inv.expand(b.use === 'invexp' ? 'inv' : 'st')) { this.hud.log('Zaten en büyük boyutta.'); return false; }
+        this.hud.log(b.use === 'invexp' ? 'Envanter genişledi: ' + inv.slots.length + ' yuva' : 'Depo genişledi: ' + inv.storage.length + ' yuva', 'lvl');
+      } else if (b.use === 'silkbag') { const n = 5 + Math.floor(Math.random() * 11); s.silk = (s.silk || 0) + n; this.fx(pl, '+' + n + ' Silk', 'sp'); this.hud.log('+' + n + ' Silk', 'lvl', '#ff9ae8'); }
+      SFX.play('buff'); pl.recalc();
+      inv.take(base, 1); this._setCd(key || 'misc', 1);
       return true;
     }
     if (b.use === 'hp') {
