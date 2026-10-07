@@ -14,8 +14,13 @@ const NPC_DEFS = [
   { id: 'stable',   title: 'Ahır · Binek ve Evcil', x: -17, z: -13 },
   { id: 'special',  title: 'Ticaret Malları', x: 17, z: -13 },
   { id: 'market',   title: 'Emanet Pazarı', x: 14, z: 12 },
-  { id: 'den',      title: 'Çalıntı Mal Alır', x: RUINS[0].x + 14, z: RUINS[0].z + 9 }
+  { id: 'den',      title: 'Çalıntı Mal Alır', x: RUINS.length ? RUINS[0].x + 14 : 999, z: RUINS.length ? RUINS[0].z + 9 : 999 }
 ];
+// Zindanda yalnızca giriş bekçisi ve gezgin şifacı
+if (IS_DUNGEON) {
+  for (let i = NPC_DEFS.length - 1; i >= 0; i--) if (!ZONE.npc[NPC_DEFS[i].id]) NPC_DEFS.splice(i, 1);
+  for (const n of NPC_DEFS) { if (n.id === 'tele') { n.x = -5; n.z = -6; n.title = 'Çıkış ve Kat Geçişi'; } else { n.x = 5; n.z = -6; n.title = 'İksir ve Parşömen'; } }
+}
 NPC_DEFS.forEach(n => { n.name = ZONE.npc[n.id] || ({ market: 'Pazar Ağası' })[n.id] || n.id; });
 
 // Görünüm: cübbe, iç renk, kuşak, şapka, saç, sakal, rol eşyası, hareket
@@ -35,6 +40,8 @@ const NPC_LOOK = {
 };
 if (ZONE.id === 'hotan') { NPC_LOOK.merchant.hat = 'turban'; NPC_LOOK.storage.hat = 'turban'; NPC_LOOK.stable.hat = 'turban'; }
 if (ZONE.id === 'donwhang') { NPC_LOOK.stable.hat = 'turban'; NPC_LOOK.special.hat = 'turban'; }
+if (['samarkand', 'alexandria'].includes(ZONE.id)) for (const k of ['merchant', 'storage', 'stable', 'special', 'acc', 'job']) NPC_LOOK[k].hat = 'turban';
+if (['asiaminor', 'constantinople'].includes(ZONE.id)) for (const k of ['merchant', 'storage', 'stable', 'special', 'acc', 'armor', 'job']) { NPC_LOOK[k].hat = k === 'merchant' || k === 'storage' ? 'hood' : 'bun'; NPC_LOOK[k].hair = 0x5a3a1a; }
 
 const _npcMat = new THREE.MeshLambertMaterial({ vertexColors: true });
 
@@ -134,7 +141,7 @@ class NPCManager {
     this.world = world;
     this.list = [];
     this.tex = { '!': makeMarkerTexture('!', '#ffd23a'), '?': makeMarkerTexture('?', '#7fe36a') };
-    if (typeof planCity === 'function') planCity();
+    if (typeof planCity === 'function' && !IS_DUNGEON) planCity();
     for (const def of NPC_DEFS) {
       const look = NPC_LOOK[def.id] || NPC_LOOK.merchant;
       const h = buildRobed(look);
@@ -158,7 +165,7 @@ class NPCManager {
       world.obstacles.push({ x: def.x, z: def.z, r: 0.9, type: 'npc' });
       this.list.push(npc);
     }
-    this.folk = new Townsfolk(world);
+    this.folk = IS_DUNGEON ? null : new Townsfolk(world);
   }
 
   // Görev işaretleri: '!' görev alınabilir, '?' teslim edilecek
@@ -211,7 +218,7 @@ class Townsfolk {
   constructor(world) {
     this.world = world; this.list = [];
     const n = CONFIG.isTouch ? 5 : 9, rng = mulberry32(55);
-    const hats = ['straw', 'bun', 'band', 'straw', 'scholar', ZONE.id === 'jangan' ? 'bun' : 'turban'];
+    const hats = ['asiaminor', 'constantinople'].includes(ZONE.id) ? ['bun', 'hood', 'band', 'bun', 'hood', 'band'] : ['straw', 'bun', 'band', 'straw', 'scholar', ZONE.id === 'jangan' ? 'bun' : 'turban'];
     this.points = [];
     for (let i = 0; i < 10; i++) { const a = i / 10 * 6.283; this.points.push([Math.cos(a) * 9.5, Math.sin(a) * 9.5]); }
     for (let z = -24; z <= 24; z += 8) { const x = roadCenterX(z); if (Math.abs(z) > 10) this.points.push([x - 2.5, z], [x + 2.5, z]); }

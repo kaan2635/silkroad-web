@@ -6,15 +6,19 @@ const RARITY = [
   { name: 'Sıradan',      tr: 'Sıradan',      sym: '',  color: '#e8e8e8', hex: 0xe8e8e8, mult: 1.0,  val: 1.0, blues: [0, 1] },
   { name: 'Seal of Star', tr: 'Yıldız Mührü', sym: '★ ', color: '#ffe066', hex: 0xffe066, mult: 1.2,  val: 4,   blues: [2, 3] },
   { name: 'Seal of Moon', tr: 'Ay Mührü',     sym: '☾ ', color: '#ffb44a', hex: 0xffb44a, mult: 1.35, val: 9,   blues: [3, 4] },
-  { name: 'Seal of Sun',  tr: 'Güneş Mührü',  sym: '☀ ', color: '#ff6a3a', hex: 0xff6a3a, mult: 1.55, val: 20,  blues: [4, 5] }
+  { name: 'Seal of Sun',  tr: 'Güneş Mührü',  sym: '☀ ', color: '#ff6a3a', hex: 0xff6a3a, mult: 1.55, val: 20,  blues: [4, 5] },
+  { name: 'Seal of Nova', tr: 'Nova Mührü',   sym: '✦ ', color: '#c86aff', hex: 0xc86aff, mult: 1.8,  val: 45,  blues: [5, 6] }
 ];
 // Her derecede 3 ara seviye (kademe): gerekli seviye derece başı +0 / +3 / +5
 const TIERS = [{ suf: '', add: 0 }, { suf: 'b', add: 3 }, { suf: 'c', add: 5 }];
 const TIER_ADJ = { weapon: ['', 'Keskin ', 'Usta İşi '], armor: ['', 'Sağlam ', 'Usta İşi '], shield: ['', 'Sağlam ', 'Usta İşi '], acc: ['', 'Parlak ', 'Kusursuz '] };
 const BLUE_COLOR = '#6ab4ff';
-const MAX_DEGREE = 10;
-const degreeReq = d => (d - 1) * 8 + 1;              // 1, 9, 17, 25 ... 73
-const degreeOf = level => clamp(Math.floor((level - 1) / 8) + 1, 1, MAX_DEGREE);
+const MAX_DEGREE = 14;
+// iSRO'daki derece bantları (gerekli seviye): 1–9 eski, 10–14 Efsane güncellemeleri
+const DEG_REQ = [1, 8, 16, 24, 32, 42, 52, 64, 76, 90, 101, 110, 120, 130];
+const degreeReq = d => DEG_REQ[clamp(d, 1, MAX_DEGREE) - 1];
+const degreeBand = d => (d < MAX_DEGREE ? DEG_REQ[d] : 141) - DEG_REQ[d - 1];
+const degreeOf = level => { let d = 1; DEG_REQ.forEach((r, i) => { if (level >= r) d = i + 1; }); return d; };
 
 const EQUIP_SLOTS = {
   weapon:   { name: 'Silah',   icon: '⚔️' },
@@ -48,7 +52,7 @@ const WEAPON_TYPES = {
   glaive: { name: 'Pala',   icon: '🪓', phy: 1.45, mag: 0.95, spd: 1.25, range: 3.4 },
   bow:    { name: 'Yay',    icon: '🏹', phy: 1.05, mag: 0.6,  spd: 1.1,  range: 16, ranged: true }
 };
-const DEG_PREFIX = ['Söğüt', 'Bambu', 'Demir', 'Çelik', 'Yeşim', 'Kaplan', 'Anka', 'Ejder', 'Gök', 'Cennet'];
+const DEG_PREFIX = ['Söğüt', 'Bambu', 'Demir', 'Çelik', 'Yeşim', 'Kaplan', 'Anka', 'Ejder', 'Gök', 'Cennet', 'Firavun', 'Jüpiter', 'Şambala', 'Ejderkral'];
 const WEAPON_NOUN = { sword: 'Kılıcı', blade: 'Bıçağı', spear: 'Mızrağı', glaive: 'Palası', bow: 'Yayı' };
 
 // Mavi statlar (büyü seçenekleri). max(d) = derece başına üst sınır
@@ -72,7 +76,7 @@ const ITEM_BASES = {};
   const D = d => 6 + d * 10 + d * d * 2;       // tam setin taban savunması
   for (let d = 1; d <= MAX_DEGREE; d++) {
     TIERS.forEach((T, ti) => {
-      const dd = d + ti * 0.33, req = degreeReq(d) + T.add, val = Math.round(60 * dd * dd + 40 * dd), sf = T.suf;
+      const dd = d + ti * 0.33, req = degreeReq(d) + Math.round(T.add * degreeBand(d) / 8), val = Math.round(60 * dd * dd + 40 * dd), sf = T.suf;
       const common = { d, tier: ti, req };
       for (const t in WEAPON_TYPES) {
         const w = WEAPON_TYPES[t], two = w.oneHand || w.ranged ? 1 : 1.35;
@@ -102,7 +106,7 @@ const ITEM_BASES = {};
   }
 })();
 // Seviyeye göre en uygun kademe soneki ('', 'b', 'c')
-function tierFor(d, level) { let s = ''; TIERS.forEach(T => { if (degreeReq(d) + T.add <= level) s = T.suf; }); return s; }
+function tierFor(d, level) { let s = ''; TIERS.forEach(T => { if (degreeReq(d) + Math.round(T.add * degreeBand(d) / 8) <= level) s = T.suf; }); return s; }
 
 // --- Sarf ve malzemeler (yığınlanır) ---
 const POT_GRADES = [
@@ -110,7 +114,9 @@ const POT_GRADES = [
   { n: 'Orta', req: 12, hp: 260, mp: 200, price: 45 },
   { n: 'Büyük', req: 25, hp: 600, mp: 460, price: 110 },
   { n: 'Çok Büyük', req: 40, hp: 1150, mp: 880, price: 240 },
-  { n: 'Ejder', req: 60, hp: 2000, mp: 1550, price: 450 }
+  { n: 'Ejder', req: 60, hp: 2000, mp: 1550, price: 450 },
+  { n: 'Kral', req: 85, hp: 3400, mp: 2600, price: 800 },
+  { n: 'İmparator', req: 110, hp: 5200, mp: 4000, price: 1300 }
 ];
 POT_GRADES.forEach((g, i) => {
   ITEM_BASES['hp' + (i + 1)] = { cat: 'use', use: 'hp', amount: g.hp, req: g.req, icon: '🧪', name: 'Can İksiri (' + g.n + ')', stack: 250, value: g.price, cd: 'pot' };
@@ -138,7 +144,13 @@ Object.assign(ITEM_BASES, {
   pet_pot:  { cat: 'use', use: 'petpot', icon: '🍖', name: 'Evcil Can İksiri', stack: 100, value: 40, sub: 'Savaş kurdunun canını yeniler', cd: 'petpot' },
   sg:     { cat: 'quest', icon: '💰', name: 'Çalıntı Mal', stack: 100, value: 0, sub: 'Hırsız Simsarı\'na sat' },
   q_scale: { cat: 'quest', icon: '🐍', name: 'Yılan Pulu', stack: 50, value: 0, sub: 'Görev eşyası' },
-  q_fur: { cat: 'quest', icon: '🐻', name: 'Yeti Postu', stack: 50, value: 0, sub: 'Görev eşyası' }
+  q_fur: { cat: 'quest', icon: '', name: 'Yeti Postu', stack: 50, value: 0, sub: 'Görev eşyası' },
+  q_antler: { cat: 'quest', icon: '', name: 'Geyik Boynuzu', stack: 50, value: 0, sub: 'Görev eşyası' },
+  q_silk: { cat: 'quest', icon: '', name: 'Örümcek İpeği', stack: 50, value: 0, sub: 'Görev eşyası' },
+  q_feather: { cat: 'quest', icon: '', name: 'Roc Tüyü', stack: 50, value: 0, sub: 'Görev eşyası' },
+  q_scarab: { cat: 'quest', icon: '', name: 'Bokböceği Kabuğu', stack: 50, value: 0, sub: 'Görev eşyası' },
+  q_ember: { cat: 'quest', icon: '', name: 'Sönmez Kor', stack: 50, value: 0, sub: 'Görev eşyası' },
+  q_clay: { cat: 'quest', icon: '', name: 'Toprak Asker Parçası', stack: 50, value: 0, sub: 'Görev eşyası' }
 });
 for (const k in BLUES) ITEM_BASES['ms_' + k] = { cat: 'mat', icon: '🔮', name: 'Büyü Taşı (' + BLUES[k].name + ')', stack: 50, value: 600, sub: 'Simya: eşyaya ' + BLUES[k].name + ' mavi statı ekler/artırır', stone: k };
 
@@ -167,13 +179,16 @@ Object.assign(ITEM_BASES, {
   immortal: { cat: 'mat', icon: '💠', name: 'Ölümsüz Taş', stack: 20, value: 0, sub: 'Simya başarısız olursa eşyanın +seviyesi hiç düşmez' },
   pet_grab2:{ cat: 'use', use: 'grabpet', keep: true, pet: 2, icon: '🐿️', name: 'Altın Sincap', stack: 1, value: 0, sub: 'Premium toplayıcı: daha geniş alan, daha hızlı, 32 yuvalı çanta', cd: 'pet' },
   horse2:   { cat: 'use', use: 'horse', keep: true, speed: 2.0, icon: '🏇', name: 'Savaş Atı Kartı', stack: 1, value: 0, sub: 'Atlıyken %100 daha hızlı', cd: 'mount' },
+  fw_inv1:  { cat: 'use', use: 'fwinv', star: 1, icon: '', name: 'Unutulmuş Dünya Davetiyesi ★', stack: 10, value: 3000, sub: '20 dakikalık zindan; seviyene göre kurulur. Boss: Unutulmuş Kral' },
+  fw_inv3:  { cat: 'use', use: 'fwinv', star: 3, icon: '', name: 'Unutulmuş Dünya Davetiyesi ★★★', stack: 10, value: 9000, sub: 'Daha çok ve güçlü canavar, daha iyi ganimet' },
+  fw_inv5:  { cat: 'use', use: 'fwinv', star: 5, icon: '', name: 'Unutulmuş Dünya Davetiyesi ★★★★★', stack: 10, value: 25000, sub: 'En zor kademe: mühürlü eşya şansı çok yüksek' },
   silkbag:  { cat: 'use', use: 'silkbag', icon: '🧧', name: 'Silk Kesesi', stack: 50, value: 0, sub: 'Açınca 5–15 Silk verir', cd: 'silkbag' }
 });
 const MALL = [
   { id: 'prem', name: '🎟️ Premium', items: [['prem', 1, 50], ['bless', 1, 30], ['rez', 3, 20], ['hammer', 3, 15]] },
   { id: 'alc', name: '⚗️ Simya', items: [['immortal', 1, 25], ['astral', 3, 30], ['luck', 5, 15], ['elx_w', 5, 25], ['elx_a', 5, 20], ['elx_s', 5, 20], ['elx_c', 5, 20], ['ms_str', 1, 15], ['ms_int', 1, 15], ['ms_hp', 1, 15], ['ms_crit', 1, 20]] },
   { id: 'pet', name: '🐾 Evcil & Binek', items: [['pet_grab2', 1, 150], ['pet_grab', 1, 60], ['pet_atk', 1, 100], ['pet_pot', 20, 10], ['horse2', 1, 120], ['horse', 1, 40]] },
-  { id: 'scroll', name: '📜 Parşömen', items: [['rev', 5, 10], ['spd', 5, 10], ['zerk', 3, 20], ['ret', 10, 5], ['reset_stat', 1, 80], ['reset_skill', 1, 120]] },
+  { id: 'scroll', name: '📜 Parşömen', items: [['fw_inv3', 1, 30], ['rev', 5, 10], ['spd', 5, 10], ['zerk', 3, 20], ['ret', 10, 5], ['reset_stat', 1, 80], ['reset_skill', 1, 120]] },
   { id: 'avatar', name: '👘 Avatar', items: Object.keys(AVATARS).map(id => [id, 1, AVATARS[id].silk]) },
   { id: 'exp', name: '🎒 Genişletme', items: [['inv_exp', 1, 100], ['st_exp', 1, 60]] }
 ];
@@ -271,7 +286,7 @@ function randomGear(level, rng = Math.random, rareBoost = 1) {
   base += sf;
   // Mühür şansı (ekipman düşüşü başına): Star %7, Moon %2.2, Sun %0.6 — rütbe ile artar
   const q = rng();
-  const rarity = q < 0.006 * rareBoost ? 3 : q < 0.028 * rareBoost ? 2 : q < 0.098 * rareBoost ? 1 : 0;
+  const rarity = d >= 8 && q < 0.0012 * rareBoost ? 4 : q < 0.006 * rareBoost ? 3 : q < 0.028 * rareBoost ? 2 : q < 0.098 * rareBoost ? 1 : 0;
   return makeSeal(base, rarity, rng, true);
 }
 // Belirli nadirlikte eşya üret (mühürlü eşyalar tam dayanıklı)

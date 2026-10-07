@@ -14,6 +14,21 @@ class WorldMap {
   _buildBase() {
     const S = this.S, c = document.createElement('canvas'); c.width = c.height = S;
     const x = c.getContext('2d'), k = S / CONFIG.worldSize;
+    if (Dungeon.on) {                  // zindan haritası: odalar, koridorlar, unique ve çıkış
+      x.fillStyle = '#0c0a08'; x.fillRect(0, 0, S, S);
+      const m = document.createElement('canvas'); m.width = m.height = Dungeon.n; const mx = m.getContext('2d'), im = mx.createImageData(Dungeon.n, Dungeon.n);
+      for (let i = 0; i < Dungeon.n * Dungeon.n; i++) { const w = Dungeon.grid[i]; im.data[i * 4] = 178; im.data[i * 4 + 1] = 150; im.data[i * 4 + 2] = 110; im.data[i * 4 + 3] = w ? 255 : 0; }
+      mx.putImageData(im, 0, 0);
+      x.imageSmoothingEnabled = false;
+      x.drawImage(m, this._px(-Dungeon.H), this._px(-Dungeon.H), Dungeon.H * 2 * k, Dungeon.H * 2 * k);
+      x.textAlign = 'center'; x.textBaseline = 'middle';
+      const txt = (t, px, py, size, col) => { x.font = 'bold ' + size + 'px sans-serif'; x.lineWidth = 3; x.strokeStyle = '#000'; x.strokeText(t, px, py); x.fillStyle = col; x.fillText(t, px, py); };
+      txt(ZONE.town.toLocaleUpperCase('tr-TR'), S / 2, 18, 13, '#ffe08a');
+      txt('Giriş', this._px(0), this._px(0), 10, '#a8f0a0');
+      for (const u of ZONE.uniques) if (u.x !== undefined) { x.fillStyle = '#ff4ad8'; x.beginPath(); x.arc(this._px(u.x), this._px(u.z), 5, 0, 6.283); x.fill(); txt('★ ' + MONSTER_TYPES[u.id].name, this._px(u.x), this._px(u.z) - 11, 9, '#ff9ae8'); }
+      if (ZONE.next) txt('↓ ' + ZONES[ZONE.next].name, this._px(Dungeon.boss.x + Dungeon.boss.w / 2 - 4), this._px(Dungeon.boss.z) + 14, 9, '#ffb07a');
+      this.base = c; return;
+    }
     x.fillStyle = '#c9a468'; x.fillRect(0, 0, S, S);
     // bölge halkaları (dıştan içe)
     const ring = (r, col) => { x.fillStyle = col; x.beginPath(); x.arc(S / 2, S / 2, r * k, 0, 6.283); x.fill(); };

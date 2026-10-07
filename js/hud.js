@@ -75,6 +75,14 @@ class HUD {
   }
 
   // Bölge / görev afişi (ekranın üstünde birkaç saniye)
+  // Üstte geri sayım (zindan / etkinlik süresi)
+  setTimer(label, sec) {
+    if (!this._timer) { this._timer = document.createElement('div'); this._timer.id = 'ev-timer'; this.el.root.appendChild(this._timer); }
+    if (sec == null) { this._timer.style.display = 'none'; return; }
+    this._timer.style.display = '';
+    const t = Math.max(0, Math.ceil(sec)), txt = label + ' · ' + Math.floor(t / 60) + ':' + String(t % 60).padStart(2, '0');
+    if (this._timer._t !== txt) { this._timer.textContent = txt; this._timer._t = txt; this._timer.classList.toggle('low', t < 60); }
+  }
   banner(title, sub, cls = 'region') {
     const b = this.el.banner;
     b.className = cls;
@@ -265,13 +273,18 @@ class HUD {
     const rot = -Math.PI / 2 - a;
     ctx.translate(R, R); ctx.rotate(rot); ctx.scale(scale, scale); ctx.translate(-pp.x, -pp.z);
 
+    if (Dungeon.on) {             // zindan: oda ve koridorlar
+      ctx.fillStyle = '#0c0a08'; ctx.fillRect(pp.x - 200, pp.z - 200, 400, 400);
+      if (!this._dmask) { const c = document.createElement('canvas'); c.width = c.height = Dungeon.n; const x = c.getContext('2d'), im = x.createImageData(Dungeon.n, Dungeon.n); for (let i = 0; i < Dungeon.n * Dungeon.n; i++) { const w = Dungeon.grid[i]; im.data[i * 4] = w ? 150 : 0; im.data[i * 4 + 1] = w ? 128 : 0; im.data[i * 4 + 2] = w ? 96 : 0; im.data[i * 4 + 3] = w ? 255 : 0; } x.putImageData(im, 0, 0); this._dmask = c; }
+      ctx.drawImage(this._dmask, -Dungeon.H, -Dungeon.H, Dungeon.H * 2, Dungeon.H * 2);
+    }
     // güvenli bölge
     ctx.fillStyle = 'rgba(120,200,120,.25)';
     ctx.fillRect(-SAFE_HALF, -SAFE_HALF, SAFE_HALF * 2, SAFE_HALF * 2);
     ctx.strokeStyle = '#a8281e'; ctx.lineWidth = 2; ctx.strokeRect(-TOWN_HALF, -TOWN_HALF, TOWN_HALF * 2, TOWN_HALF * 2);
 
     // yol
-    ctx.strokeStyle = '#8f7a58'; ctx.lineWidth = 8; ctx.lineJoin = 'round';
+    ctx.strokeStyle = Dungeon.on ? 'rgba(0,0,0,0)' : '#8f7a58'; ctx.lineWidth = 8; ctx.lineJoin = 'round';
     ctx.beginPath();
     for (let z = pp.z - 110; z <= pp.z + 110; z += 8) {
       const x = roadCenterX(z);

@@ -5,7 +5,7 @@ const DROP_LIFE = 120;        // saniye
 const PICKUP_RANGE = 2.4;
 
 // Canavar türü → görev eşyası (yalnızca ilgili görev aktifken düşer)
-const QUEST_DROPS = { wolf: 'q_fang', scorpion: 'q_tail', snake: 'q_scale', bear: 'q_fur' };
+const QUEST_DROPS = { wolf: 'q_fang', scorpion: 'q_tail', snake: 'q_scale', bear: 'q_fur', stag: 'q_antler', spider: 'q_silk', rocbat: 'q_feather', scarab: 'q_scarab', lavademon: 'q_ember', terracotta: 'q_clay' };
 
 class LootManager {
   constructor(world, player, hud) {
@@ -89,7 +89,7 @@ class LootManager {
 
   // Canavar öldüğünde ganimet saç (seviye ve rütbeye göre)
   dropFrom(m) {
-    const L = m.level, k = (m.dropMult || 1) * (this.player.premT > 0 ? 1.3 : 1);
+    const L = m.level, k = (m.dropMult || 1) * (this.player.premT > 0 ? 1.3 : 1) * (ZONE.fw ? 1 + 0.35 * ZONE.fw.star : 1);
     const spot = () => { const a = Math.random() * 6.283, r = 0.6 + Math.random() * (1.4 + Math.min(4, k * 0.3)); return [m.x + Math.cos(a) * r, m.z + Math.sin(a) * r]; };
     const item = it => {
       if (it.rarity && this.hud) { const n = itemInfo(it); this.hud.banner(RARITY[it.rarity].name + '!', n.name, 'seal'); this.hud.log(RARITY[it.rarity].name + ' düştü: ' + n.name, 'lvl', n.color); SFX.play('levelup'); }
@@ -106,7 +106,7 @@ class LootManager {
     if (m.rank === 'unique') {
       for (let i = 0; i < 2; i++) {
         const g = randomGear(L + 4), q = Math.random();
-        item(makeSeal(g.base, q < 0.08 ? 3 : q < 0.35 ? 2 : 1));
+        item(makeSeal(g.base, ITEM_BASES[g.base].d >= 10 && q < 0.03 ? 4 : q < 0.08 ? 3 : q < 0.35 ? 2 : 1));
       }
       item(makeStack('elx_w', 2)); item(makeStack('elx_a', 3)); item(makeStack('luck', 2));
       if (Math.random() < 0.5) item(makeStack('astral', 1));
@@ -122,6 +122,7 @@ class LootManager {
     if (chance(0.003)) item(makeStack('astral', 1));
     if (chance(0.006)) item(makeStack('zerk', 1));
     if (Math.random() < (m.rank === 'unique' ? 1 : m.rank === 'giant' ? 0.25 : m.rank === 'champion' ? 0.04 : 0.002)) item(makeStack('silkbag', m.rank === 'unique' ? 3 : 1));
+    if (!ZONE.fw && m.rank !== 'normal' && m.rank !== 'strong' && Math.random() < (m.rank === 'unique' ? 0.6 : 0.03)) item(makeStack(Math.random() < 0.7 ? 'fw_inv1' : Math.random() < 0.75 ? 'fw_inv3' : 'fw_inv5', 1));
     // görev eşyası
     const q = QUEST_DROPS[m.typeKey];
     if (q && this.quests && this.quests.wantsItem(q) && Math.random() < 0.45) item(makeStack(q, 1));

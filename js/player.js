@@ -365,6 +365,7 @@ class Player {
 
   _collide() {
     const p = this.pos;
+    if (Dungeon.on) Dungeon.clamp(p, 0.4);
     for (const o of this.world.obstacles) {
       const dx = p.x - o.x, dz = p.z - o.z, min = o.r + 0.45;
       if (Math.abs(dx) > min || Math.abs(dz) > min) continue;

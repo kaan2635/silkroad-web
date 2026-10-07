@@ -9,7 +9,7 @@ const _ZS = ZONE.seed;
 function roadCenterX(z) { return Math.sin(z * 0.012 + _ZS) * 35 - Math.sin(_ZS) * 35; }
 
 // Şehir: Jangan benzeri surlu kare (yarı genişlik 30), orijinde
-const TOWN_HALF = 30;
+const TOWN_HALF = IS_DUNGEON ? 10 : 30;   // zindanda: güvenli giriş odası
 const POND_NAMES = ZONE.pondNames;
 
 // Bölge bilgisi: ad ve tavsiye edilen seviye (görev "git" hedefleri ve afiş için)
@@ -56,6 +56,12 @@ class World {
     this._buildSky();
     this._buildTerrain();
     this._buildWater();
+    if (IS_DUNGEON) {
+      this._buildDungeon();
+      this._buildMarker();
+      this._buildDayNight();
+      return;
+    }
     this._buildGate(-TOWN_HALF);
     this._buildGate(TOWN_HALF);
     this._buildTown();
@@ -127,7 +133,11 @@ class World {
       c.lerp(grass, g * 0.85);
       c.lerp(road, sstep(5.5, 3, Math.abs(x - roadCenterX(z))));
       const tm = Math.max(Math.abs(x), Math.abs(z));
-      if (tm < TOWN_HALF + 4) {   // şehir içi taş döşeme
+      if (IS_DUNGEON) {           // taş döşeme, dışarısı karanlık
+        const tile = (Math.floor(x / 2.5) + Math.floor(z / 2.5)) & 1;
+        c.setHex(ZONE.floorCol).multiplyScalar(tile ? 1 : 0.88);
+        if (!Dungeon.walk(x, z)) c.setHex(0x0a0806);
+      } else if (tm < TOWN_HALF + 4) {   // şehir içi taş döşeme
         const tile = (Math.floor(x / 3) + Math.floor(z / 3)) & 1;
         paved.setHex(tile ? 0xb7a784 : 0xaa9a78);
         c.lerp(paved, sstep(TOWN_HALF + 4, TOWN_HALF - 2, tm));
@@ -146,7 +156,7 @@ class World {
     const hole = new THREE.Path();
     hole.moveTo(-half, -half); hole.lineTo(-half, half); hole.lineTo(half, half); hole.lineTo(half, -half); hole.lineTo(-half, -half);
     shape.holes.push(hole);
-    const outer = new THREE.Mesh(new THREE.ShapeGeometry(shape, 24), new THREE.MeshLambertMaterial({ color: ZONE.col.outer }));
+    const outer = new THREE.Mesh(new THREE.ShapeGeometry(shape, 24), new THREE.MeshLambertMaterial({ color: IS_DUNGEON ? 0x050404 : ZONE.col.outer }));
     outer.rotation.x = -Math.PI / 2;
     outer.position.y = -0.05;
     this.scene.add(outer);
@@ -296,10 +306,10 @@ class World {
     const n = 48, mats = [];
     for (let i = 0; i < n; i++) {
       const a = (i / n) * 6.283 + rng() * 0.1, r = 335 + rng() * 30;
-      const h = 45 + rng() * 55, w = 45 + rng() * 25;
-      mats.push(this._matrix(Math.cos(a) * r, h / 2 - 8, Math.sin(a) * r, w, h, w, rng() * 6.283));
+      const h = (ZONE.pyramids ? 35 : 45) + rng() * 55, w = 45 + rng() * 25;
+      mats.push(this._matrix(Math.cos(a) * r, h / 2 - 8, Math.sin(a) * r, w * (ZONE.pyramids ? 1.3 : 1), h, w * (ZONE.pyramids ? 1.3 : 1), ZONE.pyramids ? Math.PI / 4 + rng() * 0.3 : rng() * 6.283));
     }
-    this._instanced(new THREE.ConeGeometry(1, 1, 7), new THREE.MeshLambertMaterial({ color: ZONE.col.mount, flatShading: true }), mats, false);
+    this._instanced(new THREE.ConeGeometry(1, 1, ZONE.pyramids ? 4 : 7), new THREE.MeshLambertMaterial({ color: ZONE.col.mount, flatShading: true }), mats, false);
   }
 
   _buildMarker() {
@@ -330,7 +340,7 @@ class World {
         this.marker.material.opacity = 1 - this.markerT;
       }
     }
-    this.waterMat.opacity = 0.86 + Math.sin(this.time * 1.6) * 0.03;
+    if (this.waterMat) this.waterMat.opacity = 0.86 + Math.sin(this.time * 1.6) * 0.03;
     for (const p of this.portals || []) p.glow.material.opacity = 0.28 + Math.sin(this.time * 2.4) * 0.1;
   }
 }

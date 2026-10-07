@@ -21,6 +21,7 @@
   const world = new World();
   const player = new Player(world, 'Gezgin');
   const npcs = new NPCManager(world);
+  const weather = new Weather(world);
   const monsters = new MonsterManager(world);
   const rig = new CameraRig(camera, input);
   const hud = new HUD(player, world, rig, camera);
@@ -78,6 +79,7 @@
     if (travelTo || !ZONES[zone]) return;
     if (jobs.mission) { if (!travel._warn || Date.now() - travel._warn > 4000) { hud.log('Görevdeyken bölgeden çıkamazsın.', 'dmg'); travel._warn = Date.now(); } player.target = null; player.teleport(player.pos.x, player.pos.z + (player.pos.z < 0 ? 6 : -6)); return; }
     travelTo = { zone, arrive };
+    if (ZONE.fw && zone !== 'forgotten') { try { sessionStorage.removeItem('srw-fw'); } catch (e) { /* yok */ } }
     if (zone !== CUR_ZONE_ID) { combat.deathPos = null; combat.recallPos = null; }
     save();
     try { sessionStorage.setItem('srw-autostart', '1'); } catch (e) { /* yok */ }
@@ -87,6 +89,7 @@
     started = false;
     setTimeout(() => location.reload(), 600);
   }
+  combat.travel = travel;
   ui.onTravel = (zone, arrive) => {
     if (jobs.cargoCount() || jobs.mission) { hud.log('Kervanla / görevdeyken ışınlanamazsın. Yolun ucundaki kapıdan yürü.', 'dmg'); player.stats.gold += (ZONE.tele.find(t => t.zone === zone) || { cost: 0 }).cost; return; }
     if (player.combatT > 0) { hud.log('Savaştayken ışınlanamazsın.', 'dmg'); player.stats.gold += (ZONE.tele.find(t => t.zone === zone) || { cost: 0 }).cost; return; }
@@ -208,7 +211,7 @@
       const z = saved.arrive === 'S' ? 258 : saved.arrive === 'N' ? -258 : 7;
       player.teleport(saved.arrive === 'T' ? 0 : roadCenterX(z), z);
       if (saved.arrive !== 'T') { rig.yaw = saved.arrive === 'S' ? 0 : Math.PI; player.heading = saved.arrive === 'S' ? Math.PI : 0; }
-      setTimeout(() => hud.banner(ZONE.name, ZONE.rings[0].lv.replace(/–.*/, '') + '+ bölgesi · ' + regionAt(player.pos.x, player.pos.z), 'region'), 400);
+      setTimeout(() => hud.banner(ZONE.name, (IS_DUNGEON ? ZONE.lv : ZONE.rings[0].lv.replace(/–.*/, '') + '+ bölgesi') + ' · ' + regionAt(player.pos.x, player.pos.z), 'region'), 400);
     }
     if (sameChar) { quests.load(saved.quests); if (isFinite(saved.tod)) world.timeOfDay = clamp(saved.tod, 0, 0.9999); }
     hotbar.upgradePots(player.stats.level);
@@ -281,6 +284,12 @@
       jobs.update(dt);
       npcs.update(dt, player);
       Eco.update(dt, hud);
+      if (ZONE.fw && !player.dead) {               // Unutulmuş Dünya: 20 dk süre
+        const left = Math.max(0, 1200 - (Date.now() - (ZONE.fw.t || Date.now())) / 1000);
+        if (!ZONE.fw.t) ZONE.fw.t = Date.now();
+        hud.setTimer && hud.setTimer('Unutulmuş Dünya', left);
+        if (left <= 0 && !travelTo) { hud.log('Süre doldu. Rüya sona eriyor...', 'lvl'); travel(ZONE.parent, 'T'); }
+      }
       if (world.spinners) for (const sp of world.spinners) sp.rotation.z += dt * 0.6;
       quests.update();
       ui.update();
@@ -312,6 +321,7 @@
 
     rig.update(dt, player.pos, !started);
     world.update(dt, player.pos, camera);
+    weather.update(dt, camera);
     if (started) hud.update(dt);
   }
 

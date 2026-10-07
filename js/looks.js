@@ -3,8 +3,8 @@
 // Zırh: parça parça (miğfer, omuzluk, göğüs, eldiven, dizlik, çizme) tür ve dereceye göre şekil/renk.
 // Avatar (Item Mall): giysi, şapka ve sırt süsü zırhın görünümünü örter.
 
-const DEG_METAL = [0x9a8264, 0xa8a070, 0xa8b0b8, 0xdde4ea, 0x4ed8a0, 0xe8a030, 0xff6a3a, 0x6a9aff, 0xc8a8ff, 0xffe680];
-const DEG_HUE = [0.58, 0.0, 0.33, 0.08, 0.45, 0.07, 0.97, 0.62, 0.76, 0.13];
+const DEG_METAL = [0x9a8264, 0xa8a070, 0xa8b0b8, 0xdde4ea, 0x4ed8a0, 0xe8a030, 0xff6a3a, 0x6a9aff, 0xc8a8ff, 0xffe680, 0xe8c070, 0xf4f0ff, 0x7ae8ff, 0xff3a6a];
+const DEG_HUE = [0.58, 0.0, 0.33, 0.08, 0.45, 0.07, 0.97, 0.62, 0.76, 0.13, 0.11, 0.7, 0.52, 0.95];
 const PLUS_GLOW = p => p >= 11 ? 0xffc83a : p >= 9 ? 0xff4a6a : p >= 7 ? 0xb06aff : p >= 6 ? 0x4a9aff : p >= 4 ? 0xcfe8ff : 0;
 
 // Zırh rengi: tür + derece + kademe

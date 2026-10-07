@@ -2,7 +2,7 @@
 // hasar formülleri, EXP + SP, berserk, ölüm ve yeniden doğma, sarf malzemesi kullanımı.
 
 const expToNext = l => Math.round(60 * Math.pow(l, 1.85) + 60);
-const MAX_LEVEL = 80;
+const MAX_LEVEL = 140;
 const SP_PER_EXP = 14;           // her 1 EXP = 14 SP-EXP (400 SP-EXP = 1 SP)
 const ZERK_MAX = 5;
 const rnd = (a, b) => a + Math.random() * (b - a);
@@ -301,6 +301,17 @@ class Combat {
       inv.take(base, 1); this._setCd(key || 'misc', 1);
       return true;
     }
+    if (b.use === 'fwinv') {
+      if (IS_DUNGEON) { this.hud.log('Zindandayken kullanılamaz.'); return false; }
+      if (pl.combatT > 0) { this.hud.log('Savaştayken kullanılamaz.'); return false; }
+      if (this.jobs && (this.jobs.cargoCount() || this.jobs.mission)) { this.hud.log('Kervanla / görevdeyken kullanılamaz.'); return false; }
+      const lvl = Math.max(10, Math.min(135, Math.floor(s.level / 5) * 5));
+      try { sessionStorage.setItem('srw-fw', JSON.stringify({ lvl, star: b.star, t: Date.now() })); } catch (e) { /* yok */ }
+      inv.take(base, 1);
+      this.hud.log('Davetiye parladı... Unutulmuş Dünya kapısı açılıyor!', 'lvl');
+      if (this.travel) this.travel('forgotten', 'T');
+      return true;
+    }
     if (b.use === 'hp') {
       if (s.hp >= s.maxHp) { this.hud.log('Canın zaten dolu.'); return false; }
       s.hp = Math.min(s.maxHp, s.hp + b.amount); this.fx(pl, '+' + b.amount, 'heal'); SFX.play('potion');
@@ -519,6 +530,8 @@ class Combat {
           if (kind === 'reverse') {
             const p = this.deathPos || this.recallPos;
             pl.teleport(p.x, p.z); this.hud.log('Işınlandın.');
+          } else if (IS_DUNGEON && this.travel) {          // zindanda: bağlı şehre dön
+            this.travel(ZONE.parent, 'T');
           } else {
             this.recallPos = { x: pl.pos.x, z: pl.pos.z };
             pl.teleport(0, 6); this.hud.log('Şehre ulaştın.');

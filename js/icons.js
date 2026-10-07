@@ -72,12 +72,12 @@ function itemIcon(base) {
     luck: ['luck', 'gold'], astral: ['astral', 'cold'], immortal: ['immortal', 'mall'], horse: ['horse', 'pet'], horse2: ['horse', 'mall'], camel: ['camel', 'pet'],
     pet_grab: ['fox', 'pet'], pet_grab2: ['squirrel', 'mall'], pet_atk: ['wolf', 'pet'], pet_pot: ['petpot', 'pet'], sg: ['gold', 'bad'],
     prem: ['prem', 'mall'], bless: ['bless', 'mall'], rez: ['rez', 'mall'], hammer: ['hammer', 'mall'], reset_stat: ['reset', 'mall'], reset_skill: ['reset', 'mall'],
-    inv_exp: ['invexp', 'mall'], st_exp: ['stexp', 'mall'], silkbag: ['silkbag', 'mall'],
+    inv_exp: ['invexp', 'mall'], st_exp: ['stexp', 'mall'], silkbag: ['silkbag', 'mall'], fw_inv1: ['menu_map', 'lightning'], fw_inv3: ['menu_map', 'mall'], fw_inv5: ['menu_map', 'fire'],
     elx_w: ['elx_w', 'fire'], elx_a: ['elx_a', 'cold'], elx_s: ['elx_s', 'buff'], elx_c: ['elx_c', 'lightning']
   };
   if (map[base]) return icon(map[base][0], map[base][1]);
   let m = /^(hp|mp)(\d)$/.exec(base);
-  if (m) return icon('pot_' + m[2], m[1], { frame: +m[2] >= 4 ? 1 : 0 });
+  if (m) return icon('pot_' + Math.min(5, +m[2]), m[1], { frame: +m[2] >= 6 ? 2 : +m[2] >= 4 ? 1 : 0 });
   m = /^ms_(\w+)$/.exec(base);
   if (m) return icon(ICON_PATHS['ms_' + m[1]] ? 'ms_' + m[1] : 'stone', { str: 'fire', int: 'lightning', hp: 'hp', mp: 'mp', crit: 'gold', dur: 'buff' }[m[1]] || 'mat');
   if (/^tg_/.test(base)) return icon('tg', 'gold');

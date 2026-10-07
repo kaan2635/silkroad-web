@@ -192,7 +192,7 @@ class Inventory {
     if (!Array.isArray(a) || !ITEM_BASES[a[0]]) return null;
     if (isStack(a[0])) return makeStack(a[0], clamp(a[1] | 0, 1, ITEM_BASES[a[0]].stack));
     const blues = Array.isArray(a[3]) ? a[3].filter(b => Array.isArray(b) && BLUES[b[0]]).map(b => [b[0], clamp(b[1] | 0, 1, 99)]).slice(0, 6) : [];
-    const it = makeItem(a[0], clamp(a[1] | 0, 0, 3), clamp(a[2] | 0, 0, MAX_PLUS), blues);
+    const it = makeItem(a[0], clamp(a[1] | 0, 0, RARITY.length - 1), clamp(a[2] | 0, 0, MAX_PLUS), blues);
     if (isFinite(a[4])) it.dur = clamp(a[4] | 0, 0, maxDur(it));
     return it;
   }

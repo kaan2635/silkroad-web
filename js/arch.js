@@ -6,6 +6,11 @@
 const ARCH_STYLE = {
   jangan:   { roof: '#3b424e', roofHi: '#6b7586', ridge: 0x2a2f38, wood: 0xa3271c, beam: 0x5e1810, trim: 0xd9a92e, wall: '#ece1c8', wallLo: '#c9b994', stone: '#9b948a', pave: ['#bcae8f', '#ad9e7e', '#c6b899', '#a89878'], leaf: [0xf2a6bf, 0xe88aa8, 0xf7c4d4], res: 'hall', banner: '#a8281e' },
   donwhang: { roof: '#7a4a2c', roofHi: '#ad7650', ridge: 0x4a2a18, wood: 0x98321c, beam: 0x55200e, trim: 0xd9a92e, wall: '#eed4a2', wallLo: '#cfae78', stone: '#b59a72', pave: ['#d2b88a', '#c4a878', '#dcc496', '#bc9f70'], leaf: [0x8aa04a, 0x7a9440, 0x9ab25a], res: 'adobe', banner: '#c06a1a' },
+  samarkand:{ roof: '#2a7a8a', roofHi: '#7ad0d8', ridge: 0x1a4a54, wood: 0x8a5a2a, beam: 0x4a2a10, trim: 0xe0b440, wall: '#ead6aa', wallLo: '#c8a878', stone: '#b8a07a', pave: ['#d2bc8e', '#c4ac7c', '#dcc69a', '#b8a070'], leaf: [0x7a9a4a, 0x6a8a3a, 0x8aaa5a], res: 'dome', banner: '#2a7a8a', upK: 0.5, landmark: 'madrasa' , gate: 'stone' , shop: 'adobe' },
+  asiaminor:{ roof: '#a84a2a', roofHi: '#e08a5a', ridge: 0x6a2a14, wood: 0x6a4a2a, beam: 0x3a2412, trim: 0xc8a060, wall: '#ece4d4', wallLo: '#c8bca4', stone: '#b0a898', pave: ['#c4bcac', '#b4ac9c', '#d0c8b8', '#a8a090'], leaf: [0x5a8a3a, 0x4a7a2a, 0x7a9a4a], res: 'euro', banner: '#2a4a8a', upK: 0, landmark: 'church', window: 'arch' , gate: 'stone' },
+  constantinople: { roof: '#9a3a22', roofHi: '#d87a4a', ridge: 0x5a2010, wood: 0x5a4030, beam: 0x2e2018, trim: 0xd8b040, wall: '#f2ece0', wallLo: '#cfc6b4', stone: '#a8a49c', pave: ['#bcb8b0', '#aca8a0', '#c8c4bc', '#9c988e'], leaf: [0x4a8a3a, 0x3a7a2a, 0x6a9a4a], res: 'euro', banner: '#6a1a7a', upK: 0, landmark: 'cathedral', window: 'arch' , gate: 'stone' },
+  alexandria: { roof: '#c89a5a', roofHi: '#ecc890', ridge: 0x8a6a3a, wood: 0x2a5a8a, beam: 0x1a3a5a, trim: 0xe8c050, wall: '#ecd8a8', wallLo: '#d0b47a', stone: '#d8c08a', pave: ['#e2cc98', '#d4bc88', '#ecd6a4', '#c8b07a'], leaf: [0x6a9a3a, 0x5a8a2a, 0x7aaa4a], res: 'adobe', banner: '#2a5a8a', upK: 0.2, landmark: 'obelisk' , gate: 'stone' , shop: 'adobe' },
+  shambhala:{ roof: '#7a1e14', roofHi: '#c84a32', ridge: 0x3a0a06, wood: 0x8a1e14, beam: 0x3a0a06, trim: 0xe8c050, wall: '#f4f0e8', wallLo: '#d4ccbc', stone: '#a8a8b0', pave: ['#c8ccd4', '#b8bcc4', '#d4d8e0', '#a8acb4'], leaf: [0xdfe8ef, 0xc8d8e8, 0xeef4f8], res: 'hall', banner: '#8a1e14', landmark: 'pagoda' },
   hotan:    { roof: '#2c6c6a', roofHi: '#5aaca2', ridge: 0x1c4644, wood: 0x8c2a24, beam: 0x4a1410, trim: 0xe0b440, wall: '#f0e9dc', wallLo: '#cfc6b4', stone: '#9fa3a8', pave: ['#b4ada0', '#a49c8e', '#c0b9ac', '#988f80'], leaf: [0x6aa04a, 0x5a9040, 0x82b45a], res: 'dome', banner: '#2a7a8a' }
 };
 const ARCH = ARCH_STYLE[ZONE.id] || ARCH_STYLE.jangan;
@@ -50,7 +55,14 @@ const texWall = () => archCanvasTex('wall', 128, 128, (x, W, H) => {
   x.fillStyle = g; x.fillRect(0, H * 0.72, W, H * 0.28);
 }, true);
 // Kafes pencere: ahşap çerçeve + pirinç kâğıdı arkasında geometrik kafes
-const texLattice = () => archCanvasTex('lattice', 128, 128, (x, W, H) => {
+const texLattice = () => ARCH.window === 'arch' ? archCanvasTex('archwin', 128, 128, (x, W, H) => {
+  x.fillStyle = ARCH.wall; x.fillRect(0, 0, W, H);
+  const g = x.createLinearGradient(0, 0, 0, H); g.addColorStop(0, '#2a3a5a'); g.addColorStop(1, '#0e141e');
+  x.fillStyle = g; x.beginPath(); x.moveTo(24, H - 8); x.lineTo(24, 52); x.arc(64, 52, 40, Math.PI, 0); x.lineTo(104, H - 8); x.closePath(); x.fill();
+  x.strokeStyle = '#d8c8a0'; x.lineWidth = 6; x.stroke();
+  x.lineWidth = 3; x.beginPath(); x.moveTo(64, 14); x.lineTo(64, H - 8); x.moveTo(24, 70); x.lineTo(104, 70); x.stroke();
+  x.fillStyle = 'rgba(255,220,140,.25)'; x.fillRect(30, 76, 30, 40);
+}) : archCanvasTex('lattice', 128, 128, (x, W, H) => {
   const paper = x.createRadialGradient(W / 2, H / 2, 10, W / 2, H / 2, 80); paper.addColorStop(0, '#f4e2b8'); paper.addColorStop(1, '#c9a874');
   x.fillStyle = paper; x.fillRect(0, 0, W, H);
   const wood = _shade(new THREE.Color(ARCH.beam).getHex(), 1.3);
@@ -313,7 +325,8 @@ class ArchKit {
   // Sütunlu salon: kaide, kırmızı sütunlar, sıva duvar, kafes pencere, kapı, kirişler, çatı
   hall(x, z, ry, o = {}) {
     const w = o.w || 7, d = o.d || 5.5, h = o.h || 3.2, floors = o.floors || 1, P = o.podium == null ? 0.5 : o.podium;
-    const oh = o.oh || 1.15, up = o.up == null ? 0.65 : o.up, roofH = o.roofH || Math.min(w, d) * 0.36;
+    const uk = ARCH.upK == null ? 1 : ARCH.upK;
+    const oh = o.oh || (ARCH.res === 'euro' ? 0.5 : 1.15), up = (o.up == null ? 0.65 : o.up) * uk, roofH = o.roofH || Math.min(w, d) * (ARCH.res === 'euro' ? 0.5 : 0.36);
     const T = AM(x, terrainHeight(x, z), z, ry);
     const box = new THREE.BoxGeometry(1, 1, 1), col = new THREE.CylinderGeometry(0.17, 0.2, 1, 8), plane = new THREE.PlaneGeometry(1, 1);
     if (P > 0) {
@@ -426,8 +439,27 @@ class ArchKit {
     this.block(x, z, 7.4, 7.4, 0);
   }
 
+  // Taş kemer kapı (Avrupa, Mısır, Orta Asya)
+  stoneGate(x, z, ry, span = 14, name = '', h = 7) {
+    const T = AM(x, terrainHeight(x, z), z, ry), box = new THREE.BoxGeometry(1, 1, 1);
+    for (const sx of [-1, 1]) {
+      this.put(this.m.stone, box, T, AM(sx * span / 2, h / 2, 0, 0, 2.2, h, 2.4));
+      this.put(this.m.stone, box, T, AM(sx * span / 2, h + 0.4, 0, 0, 2.6, 0.8, 2.8));
+      this.put(this.m.roof, new THREE.ConeGeometry(1.7, 2.2, 4), T, AM(sx * span / 2, h + 1.9, 0, Math.PI / 4));
+      this.world.obstacles.push({ x: x + Math.cos(ry) * sx * span / 2, z: z - Math.sin(ry) * sx * span / 2, r: 1.4, type: 'gate' });
+    }
+    // kemer: yarım halka bloklar
+    for (let i = 0; i <= 10; i++) { const a = Math.PI * i / 10, r = span / 2 - 1.1; this.put(this.m.stone, box, T, AM(-Math.cos(a) * r, h - 1.2 + Math.sin(a) * 2.2, 0, 0, 1.3, 0.9, 2.2, 0, a - Math.PI / 2)); }
+    this.put(this.m.stone, box, T, AM(0, h + 1.4, 0, 0, span - 1, 0.9, 2.4));
+    if (name) {
+      const mat = new THREE.MeshLambertMaterial({ map: texSign('crown', name, '') });
+      for (const sg of [1, -1]) { const m = new THREE.Mesh(new THREE.PlaneGeometry(span * 0.45, 1.0), mat); m.applyMatrix4(T.clone().multiply(AM(0, h + 1.4, sg * 1.22, sg > 0 ? 0 : Math.PI))); this.scene.add(m); }
+    }
+  }
+
   // Takı kapı (paifang): 4 sütun, kirişler, üç çatı, isim levhası
   paifang(x, z, ry, span = 14, name = '', h = 7) {
+    if (ARCH.gate === 'stone') return this.stoneGate(x, z, ry, span, name, h);
     const T = AM(x, terrainHeight(x, z), z, ry);
     const box = new THREE.BoxGeometry(1, 1, 1), col = new THREE.CylinderGeometry(0.42, 0.48, 1, 10);
     const outer = span / 2, inner = span * 0.2;
@@ -479,7 +511,7 @@ class ArchKit {
   }
 
   // Kerpiç ev (Donwhang / Hotan): düz dam, korkuluk, çıkıntılı kiriş uçları
-  adobe(x, z, ry, w, d, h, dome = false) {
+  adobe(x, z, ry, w, d, h, dome = false, o = {}) {
     const T = AM(x, terrainHeight(x, z), z, ry);
     const box = new THREE.BoxGeometry(1, 1, 1), plane = new THREE.PlaneGeometry(1, 1);
     this.put(this.m.wall, box, T, AM(0, h / 2, 0, 0, w, h, d));
@@ -500,7 +532,10 @@ class ArchKit {
       for (const sx of [-1, 1]) for (const sz of [-1, 1]) this.put(this.m.vc, new THREE.CylinderGeometry(0.05, 0.05, 1.6, 5), T, AM(sx * w * 0.3, h + 1.3, sz * d * 0.3), 0x5a3a1e);
       this.put(this.m.vc, box, T, AM(0, h + 2.1, 0, 0, w * 0.68, 0.06, d * 0.68), _rng() < 0.5 ? 0xc0502a : 0x2a6a8a);
     }
+    if (o.sign) this.sign(T, o.sign, 0, Math.min(h - 0.6, 2.9), d / 2 + 0.08);
+    if (o.awning) { this.put(this.m.vc, new THREE.BoxGeometry(1, 1, 1), T, AM(0, 2.55, d / 2 + 0.9, 0, w * 0.8, 0.06, 1.8, 0.18), o.awning); for (const sx of [-1, 1]) this.put(this.m.vc, new THREE.CylinderGeometry(0.05, 0.05, 2.5, 5), T, AM(sx * w * 0.38, 1.25, d / 2 + 1.7), 0x5a3a1e); }
     this.block(x, z, w + 0.2, d + 0.2, ry);
+    return T;
   }
 
   // Ağaç: gövde + alçak poligon taç (erik çiçeği / söğüt)
@@ -621,6 +656,54 @@ class ArchKit {
     this.world.spinners.push(ring);
   }
 
+  // Kubbeli yapı: medrese (Semerkant, 4 minare), kilise / katedral (Avrupa), tapınak + dikilitaş (Mısır)
+  domeHall(x, z, kind) {
+    const T = AM(x, terrainHeight(x, z), z, 0), box = new THREE.BoxGeometry(1, 1, 1);
+    const S = kind === 'cathedral' ? 8.6 : 7.4, H = kind === 'obelisk' ? 4.2 : 5.2;
+    if (kind === 'obelisk') {           // Mısır tapınağı: pilon kapı + iki dikilitaş
+      this.put(this.m.stone, box, T, AM(0, 0.3, 0, 0, S, 0.6, S));
+      for (const sx of [-1, 1]) { this.put(this.m.wall, box, T, AM(sx * 2.4, 3.4, 0, 0, 2.6, 6.2, 3, 0, 0), undefined); this.put(this.m.vc, box, T, AM(sx * 2.4, 6.6, 0, 0, 2.9, 0.3, 3.3), ARCH.trim); }
+      this.put(this.m.door, new THREE.PlaneGeometry(1, 1), T, AM(0, 1.6, 1.52, 0, 1.6, 2.6, 1));
+      this.put(this.m.vc, box, T, AM(0, 4.4, 0, 0, 2.4, 0.6, 3), 0x2a5a8a);
+      for (const sx of [-1, 1]) {
+        const ox = sx * 3.2, oz = 3.2;
+        this.put(this.m.stone, new THREE.CylinderGeometry(0.35, 0.6, 6.5, 4), T, AM(ox, 3.6, oz, Math.PI / 4));
+        this.put(this.m.vc, new THREE.ConeGeometry(0.42, 0.7, 4), T, AM(ox, 7.2, oz, Math.PI / 4), ARCH.trim);
+        this.world.obstacles.push({ x: x + ox, z: z + oz, r: 0.7, type: 'pillar' });
+      }
+      this.block(x, z, S, S, 0);
+      return;
+    }
+    this.put(this.m.stone, box, T, AM(0, 0.4, 0, 0, S + 1.2, 0.8, S + 1.2));
+    this.put(this.m.wall, box, T, AM(0, 0.8 + H / 2, 0, 0, S, H, S));
+    const pl = new THREE.PlaneGeometry(1, 1);
+    for (let k = 0; k < 4; k++) { const a = k * Math.PI / 2; this.put(k ? this.m.lattice : this.m.door, pl, T, AM(Math.sin(a) * (S / 2 + 0.01), 0.8 + (k ? H * 0.6 : 1.2), Math.cos(a) * (S / 2 + 0.01), a, k ? 1.6 : 1.8, k ? 1.8 : 2.4, 1)); }
+    this.put(this.m.vc, box, T, AM(0, 0.8 + H + 0.15, 0, 0, S + 0.4, 0.3, S + 0.4), ARCH.trim);
+    // kasnak + kubbe
+    const r = S * 0.36;
+    this.put(this.m.wall, new THREE.CylinderGeometry(r * 1.05, r * 1.1, 1.4, 16), T, AM(0, 0.8 + H + 1.0, 0));
+    this.put(this.m.roof, new THREE.SphereGeometry(r * 1.05, 18, 10, 0, 6.2832, 0, Math.PI / 2), T, AM(0, 0.8 + H + 1.7, 0, 0, 1, kind === 'madrasa' ? 1.35 : 1.0, 1));
+    const top = 0.8 + H + 1.7 + r * 1.05 * (kind === 'madrasa' ? 1.35 : 1);
+    if (kind === 'madrasa') {           // dört minare
+      for (const sx of [-1, 1]) for (const sz of [-1, 1]) {
+        const mx = sx * (S / 2 + 0.4), mz = sz * (S / 2 + 0.4);
+        this.put(this.m.wall, new THREE.CylinderGeometry(0.45, 0.6, 10, 10), T, AM(mx, 5, mz));
+        this.put(this.m.vc, new THREE.CylinderGeometry(0.75, 0.75, 0.3, 10), T, AM(mx, 8.2, mz), ARCH.trim);
+        this.put(this.m.roof, new THREE.ConeGeometry(0.55, 1.4, 10), T, AM(mx, 10.7, mz));
+      }
+      this.put(this.m.vc, new THREE.SphereGeometry(0.25, 8, 6), T, AM(0, top + 0.3, 0), ARCH.trim);
+    } else {                            // haç / altın küre
+      this.put(this.m.vc, box, T, AM(0, top + 0.7, 0, 0, 0.12, 1.4, 0.12), ARCH.trim);
+      this.put(this.m.vc, box, T, AM(0, top + 0.95, 0, 0, 0.7, 0.12, 0.12), ARCH.trim);
+      if (kind === 'cathedral') for (const sx of [-1, 1]) {   // yan kuleler
+        const mx = sx * (S / 2 + 1.2);
+        this.put(this.m.wall, box, T, AM(mx, 4.4, -S / 2 + 1, 0, 2.2, 8.8, 2.2));
+        this.put(this.m.roof, new THREE.ConeGeometry(1.7, 2.4, 4), T, AM(mx, 10, -S / 2 + 1, Math.PI / 4));
+      }
+    }
+    this.block(x, z, S + 1.2, S + 1.2, 0);
+  }
+
   finish() { return this.b.build(this.scene, true); }
 }
 
@@ -700,7 +783,9 @@ World.prototype._buildCity = function () {
   for (const s of plan.shops) {
     const info = NPC_SHOP[s.id];
     const two = s.id === 'storage' || s.id === 'job' || s.id === 'merchant';
-    const T = K.hall(s.x, s.z, s.ry, { w: s.w, d: s.d, floors: two ? 2 : 1, sign: { icon: info.icon, label: info.label, sub: info.sub }, h: 3.2 });
+    const T = ARCH.shop === 'adobe'
+      ? K.adobe(s.x, s.z, s.ry, s.w, s.d, two ? 4.6 : 3.6, two || s.id === 'market', { sign: { icon: info.icon, label: info.label, sub: info.sub }, awning: [0xc0502a, 0x2a6a8a, 0xd8a830][s.id.length % 3] })
+      : K.hall(s.x, s.z, s.ry, { w: s.w, d: s.d, floors: two ? 2 : 1, sign: { icon: info.icon, label: info.label, sub: info.sub }, h: 3.2 });
     // NPC ile dükkân arasında mal tezgâhı (yanda)
     const G = T.clone().multiply(AM(s.id === 'stable' ? 0 : 2.9, 0, s.d / 2 + 1.9, s.id === 'stable' ? 0 : -0.3));
     K.goods(G, info.goods);
@@ -741,7 +826,11 @@ World.prototype._buildCity = function () {
     K.rects.every(r => Math.hypot(r.x - x, r.z - z) > (Math.max(r.w, r.d) + Math.max(w, d)) * 0.5 + pad) && Math.hypot(x, z) > 14;
   let pg = null;
   for (const [cx, cz] of [[-20, -20], [20, 20], [-20, 20], [20, -20], [-21, -9], [21, 9], [9, -21], [-9, 21]]) if (rectFree(cx, cz, 7.4, 7.4, 0)) { pg = [cx, cz]; break; }
-  if (pg) K.pagoda(pg[0], pg[1], ZONE.id === 'hotan' ? 4 : 5);
+  if (pg) {
+    const lm = ARCH.landmark || 'pagoda';
+    if (lm === 'pagoda') K.pagoda(pg[0], pg[1], ZONE.id === 'hotan' || ZONE.id === 'shambhala' ? 4 : 5);
+    else K.domeHall(pg[0], pg[1], lm);
+  }
 
   // konutlar: sur boyunca dış halka
   let made = 0;
@@ -750,7 +839,7 @@ World.prototype._buildCity = function () {
     const w = 4.6 + rng() * 2.2, d = 4.0 + rng() * 1.6;
     const ry = Math.round(Math.atan2(-x, -z) / (Math.PI / 2)) * (Math.PI / 2);
     if (!rectFree(x, z, w, d, ry, 1.0)) continue;
-    const kind = ARCH.res === 'hall' ? 'hall' : (rng() < 0.45 ? 'hall' : ARCH.res);
+    const kind = ARCH.res === 'hall' || ARCH.res === 'euro' ? 'hall' : ARCH.shop === 'adobe' ? ARCH.res : (rng() < 0.45 ? 'hall' : ARCH.res);
     if (kind === 'hall') K.hall(x, z, ry, { w, d, h: 2.9, floors: rng() < 0.3 ? 2 : 1, podium: 0.35, lanterns: rng() < 0.5 });
     else K.adobe(x, z, ry, w, d, 3.0 + rng() * 0.8, kind === 'dome' && rng() < 0.6);
     made++;

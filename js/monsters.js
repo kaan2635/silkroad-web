@@ -28,6 +28,79 @@ const MONSTER_TYPES = {
   stonegolem:{ name: 'Taş Dev', model: 'golem', look: { c: 0x8a8a92 }, hpM: 1.9, dmgM: 1.3, defM: 1.6, expM: 1.55, speed: 3.8, aggro: 9, range: 2.9, atkInt: 2.0, hit: 2.0, scale: 1.6, labelY: 3.7, status: { kind: 'stun', chance: 0.1, dur: 1.3 } },
   hbandit:   { name: 'Tepe Haydudu', model: 'human', look: { robe: 0x2a4a2a, dark: 0x14240f, hat: 'band', weapon: 'spear' }, hpM: 1.3, dmgM: 1.2, defM: 1.1, expM: 1.3, speed: 5.8, aggro: 12, range: 2.8, atkInt: 1.5, hit: 1.3, scale: 1.05, labelY: 3.3 },
   demon:     { name: 'Şeytan Muhafız', model: 'char', char: 'vampire', look: { tint: 0xff6a5a, h: 2.6, horns: true }, magic: true, hpM: 1.5, dmgM: 1.35, defM: 1.3, expM: 1.5, speed: 5.0, aggro: 12, range: 6, atkInt: 1.7, hit: 1.4, scale: 1.2, labelY: 3.6, status: { kind: 'burn', chance: 0.15, dur: 4 } },
+  // --- Konstantinopolis ---
+  gwolf: { name: 'Gri Kurt', model: 'quad', look: { fur: 0x8a8a8a, dark: 0x4a4a4a }, hpM: 1.05, dmgM: 0.9, defM: 0.8, expM: 1.0, speed: 6.4, aggro: 10, range: 2.0, atkInt: 1.4, hit: 1.2, scale: 1.0, labelY: 2.5 },
+  stag: { name: 'Yaban Geyiği', model: 'quad', look: { fur: 0x8a5a32, dark: 0x4a2e18, horns: true }, hpM: 1.15, dmgM: 0.95, defM: 0.9, expM: 1.05, speed: 6.2, aggro: 7, range: 2.2, atkInt: 1.5, hit: 1.3, scale: 1.1, labelY: 2.8 },
+  goblin: { name: 'Goblin', model: 'human', look: { robe: 0x4a6a2a, dark: 0x2a3a14, weapon: 'blade' }, hpM: 1.1, dmgM: 1.05, defM: 0.95, expM: 1.1, speed: 5.6, aggro: 11, range: 2.2, atkInt: 1.4, hit: 1.2, scale: 0.9, labelY: 2.6 },
+  hound: { name: 'Cehennem Tazısı', model: 'quad', look: { fur: 0x5a1a14, dark: 0x2a0a08, eye: 0xffa020 }, hpM: 1.15, dmgM: 1.1, defM: 0.9, expM: 1.15, speed: 7, aggro: 12, range: 2.0, atkInt: 1.3, hit: 1.2, scale: 1.1, labelY: 2.6, status: { kind: 'burn', chance: 0.12, dur: 4 } },
+  orc: { name: 'Ork Savaşçısı', model: 'human', look: { robe: 0x3a5a2a, dark: 0x1a2a10, weapon: 'glaive', skin: 0x5a8a3a }, hpM: 1.35, dmgM: 1.15, defM: 1.1, expM: 1.25, speed: 5.4, aggro: 11, range: 2.6, atkInt: 1.6, hit: 1.4, scale: 1.1, labelY: 3.2 },
+  ewarrior: { name: 'Karanlık Şövalye', model: 'human', look: { robe: 0x2a2a34, dark: 0x101014, weapon: 'sword' }, hpM: 1.4, dmgM: 1.2, defM: 1.25, expM: 1.3, speed: 5.6, aggro: 12, range: 2.4, atkInt: 1.5, hit: 1.3, scale: 1.05, labelY: 3.3, status: { kind: 'bleed', chance: 0.1, dur: 4 } },
+  ebandit: { name: 'Kanun Kaçağı', model: 'human', look: { robe: 0x6a3a2a, dark: 0x3a1a10, hat: 'band', weapon: 'blade' }, hpM: 1.2, dmgM: 1.1, defM: 1.0, expM: 1.2, speed: 5.6, aggro: 12, range: 2.4, atkInt: 1.5, hit: 1.3, scale: 1.0, labelY: 3.3 },
+  // --- Küçük Asya ---
+  spider: { name: 'Dev Örümcek', model: 'scorpion', look: { shell: 0x2a2a2a, dark: 0x101010 }, hpM: 1.2, dmgM: 1.05, defM: 1.0, expM: 1.1, speed: 5.8, aggro: 10, range: 2.2, atkInt: 1.4, hit: 1.4, scale: 1.1, labelY: 2.4, status: { kind: 'poison', chance: 0.18, dur: 6 } },
+  wasp: { name: 'Zehirli Eşekarısı', model: 'char', look: { h: 1.6 }, hpM: 1.0, dmgM: 1.15, defM: 0.85, expM: 1.1, speed: 6.8, aggro: 12, range: 2.2, atkInt: 1.2, hit: 1.2, scale: 1.0, labelY: 2.6, status: { kind: 'poison', chance: 0.2, dur: 5 }, char: 'ghost' },
+  raptor: { name: 'Pençe Kertenkele', model: 'quad', look: { fur: 0x5a7a3a, dark: 0x2a3a1a }, hpM: 1.15, dmgM: 1.15, defM: 0.95, expM: 1.15, speed: 7.2, aggro: 12, range: 2.2, atkInt: 1.2, hit: 1.3, scale: 1.1, labelY: 2.6, status: { kind: 'bleed', chance: 0.12, dur: 4 } },
+  mushroom: { name: 'Mantar Ruhu', model: 'golem', look: { c: 0xc84a3a }, magic: true, hpM: 1.35, dmgM: 1.05, defM: 1.2, expM: 1.2, speed: 4.2, aggro: 8, range: 2.4, atkInt: 1.8, hit: 1.4, scale: 1.1, labelY: 2.4, status: { kind: 'poison', chance: 0.15, dur: 5 } },
+  darkorc: { name: 'Kara Ork', model: 'human', look: { robe: 0x3a3a3a, dark: 0x1a1a1a, weapon: 'glaive', skin: 0x4a5a3a }, hpM: 1.45, dmgM: 1.25, defM: 1.2, expM: 1.3, speed: 5.6, aggro: 12, range: 2.6, atkInt: 1.6, hit: 1.5, scale: 1.15, labelY: 3.3, status: { kind: 'stun', chance: 0.08, dur: 1.2 } },
+  abandit: { name: 'Korsan', model: 'human', look: { robe: 0x2a4a7a, dark: 0x101a3a, hat: 'band', weapon: 'blade' }, hpM: 1.25, dmgM: 1.15, defM: 1.05, expM: 1.25, speed: 5.8, aggro: 12, range: 2.4, atkInt: 1.5, hit: 1.3, scale: 1.0, labelY: 3.3 },
+  // --- Semerkant ---
+  raptor2: { name: 'Bozkır Kertenkelesi', model: 'quad', look: { fur: 0x8a6a3a, dark: 0x4a3a1a }, hpM: 1.2, dmgM: 1.15, defM: 1.0, expM: 1.2, speed: 7.4, aggro: 12, range: 2.4, atkInt: 1.2, hit: 1.4, scale: 1.2, labelY: 2.7, status: { kind: 'bleed', chance: 0.12, dur: 4 } },
+  tribal: { name: 'Kabile Devi', model: 'golem', look: { c: 0x8a5a3a }, hpM: 1.6, dmgM: 1.3, defM: 1.35, expM: 1.45, speed: 4.6, aggro: 10, range: 2.8, atkInt: 1.9, hit: 1.9, scale: 1.35, labelY: 3.6, status: { kind: 'stun', chance: 0.1, dur: 1.3 } },
+  ninja: { name: 'Gölge Suikastçı', model: 'human', look: { robe: 0x1a1a22, dark: 0x0a0a0e, weapon: 'blade' }, hpM: 1.25, dmgM: 1.35, defM: 1.0, expM: 1.35, speed: 7, aggro: 14, range: 2.4, atkInt: 1.1, hit: 1.3, scale: 1.0, labelY: 3.3, status: { kind: 'bleed', chance: 0.15, dur: 5 } },
+  rocbat: { name: 'Kaya Yarasası', model: 'char', look: { h: 1.6 }, hpM: 1.15, dmgM: 1.2, defM: 0.95, expM: 1.25, speed: 7.4, aggro: 13, range: 2.2, atkInt: 1.2, hit: 1.3, scale: 1.1, labelY: 2.8, status: { kind: 'slow', chance: 0.12, dur: 3 }, char: 'ghost' },
+  flydemon: { name: 'Kanatlı Şeytan', model: 'char', look: { tint: 0x8a2a2a, h: 2.4 }, magic: true, hpM: 1.4, dmgM: 1.35, defM: 1.2, expM: 1.45, speed: 6, aggro: 13, range: 6, atkInt: 1.6, hit: 1.5, scale: 1.2, labelY: 3.4, status: { kind: 'burn', chance: 0.15, dur: 4 }, char: 'vampire' },
+  sbandit: { name: 'Bozkır Atlısı', model: 'human', look: { robe: 0x8a6a3a, dark: 0x4a3a1a, hat: 'band', weapon: 'spear' }, hpM: 1.35, dmgM: 1.25, defM: 1.15, expM: 1.3, speed: 6, aggro: 12, range: 2.8, atkInt: 1.5, hit: 1.3, scale: 1.05, labelY: 3.3 },
+  // --- İskenderiye ---
+  mummy2: { name: 'Firavun Muhafızı', model: 'char', look: { tint: 0xd8c070, h: 2.4 }, hpM: 1.55, dmgM: 1.25, defM: 1.3, expM: 1.4, speed: 4.4, aggro: 10, range: 2.4, atkInt: 1.7, hit: 1.4, scale: 1.15, labelY: 3.3, status: { kind: 'slow', chance: 0.15, dur: 3 }, char: 'zombie' },
+  scarab: { name: 'Dev Bokböceği', model: 'scorpion', look: { shell: 0x1a6a6a, dark: 0x0a3a3a }, hpM: 1.45, dmgM: 1.2, defM: 1.5, expM: 1.35, speed: 5, aggro: 9, range: 2.4, atkInt: 1.7, hit: 1.6, scale: 1.3, labelY: 2.8 },
+  anubisw: { name: 'Anubis Askeri', model: 'char', look: { tint: 0x2a2a2a, h: 2.4 }, hpM: 1.5, dmgM: 1.35, defM: 1.3, expM: 1.45, speed: 5.8, aggro: 12, range: 2.6, atkInt: 1.5, hit: 1.4, scale: 1.15, labelY: 3.4, status: { kind: 'bleed', chance: 0.12, dur: 4 }, char: 'skeleton' },
+  sandgolem: { name: 'Kum Golemi', model: 'golem', look: { c: 0xd8b070 }, hpM: 2.0, dmgM: 1.35, defM: 1.6, expM: 1.6, speed: 3.8, aggro: 9, range: 2.9, atkInt: 2.0, hit: 2.0, scale: 1.6, labelY: 3.8, status: { kind: 'stun', chance: 0.1, dur: 1.3 } },
+  kingscorp: { name: 'Kral Akrep', model: 'scorpion', look: { shell: 0x6a1010, dark: 0x2a0606 }, hpM: 1.6, dmgM: 1.4, defM: 1.4, expM: 1.55, speed: 5, aggro: 9, range: 2.6, atkInt: 1.6, hit: 1.6, scale: 1.4, labelY: 3.4, status: { kind: 'poison', chance: 0.25, dur: 7 } },
+  egbandit: { name: 'Mezar Yağmacısı', model: 'human', look: { robe: 0xc8a868, dark: 0x6a5a3a, hat: 'band', weapon: 'blade' }, hpM: 1.4, dmgM: 1.3, defM: 1.2, expM: 1.35, speed: 6, aggro: 12, range: 2.4, atkInt: 1.5, hit: 1.3, scale: 1.05, labelY: 3.3 },
+  // --- Şambala ---
+  frostwolf: { name: 'Ayaz Kurdu', model: 'quad', look: { fur: 0xf0f4fa, dark: 0x9ab8d8, eye: 0x3ad8ff }, hpM: 1.3, dmgM: 1.25, defM: 1.1, expM: 1.3, speed: 7.2, aggro: 12, range: 2.0, atkInt: 1.3, hit: 1.3, scale: 1.15, labelY: 2.7, status: { kind: 'freeze', chance: 0.06, dur: 1.5 } },
+  iceyeti: { name: 'Buzul Yetisi', model: 'golem', look: { c: 0xe8eef4 }, hpM: 1.8, dmgM: 1.4, defM: 1.4, expM: 1.6, speed: 4.6, aggro: 9, range: 2.7, atkInt: 1.8, hit: 1.9, scale: 1.4, labelY: 3.5, status: { kind: 'slow', chance: 0.18, dur: 3 } },
+  icegolem: { name: 'Buz Golemi', model: 'golem', look: { c: 0x9ad0f0 }, hpM: 2.1, dmgM: 1.45, defM: 1.7, expM: 1.7, speed: 3.8, aggro: 9, range: 2.9, atkInt: 2.0, hit: 2.0, scale: 1.6, labelY: 3.8, status: { kind: 'freeze', chance: 0.08, dur: 1.6 } },
+  lavademon: { name: 'Lav Şeytanı', model: 'char', look: { tint: 0xff5a2a, h: 2.6, glow: 0xff3a00 }, magic: true, hpM: 1.7, dmgM: 1.55, defM: 1.4, expM: 1.7, speed: 5.2, aggro: 12, range: 6, atkInt: 1.6, hit: 1.5, scale: 1.25, labelY: 3.6, status: { kind: 'burn', chance: 0.22, dur: 5 }, char: 'vampire' },
+  firedragon: { name: 'Ateş Ejderi', model: 'quad', look: { fur: 0xb82a10, dark: 0x3a0806, horns: true, eye: 0xffd23a, body: [1.2, 1.1, 2.2] }, hpM: 2.2, dmgM: 1.6, defM: 1.6, expM: 1.9, speed: 5.6, aggro: 12, range: 3.2, atkInt: 1.7, hit: 2.4, scale: 1.6, labelY: 3.6, status: { kind: 'burn', chance: 0.25, dur: 5 } },
+  monk: { name: 'Sürgün Rahip', model: 'human', look: { robe: 0xc8702a, dark: 0x6a3010, hat: 'band', weapon: 'spear' }, hpM: 1.5, dmgM: 1.45, defM: 1.3, expM: 1.5, speed: 6, aggro: 12, range: 2.8, atkInt: 1.4, hit: 1.3, scale: 1.05, labelY: 3.3 },
+  // --- Zindanlar ---
+  cavebat: { name: 'Mağara Yarasası', model: 'char', look: { h: 1.5 }, hpM: 1.05, dmgM: 1.1, defM: 0.9, expM: 1.15, speed: 7.2, aggro: 13, range: 2.0, atkInt: 1.2, hit: 1.2, scale: 1.0, labelY: 2.6, char: 'ghost' },
+  slime: { name: 'Balçık', model: 'golem', look: { c: 0x5aa83a }, hpM: 1.3, dmgM: 1.05, defM: 1.3, expM: 1.2, speed: 4.2, aggro: 8, range: 2.2, atkInt: 1.8, hit: 1.3, scale: 1.0, labelY: 2.2, status: { kind: 'poison', chance: 0.15, dur: 5 } },
+  skelminion: { name: 'İskelet Er', model: 'char', look: { h: 2.1 }, hpM: 1.2, dmgM: 1.15, defM: 1.05, expM: 1.25, speed: 5.4, aggro: 12, range: 2.4, atkInt: 1.5, hit: 1.3, scale: 1.0, labelY: 3.1, char: 'skeleton' },
+  skelmage: { name: 'İskelet Büyücü', model: 'char', look: { h: 2.2 }, magic: true, hpM: 1.15, dmgM: 1.3, defM: 0.95, expM: 1.35, speed: 5, aggro: 13, range: 7, atkInt: 1.8, hit: 1.3, scale: 1.0, labelY: 3.2, status: { kind: 'freeze', chance: 0.08, dur: 1.5 }, char: 'skeleton' },
+  terracotta: { name: 'Toprak Asker', model: 'human', look: { robe: 0xa86a4a, dark: 0x6a3a2a, weapon: 'spear' }, hpM: 1.5, dmgM: 1.25, defM: 1.4, expM: 1.4, speed: 4.8, aggro: 12, range: 2.8, atkInt: 1.6, hit: 1.4, scale: 1.1, labelY: 3.3 },
+  terracotta2: { name: 'Toprak General', model: 'human', look: { robe: 0x8a4a2a, dark: 0x4a2010, weapon: 'glaive' }, hpM: 1.7, dmgM: 1.35, defM: 1.5, expM: 1.55, speed: 4.8, aggro: 12, range: 2.9, atkInt: 1.6, hit: 1.5, scale: 1.25, labelY: 3.5, status: { kind: 'stun', chance: 0.1, dur: 1.3 } },
+  tombspirit: { name: 'Mezar Ruhu', model: 'char', look: { h: 2.2, ghost: true }, magic: true, hpM: 1.3, dmgM: 1.35, defM: 1.1, expM: 1.45, speed: 5.8, aggro: 13, range: 6, atkInt: 1.6, hit: 1.3, scale: 1.1, labelY: 3.2, status: { kind: 'freeze', chance: 0.08, dur: 1.5 }, char: 'ghost' },
+  jiangshi: { name: 'Jiangshi', model: 'char', look: { tint: 0x9ac8c8, h: 2.3 }, hpM: 1.55, dmgM: 1.3, defM: 1.25, expM: 1.45, speed: 4.6, aggro: 10, range: 2.4, atkInt: 1.6, hit: 1.3, scale: 1.1, labelY: 3.2, status: { kind: 'slow', chance: 0.18, dur: 3 }, char: 'zombie' },
+  jiangshi2: { name: 'Kadim Jiangshi', model: 'char', look: { tint: 0x6a9a9a, h: 2.4 }, hpM: 1.75, dmgM: 1.4, defM: 1.35, expM: 1.6, speed: 4.8, aggro: 10, range: 2.4, atkInt: 1.6, hit: 1.3, scale: 1.2, labelY: 3.3, status: { kind: 'stun', chance: 0.1, dur: 1.3 }, char: 'zombie' },
+  tombsnake: { name: 'Mezar Yılanı', model: 'snake', look: { c: 0x4a2a5a, belly: 0xa88ac8 }, hpM: 1.6, dmgM: 1.4, defM: 1.3, expM: 1.55, speed: 5.2, aggro: 10, range: 2.8, atkInt: 1.5, hit: 1.7, scale: 1.4, labelY: 2.8, status: { kind: 'poison', chance: 0.25, dur: 7 } },
+  templeguard: { name: 'Tapınak Muhafızı', model: 'char', look: { tint: 0xd8b060, h: 2.4 }, hpM: 1.7, dmgM: 1.4, defM: 1.5, expM: 1.6, speed: 5, aggro: 12, range: 2.6, atkInt: 1.6, hit: 1.4, scale: 1.15, labelY: 3.4, char: 'skeleton' },
+  priestess: { name: 'Kara Rahibe', model: 'human', look: { robe: 0x1a1a2a, dark: 0x0a0a14, weapon: null }, magic: true, hpM: 1.45, dmgM: 1.5, defM: 1.2, expM: 1.6, speed: 5, aggro: 13, range: 7, atkInt: 1.7, hit: 1.3, scale: 1.0, labelY: 3.3, status: { kind: 'burn', chance: 0.15, dur: 4 } },
+  scarab2: { name: 'Kutsal Bokböceği', model: 'scorpion', look: { shell: 0xd8a830, dark: 0x6a4a10 }, hpM: 1.7, dmgM: 1.45, defM: 1.6, expM: 1.7, speed: 5, aggro: 10, range: 2.6, atkInt: 1.6, hit: 1.6, scale: 1.4, labelY: 3.0, status: { kind: 'poison', chance: 0.2, dur: 6 } },
+  gladiator: { name: 'Gladyatör', model: 'human', look: { robe: 0xa88a3a, dark: 0x5a3a1a, weapon: 'sword' }, hpM: 1.8, dmgM: 1.5, defM: 1.5, expM: 1.7, speed: 5.8, aggro: 12, range: 2.6, atkInt: 1.4, hit: 1.3, scale: 1.1, labelY: 3.3, status: { kind: 'bleed', chance: 0.15, dur: 5 } },
+  harpy: { name: 'Harpi', model: 'char', look: { tint: 0x4aa8a0, h: 2.3 }, magic: true, hpM: 1.6, dmgM: 1.55, defM: 1.3, expM: 1.75, speed: 6.6, aggro: 13, range: 5, atkInt: 1.4, hit: 1.3, scale: 1.1, labelY: 3.4, status: { kind: 'slow', chance: 0.15, dur: 3 }, char: 'vampire' },
+  minotaur: { name: 'Minotor', model: 'golem', look: { c: 0x6a4228 }, hpM: 2.2, dmgM: 1.6, defM: 1.6, expM: 1.9, speed: 5, aggro: 10, range: 3.0, atkInt: 1.8, hit: 2.0, scale: 1.5, labelY: 3.8, status: { kind: 'stun', chance: 0.14, dur: 1.5 } },
+  icewraith: { name: 'Buz Hayaleti', model: 'char', look: { h: 2.2, ghost: true }, magic: true, hpM: 1.6, dmgM: 1.55, defM: 1.3, expM: 1.75, speed: 6, aggro: 13, range: 6, atkInt: 1.6, hit: 1.3, scale: 1.1, labelY: 3.2, status: { kind: 'freeze', chance: 0.12, dur: 1.6 }, char: 'ghost' },
+  lavagolem: { name: 'Lav Golemi', model: 'golem', look: { c: 0xb83a1a }, hpM: 2.3, dmgM: 1.6, defM: 1.8, expM: 1.9, speed: 3.8, aggro: 9, range: 3.0, atkInt: 2.0, hit: 2.0, scale: 1.6, labelY: 3.8, status: { kind: 'burn', chance: 0.2, dur: 5 } },
+  // --- Yeni Unique'ler ---
+  u_cerberus: { name: 'Cerberus', model: 'quad', look: { fur: 0x3a0a08, dark: 0x1a0404, eye: 0xffa020, horns: true, body: [1.1, 1.0, 2.0] }, unique: { hp: 10, dmg: 1.7, exp: 40, drop: 1.2 }, hpM: 1.4, dmgM: 1.3, defM: 1.35, expM: 1.35, speed: 6, aggro: 16, range: 3.4, atkInt: 1.4, hit: 2.4, scale: 2.6, labelY: 3.4, status: { kind: 'burn', chance: 0.22, dur: 5 } },
+  u_ivy: { name: 'Kaptan Ivy', model: 'human', look: { robe: 0x5a2a7a, dark: 0x2a0a3a, hat: 'band', weapon: 'sword' }, unique: { hp: 12, dmg: 1.75, exp: 40, drop: 1.2 }, hpM: 1.4, dmgM: 1.3, defM: 1.35, expM: 1.35, speed: 6, aggro: 16, range: 3.4, atkInt: 1.4, hit: 2.4, scale: 1.7, labelY: 3.4, status: { kind: 'bleed', chance: 0.2, dur: 5 } },
+  u_shaitan: { name: 'Demon Shaitan', model: 'char', look: { tint: 0xb02010, h: 2.8, horns: true, glow: 0xff2a00 }, magic: true, char: 'vampire', unique: { hp: 16, dmg: 1.95, exp: 40, drop: 1.2 }, hpM: 1.4, dmgM: 1.3, defM: 1.35, expM: 1.35, speed: 6, aggro: 16, range: 7, atkInt: 1.4, hit: 2.4, scale: 2.6, labelY: 3.4, status: { kind: 'burn', chance: 0.25, dur: 5 } },
+  u_roc: { name: 'Roc', model: 'quad', look: { fur: 0x6a4a2a, dark: 0x2a1a0a, eye: 0xffd23a, body: [1.4, 1.2, 2.4] }, unique: { hp: 17, dmg: 2.0, exp: 40, drop: 1.2 }, hpM: 1.4, dmgM: 1.3, defM: 1.35, expM: 1.35, speed: 6, aggro: 16, range: 3.4, atkInt: 1.4, hit: 2.4, scale: 3.0, labelY: 3.4, status: { kind: 'stun', chance: 0.2, dur: 1.6 } },
+  u_sphinx: { name: 'Sfenks', model: 'golem', look: { c: 0xe0c070 }, unique: { hp: 18, dmg: 2.05, exp: 40, drop: 1.2 }, hpM: 1.4, dmgM: 1.3, defM: 1.35, expM: 1.35, speed: 6, aggro: 16, range: 3.4, atkInt: 1.4, hit: 2.4, scale: 3.0, labelY: 3.4, status: { kind: 'stun', chance: 0.22, dur: 1.6 } },
+  u_shadowyarkan: { name: 'Gölge Yarkan', model: 'quad', look: { fur: 0x2a0a3a, dark: 0x0a0414, horns: true, eye: 0xc86aff, body: [1.3, 1.2, 2.4] }, magic: true, unique: { hp: 20, dmg: 2.2, exp: 40, drop: 1.2 }, hpM: 1.4, dmgM: 1.3, defM: 1.35, expM: 1.35, speed: 6, aggro: 16, range: 7, atkInt: 1.4, hit: 2.4, scale: 3.0, labelY: 3.4, status: { kind: 'freeze', chance: 0.22, dur: 2 } },
+  u_bonelord: { name: 'Kemik Lordu', model: 'char', look: { h: 2.6, glow: 0x8a4aff }, magic: true, char: 'skeleton', unique: { hp: 11, dmg: 1.8, exp: 40, drop: 1.2 }, hpM: 1.4, dmgM: 1.3, defM: 1.35, expM: 1.35, speed: 6, aggro: 16, range: 7, atkInt: 1.4, hit: 2.4, scale: 2.2, labelY: 3.4, status: { kind: 'freeze', chance: 0.15, dur: 1.6 } },
+  u_medusa: { name: 'Medusa', model: 'snake', look: { c: 0x2a8a4a, belly: 0xd8c878 }, magic: true, unique: { hp: 18, dmg: 2.0, exp: 40, drop: 1.2 }, hpM: 1.4, dmgM: 1.3, defM: 1.35, expM: 1.35, speed: 6, aggro: 16, range: 7, atkInt: 1.4, hit: 2.4, scale: 3.2, labelY: 3.4, status: { kind: 'stun', chance: 0.25, dur: 2 } },
+  u_isis: { name: 'İsis', model: 'human', look: { robe: 0xf0e8d0, dark: 0xd8a830, weapon: null }, magic: true, unique: { hp: 14, dmg: 1.9, exp: 40, drop: 1.2 }, hpM: 1.4, dmgM: 1.3, defM: 1.35, expM: 1.35, speed: 6, aggro: 16, range: 7, atkInt: 1.4, hit: 2.4, scale: 2.0, labelY: 3.4, status: { kind: 'freeze', chance: 0.18, dur: 1.8 } },
+  u_anubis: { name: 'Anubis', model: 'char', look: { tint: 0x1a1a1a, h: 2.6, glow: 0xffc83a }, char: 'skeleton', unique: { hp: 15, dmg: 1.95, exp: 40, drop: 1.2 }, hpM: 1.4, dmgM: 1.3, defM: 1.35, expM: 1.35, speed: 6, aggro: 16, range: 3.4, atkInt: 1.4, hit: 2.4, scale: 2.4, labelY: 3.4, status: { kind: 'bleed', chance: 0.22, dur: 5 } },
+  u_haroeris: { name: 'Haroeris', model: 'char', look: { tint: 0xd8a830, h: 2.6 }, magic: true, char: 'vampire', unique: { hp: 15, dmg: 2.0, exp: 40, drop: 1.2 }, hpM: 1.4, dmgM: 1.3, defM: 1.35, expM: 1.35, speed: 6, aggro: 16, range: 7, atkInt: 1.4, hit: 2.4, scale: 2.4, labelY: 3.4, status: { kind: 'burn', chance: 0.2, dur: 5 } },
+  u_seth: { name: 'Seth', model: 'char', look: { tint: 0x5a2a8a, h: 2.8, horns: true }, magic: true, char: 'vampire', unique: { hp: 17, dmg: 2.1, exp: 40, drop: 1.2 }, hpM: 1.4, dmgM: 1.3, defM: 1.35, expM: 1.35, speed: 6, aggro: 16, range: 7, atkInt: 1.4, hit: 2.4, scale: 2.6, labelY: 3.4, status: { kind: 'stun', chance: 0.22, dur: 1.8 } },
+  u_yuno: { name: 'Yuno', model: 'human', look: { robe: 0xf4f4ff, dark: 0x8a8ac8, weapon: null }, magic: true, unique: { hp: 16, dmg: 2.05, exp: 40, drop: 1.2 }, hpM: 1.4, dmgM: 1.3, defM: 1.35, expM: 1.35, speed: 6, aggro: 16, range: 7, atkInt: 1.4, hit: 2.4, scale: 2.0, labelY: 3.4, status: { kind: 'freeze', chance: 0.2, dur: 2 } },
+  u_jupiter: { name: 'Jüpiter', model: 'golem', look: { c: 0xffd870 }, magic: true, unique: { hp: 20, dmg: 2.25, exp: 40, drop: 1.2 }, hpM: 1.4, dmgM: 1.3, defM: 1.35, expM: 1.35, speed: 6, aggro: 16, range: 7, atkInt: 1.4, hit: 2.4, scale: 3.2, labelY: 3.4, status: { kind: 'stun', chance: 0.25, dur: 2 } },
+  u_frostqueen: { name: 'Buz Kraliçesi', model: 'human', look: { robe: 0xc8e8ff, dark: 0x5a8ac8, weapon: null }, magic: true, unique: { hp: 18, dmg: 2.2, exp: 40, drop: 1.2 }, hpM: 1.4, dmgM: 1.3, defM: 1.35, expM: 1.35, speed: 6, aggro: 16, range: 7, atkInt: 1.4, hit: 2.4, scale: 2.2, labelY: 3.4, status: { kind: 'freeze', chance: 0.28, dur: 2 } },
+  u_flamelord: { name: 'Alev Lordu', model: 'char', look: { tint: 0xff4a10, h: 2.8, horns: true, glow: 0xff3a00 }, magic: true, char: 'vampire', unique: { hp: 20, dmg: 2.3, exp: 40, drop: 1.2 }, hpM: 1.4, dmgM: 1.3, defM: 1.35, expM: 1.35, speed: 6, aggro: 16, range: 7, atkInt: 1.4, hit: 2.4, scale: 3.0, labelY: 3.4, status: { kind: 'burn', chance: 0.3, dur: 6 } },
+  u_fwboss: { name: 'Unutulmuş Kral', model: 'quad', look: { fur: 0x3a1a5a, dark: 0x140a20, horns: true, eye: 0xff6ae8, body: [1.3, 1.2, 2.4] }, magic: true, unique: { hp: 14, dmg: 1.9, exp: 40, drop: 1.2 }, hpM: 1.4, dmgM: 1.3, defM: 1.35, expM: 1.35, speed: 6, aggro: 16, range: 7, atkInt: 1.4, hit: 2.4, scale: 2.8, labelY: 3.4, status: { kind: 'stun', chance: 0.2, dur: 1.6 } },
   // --- Meslek sistemi ---
   kthief:    { name: 'Kervan Hırsızı', model: 'human', look: { robe: 0x5a1a1a, dark: 0x2a0a0a, hat: 'band', weapon: 'blade' }, job: true, hpM: 0.8, dmgM: 0.8, defM: 0.9, expM: 0.8, speed: 6.4, aggro: 18, range: 2.4, atkInt: 1.4, hit: 1.3, scale: 1.0, labelY: 3.3 },
   kguard:    { name: 'Kervan Muhafızı', model: 'human', look: { robe: 0x1a3a8a, dark: 0x0a1a4a, hat: 'band', weapon: 'spear' }, job: true, hpM: 1.4, dmgM: 1.1, defM: 1.2, expM: 0.9, speed: 6.0, aggro: 14, range: 2.8, atkInt: 1.5, hit: 1.3, scale: 1.05, labelY: 3.3 },
@@ -42,14 +115,18 @@ const MONSTER_TYPES = {
 const MOB_RANKS = {
   normal:   { label: '', hp: 1, dmg: 1, exp: 1, scale: 1, zerk: 0.25, drop: 1, color: '#ffb0a0' },
   champion: { label: 'Şampiyon', hp: 3, dmg: 1.4, exp: 3, scale: 1.2, zerk: 1, drop: 2.5, color: '#ffd23a' },
+  strong:   { label: 'Güçlü', hp: 1.8, dmg: 1.2, exp: 1.8, scale: 1.08, zerk: 0.5, drop: 1.5, color: '#a8f07a' },
+  elite:    { label: 'Elit', hp: 6, dmg: 1.7, exp: 7, scale: 1.4, zerk: 1.5, drop: 4, color: '#7ae8ff' },
+  party:    { label: 'Parti', hp: 9, dmg: 1.45, exp: 9, scale: 1.3, zerk: 2, drop: 5, color: '#c89aff' },
   giant:    { label: 'Dev', hp: 12, dmg: 2.2, exp: 14, scale: 1.9, zerk: 2.5, drop: 6, color: '#ff7a3a' },
   unique:   { label: 'Unique', hp: 1, dmg: 1, exp: 1, scale: 1, zerk: 5, drop: 20, color: '#ff4ad8' }
 };
-const mobHp = M => 30 + 22 * M + 1.6 * M * M;
-const mobDmg = M => 8 + 4 * M + 0.05 * M * M;
+// Erken seviyeler eski eğri; 25 / 40'tan sonra doğrusal (yüksek seviyede vuruş sayısı makul kalsın)
+const mobHp = M => (M <= 25 ? 30 + 22 * M + 1.6 * M * M : 1580 + 45 * (M - 25) + 0.05 * (M - 25) * (M - 25));
+const mobDmg = M => (M <= 40 ? 8 + 4 * M + 0.05 * M * M : 248 + 4.5 * (M - 40));
 const mobDef = M => 2 + 4 * M;
 const mobExp = M => 10 + 6 * M + 0.4 * M * M;
-function rollRank() { const r = Math.random(); return r < 0.012 ? 'giant' : r < 0.06 ? 'champion' : 'normal'; }
+function rollRank() { const r = Math.random(); if (IS_DUNGEON && r < 0.12) return 'party'; return r < 0.01 ? 'giant' : r < 0.022 ? 'elite' : r < 0.06 ? 'champion' : r < 0.12 ? 'strong' : 'normal'; }
 
 function buildQuad(o = {}) {
   const g = new THREE.Group();
@@ -183,6 +260,7 @@ function pushOut(p, radius, obstacles) {
       p.x = o.x + (dx / d) * min; p.z = o.z + (dz / d) * min;
     }
   }
+  if (Dungeon.on) Dungeon.clamp(p, Math.min(radius, 0.7));
 }
 
 class Monster {
@@ -194,6 +272,7 @@ class Monster {
     this.home = { x: home.x, z: home.z };
     this.status = {};
     this.fixedRank = opts.rank || null;
+    this.shadow = !!opts.shadow;
     this._stats(this.fixedRank || rollRank());
     this.state = 'idle';
     this.dead = false;
@@ -269,8 +348,9 @@ class Monster {
     this.exp = Math.round(t.expM * mobExp(M) * rk.exp * (u.exp || 1));
     this.zerkPts = rk.zerk;
     this.dropMult = rk.drop * (u.drop || 1);
-    this.baseScale = t.scale * (1 + 0.012 * (M - 1)) * rk.scale;
+    this.baseScale = t.scale * (1 + 0.25 * Math.min(1, (M - 1) / 60)) * rk.scale;   // seviyeyle hafif büyür (en çok %25)
     this.displayName = (rk.label && rank !== 'unique' ? rk.label + ' ' : '') + t.name;
+    if (this.shadow) { this.displayName = 'Gölge ' + t.name; this.maxHp = this.hp = Math.round(this.maxHp * 1.6); this.dmg = Math.round(this.dmg * 1.3); this.exp *= 2; this.dropMult *= 1.6; this.baseScale *= 1.1; }
   }
   _makeLabel() {
     if (this.label) { this.group.remove(this.label); this.label.material.map.dispose(); this.label.material.dispose(); }
@@ -508,6 +588,7 @@ class MonsterManager {
     const rand = (a, b) => a + rng() * (b - a);
     const w = this.world;
     const freeSpot = (x, z) => {
+      if (Dungeon.on) { if (!Dungeon.walk(x, z) || !Dungeon.walk(x + 1.5, z) || !Dungeon.walk(x - 1.5, z) || !Dungeon.walk(x, z + 1.5) || !Dungeon.walk(x, z - 1.5) || Math.hypot(x, z) < 20) return false; for (const o of w.obstacles) if (Math.hypot(x - o.x, z - o.z) < o.r + 2) return false; return true; }
       if (Math.abs(x) > 270 || Math.abs(z) > 270) return false;
       if (Math.max(Math.abs(x), Math.abs(z)) < SAFE_HALF + 12) return false;
       for (const o of w.obstacles) if (Math.hypot(x - o.x, z - o.z) < o.r + 2) return false;
@@ -519,7 +600,7 @@ class MonsterManager {
         const a = rng() * 6.283, d = rand(d0, d1), x = Math.cos(a) * d, z = Math.sin(a) * d;
         if (!freeSpot(x, z)) continue;
         // yol üstünde doğmasınlar
-        if (Math.abs(x - roadCenterX(z)) < 8) continue;
+        if (!Dungeon.on && Math.abs(x - roadCenterX(z)) < 8) continue;
         const lvl = Math.round(l0 + (l1 - l0) * clamp((d - d0) / (d1 - d0), 0, 1)) ;
         this.list.push(new Monster(w, type, lvl, { x, z }));
         made++;
@@ -527,6 +608,7 @@ class MonsterManager {
     };
     for (const sp of ZONE.spawns) ring(...sp);
     // Harabelerde haydut kampları
+    if (!ZONE.ruinMob) return;
     const [rt, r0, r1] = ZONE.ruinMob;
     for (const c of RUINS) {
       for (let i = 0; i < 4; i++) {
@@ -547,9 +629,11 @@ class MonsterManager {
     for (const u of ZONE.uniques) {
       const live = this.list.find(m => m.typeKey === u.id && !m.removed);
       if (live) continue;
-      if (clk[u.id] === undefined) { UniqueClock.set(u.id, now + 90000); continue; }      // ilk doğma: 1.5 dk sonra
-      if (now < clk[u.id]) continue;
-      const m = new Monster(this.world, u.id, u.level, { x: u.x, z: u.z }, { rank: 'unique' });
+      if (ZONE.fw) { if (this._fwDone) continue; this._fwDone = true; clk[u.id] = 0; }          // Unutulmuş Dünya: bir kez, hemen
+      else if (clk[u.id] === undefined) { UniqueClock.set(u.id, now + (IS_DUNGEON ? 5000 : 90000)); continue; }      // ilk doğma
+      if (!ZONE.fw && now < clk[u.id]) continue;
+      const shadow = !IS_DUNGEON && Math.random() < 0.12;                 // Gölge Unique: daha güçlü, daha iyi ganimet
+      const m = new Monster(this.world, u.id, u.level + (shadow ? 15 : 0), { x: u.x, z: u.z }, { rank: 'unique', shadow });
       m.noRespawn = true; m.respawnTime = 8;
       m.onKilled = () => {
         UniqueClock.set(u.id, Date.now() + u.every * 1000);

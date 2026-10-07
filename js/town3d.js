@@ -111,9 +111,14 @@ World.prototype._scatterModels = function (palms, cacti, rocks, pillars, rng) {
     }
   };
   deco(['nature/plant_bush', 'nature/plant_bushLarge', 'nature/plant_flatTall'], ZONE.flora.bushes, 1.1, 2.2, () => [rand(-280, 280), rand(-280, 280)]);
-  if (ZONE.id === 'hotan') {
-    deco(['nature/flower_redA', 'nature/flower_yellowA', 'nature/mushroom_redGroup'], 120, 0.5, 0.9, () => [rand(-280, 280), rand(-280, 280)]);
-    deco(['nature/tree_default', 'nature/tree_oak'], 40, 4, 7, () => { const p = PONDS[Math.floor(rng() * PONDS.length)], a = rng() * 6.28, d = rand(13, 26); return [p.x + Math.cos(a) * d, p.z + Math.sin(a) * d]; }, true);
+  const green = ['hotan', 'asiaminor', 'constantinople', 'samarkand'].includes(ZONE.id);
+  if (green) deco(['nature/flower_redA', 'nature/flower_yellowA', 'nature/mushroom_redGroup'], ZONE.id === 'samarkand' ? 50 : 120, 0.5, 0.9, () => [rand(-280, 280), rand(-280, 280)]);
+  if (ZONE.flora.trees) {
+    const near = ZONE.flora.trees > 50;
+    deco(['nature/tree_default', 'nature/tree_oak', 'nature/tree_fat', 'nature/tree_detailed'], ZONE.flora.trees, 4, 7.5, () => {
+      if (near || !PONDS.length) return [rand(-275, 275), rand(-275, 275)];
+      const p = PONDS[Math.floor(rng() * PONDS.length)], a = rng() * 6.28, d = rand(13, 26); return [p.x + Math.cos(a) * d, p.z + Math.sin(a) * d];
+    }, true);
   }
   deco(['nature/log', 'nature/log_stack', 'nature/stump_old'], 26, 0.9, 1.5, () => [rand(-270, 270), rand(-270, 270)], true);
   PONDS.forEach(p => deco(['nature/plant_flatShort', 'nature/grass_large', 'nature/plant_bush'], 22, 0.9, 1.8, () => { const a = rng() * 6.28, d = rand(POND_RADIUS + 1.5, 17); return [p.x + Math.cos(a) * d, p.z + Math.sin(a) * d]; }));

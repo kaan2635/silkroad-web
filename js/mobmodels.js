@@ -27,15 +27,87 @@ const MOB_MODEL_DEFS = {
   u_tiger:   { file: 'rogue', h: 2.1, tint: [0xe07a1a, 0.35], weapon: 'blade' },
   u_uruchi:  { file: 'orc', h: 2.3, colors: { Orc_Main: 0x8a2a1a, Orc_Secondary: 0x3a0a08, Orc_Hair: 0x1a0a0a } },
   u_isyutaru:{ file: 'flydemon', h: 2.4, fly: 0.8, colors: { Demon_Main: 0x5a2a9a }, glow: 0x8a4aff },
-  u_yarkan:  { file: 'dragon', h: 2.0, fly: 0.7, colors: { Dragon_Main: 0x6a1010, Dragon_Secondary: 0x1a0606 } }
+  u_yarkan:  { file: 'dragon', h: 2.0, fly: 0.7, colors: { Dragon_Main: 0x6a1010, Dragon_Secondary: 0x1a0606 } },
+  // --- Konstantinopolis ---
+  gwolf:     { file: 'wolf', h: 1.3, rot: -Math.PI / 2, tint: [0x9a9a9a, 0.4] },
+  stag:      { file: 'stag', h: 2.0, rot: -Math.PI / 2 },
+  goblin:    { file: 'goblin', h: 1.5 },
+  hound:     { file: 'husky', h: 1.45, rot: -Math.PI / 2, colors: { 'Material': 0x3a0a08, 'Material.001': 0x6a1a10, 'Material.003': 0x8a2a1a }, glowEye: 0xffa020 },
+  orc:       { file: 'orc', h: 2.2 },
+  ewarrior:  { file: 'knight', h: 2.15, tint: [0x2a2a34, 0.6], weapon: 'sword' },
+  ebandit:   { file: 'barbarian', h: 2.1, tint: [0x8a4a2a, 0.3], weapon: 'blade' },
+  u_cerberus:{ file: 'husky', h: 2.0, rot: -Math.PI / 2, colors: { 'Material': 0x1a0404, 'Material.001': 0x4a0a06, 'Material.003': 0x6a1a0a }, glowEye: 0xffa020, glow: 0xff3a00 },
+  // --- Küçük Asya ---
+  spider:    { file: 'spider', h: 1.2, len: 1 },
+  wasp:      { file: 'wasp', h: 1.3, fly: 1.0 },
+  raptor:    { file: 'raptor', h: 1.6, len: 1, colors: { } , tint: [0x4a7a3a, 0.3] },
+  mushroom:  { file: 'mushnub', h: 1.6 },
+  darkorc:   { file: 'orc', h: 2.35, tint: [0x3a3a3a, 0.55] },
+  abandit:   { file: 'rogue_hooded', h: 2.05, tint: [0x2a4a8a, 0.4], weapon: 'blade' },
+  u_ivy:     { file: 'rogue', h: 2.1, tint: [0x6a2a8a, 0.45], weapon: 'sword', glow: 0xc86aff },
+  // --- Semerkant ---
+  raptor2:   { file: 'raptor', h: 1.75, len: 1, tint: [0x8a6a3a, 0.4] },
+  tribal:    { file: 'giant', h: 2.7, tint: [0x8a5a3a, 0.4] },
+  ninja:     { file: 'rogue_hooded', h: 2.05, tint: [0x1a1a22, 0.75], weapon: 'blade' },
+  rocbat:    { file: 'bat', h: 1.4, fly: 1.2, tint: [0x6a5a4a, 0.4] },
+  flydemon:  { file: 'flydemon', h: 2.4, fly: 0.8 },
+  sbandit:   { file: 'barbarian', h: 2.1, tint: [0x8a6a3a, 0.35], weapon: 'spear' },
+  u_shaitan: { file: 'demon', h: 3.2, colors: { BlueDemon_Main: 0x8a1008, BlueDemon_Secondary: 0x1a0a06 }, glow: 0xff3a00 },
+  u_roc:     { file: 'dragon', h: 2.4, fly: 1.2, colors: { Dragon_Main: 0x6a4a2a, Dragon_Secondary: 0x2a1a0a } },
+  // --- İskenderiye ---
+  mummy2:    { file: 'zombie', h: 2.25, tint: [0xd8c070, 0.6] },
+  scarab:    { file: 'crab', h: 1.0, len: 1, colors: { Main: 0x1a6a6a, Main_Dark: 0x0a3a3a } },
+  anubisw:   { file: 'skeleton_rogue', h: 2.2, tint: [0x2a2418, 0.55], weapon: 'glaive' },
+  sandgolem: { file: 'giant', h: 2.9, tint: [0xd8b070, 0.6] },
+  kingscorp: { file: 'crab', h: 1.1, len: 1, colors: { Main: 0x6a1010, Main_Dark: 0x2a0606 }, tail: 0x6a1010 },
+  egbandit:  { file: 'rogue_hooded', h: 2.05, tint: [0xc8a868, 0.4], weapon: 'blade' },
+  u_sphinx:  { file: 'giant', h: 4.0, tint: [0xe0c070, 0.65], glow: 0xffc83a },
+  // --- Şambala ---
+  frostwolf: { file: 'husky', h: 1.55, rot: -Math.PI / 2, tint: [0xe8f4ff, 0.5], glowEye: 0x3ad8ff },
+  iceyeti:   { file: 'yeti', h: 2.6, colors: { Yeti_Main: 0xf0f4f8, Yeti_Secondary: 0x8ab8d8 } },
+  icegolem:  { file: 'giant', h: 3.0, tint: [0x9ad0f0, 0.6] },
+  lavademon: { file: 'demon', h: 2.6, colors: { BlueDemon_Main: 0xc83a10, BlueDemon_Secondary: 0x2a0a04 }, glow: 0xff3a00 },
+  firedragon:{ file: 'dragon', h: 2.0, fly: 0.6, colors: { Dragon_Main: 0xb82a10, Dragon_Secondary: 0x3a0806 }, glow: 0xff3a00 },
+  monk:      { file: 'mage', h: 2.05, tint: [0xc8702a, 0.4], weapon: 'spear' },
+  u_shadowyarkan: { file: 'dragon', h: 2.6, fly: 1.0, colors: { Dragon_Main: 0x2a0a3a, Dragon_Secondary: 0x0a0414 }, glow: 0xc86aff },
+  // --- Zindanlar ---
+  cavebat:   { file: 'bat', h: 1.3, fly: 1.2 },
+  slime:     { file: 'slime', h: 1.3 },
+  skelminion:{ file: 'skeleton_minion', h: 2.0, weapon: 'blade' },
+  skelmage:  { file: 'skeleton_mage', h: 2.1, atk: 'Spellcast_Shoot' },
+  u_bonelord:{ file: 'skeleton', h: 2.6, weapon: 'glaive', glow: 0x8a4aff },
+  terracotta:{ file: 'knight', h: 2.15, tint: [0xa86a4a, 0.75], weapon: 'spear' },
+  terracotta2:{ file: 'knight', h: 2.35, tint: [0x8a4a2a, 0.7], weapon: 'glaive' },
+  tombspirit:{ file: 'ghostskull', h: 2.0, ghost: true, fly: 0.6 },
+  jiangshi:  { file: 'zombie', h: 2.2, tint: [0x9ac8c8, 0.55] },
+  jiangshi2: { file: 'zombie', h: 2.35, tint: [0x6a9a9a, 0.65] },
+  tombsnake: { file: 'snake', h: 1.4, len: 1, colors: { DarkGreen: 0x4a2a5a, LightGreen: 0xa88ac8 } },
+  u_medusa:  { file: 'snake', h: 2.6, len: 1, colors: { DarkGreen: 0x2a8a4a, LightGreen: 0xd8c878 }, glow: 0x3aff8a },
+  templeguard:{ file: 'skeleton', h: 2.3, tint: [0xd8b060, 0.45], weapon: 'spear' },
+  priestess: { file: 'mage', h: 2.1, tint: [0x1a1a2a, 0.65], atk: 'Spellcast_Shoot' },
+  scarab2:   { file: 'crab', h: 1.15, len: 1, colors: { Main: 0xd8a830, Main_Dark: 0x6a4a10 } },
+  u_isis:    { file: 'mage', h: 2.6, tint: [0xf0e8d0, 0.55], atk: 'Spellcast_Shoot', glow: 0xffd870 },
+  u_anubis:  { file: 'skeleton_rogue', h: 2.8, tint: [0x1a1a1a, 0.6], weapon: 'glaive', glow: 0xffc83a },
+  u_haroeris:{ file: 'flydemon', h: 2.8, fly: 0.9, colors: { Demon_Main: 0xd8a830 }, glow: 0xffc83a },
+  u_seth:    { file: 'demon', h: 3.0, colors: { BlueDemon_Main: 0x5a2a8a, BlueDemon_Secondary: 0x1a0a2a }, glow: 0x8a4aff },
+  gladiator: { file: 'knight', h: 2.2, tint: [0xa88a3a, 0.45], weapon: 'sword' },
+  harpy:     { file: 'flydemon', h: 2.3, fly: 0.9, colors: { Demon_Main: 0x2a8a80 } },
+  minotaur:  { file: 'giant', h: 3.0, tint: [0x6a4228, 0.6] },
+  u_yuno:    { file: 'mage', h: 2.6, tint: [0xf4f4ff, 0.6], atk: 'Spellcast_Shoot', glow: 0xc8d8ff },
+  u_jupiter: { file: 'giant', h: 4.2, tint: [0xffd870, 0.6], glow: 0xffc83a },
+  icewraith: { file: 'ghostskull', h: 2.1, ghost: true, fly: 0.6, colors: { Ghost_Main: 0x6ab8e8 } },
+  u_frostqueen:{ file: 'mage', h: 2.7, tint: [0xc8e8ff, 0.6], atk: 'Spellcast_Shoot', glow: 0x3ad8ff },
+  lavagolem: { file: 'giant', h: 3.1, tint: [0xb83a1a, 0.6], glow: 0xff3a00 },
+  u_flamelord:{ file: 'demon', h: 3.4, colors: { BlueDemon_Main: 0xff4a10, BlueDemon_Secondary: 0x3a0806 }, glow: 0xff5a00 },
+  u_fwboss:  { file: 'dragon', h: 2.6, fly: 1.0, colors: { Dragon_Main: 0x3a1a5a, Dragon_Secondary: 0x140a20 }, glow: 0xff6ae8 },
 };
 // Klip eşleme (dosyalardaki adların sonu)
 const MOB_CLIPS = {
-  idle: /(^|\|)(Idle|Flying_Idle|Snake_Idle)$/, walk: /(^|\|)(Walk|Walking_A|Snake_Walk|Fast_Flying)$/,
-  run: /(^|\|)(Gallop|Run|Running_A|Fast_Flying|Snake_Walk)$/,
-  attack: /(^|\|)(Attack|Attack_Headbutt|Bite_Front|Punch|Headbutt|Snake_Attack|1H_Melee_Attack_Chop|1H_Melee_Attack_Slice_Diagonal)$/,
-  attack2: /(^|\|)(2H_Melee_Attack_Chop|Weapon)$/,
-  death: /(^|\|)(Death|Die|Death_A)$/, hit: /(^|\|)(HitReact|HitRecieve|Hit_reaction|Hit_A|Idle_HitReact_Left)$/
+  idle: /(^|[|_])(Idle|Flying_Idle)$/, walk: /(^|[|_])(Walk|Walking_A|Fast_Flying|Flying)$/,
+  run: /(^|[|_])(Gallop|Run|Running_A|Fast_Flying|Flying)$/,
+  attack: /(^|[|_])(Attack|Attack_Headbutt|Bite_Front|Punch|Headbutt|1H_Melee_Attack_Chop|1H_Melee_Attack_Slice_Diagonal)$/,
+  attack2: /(^|[|_])(2H_Melee_Attack_Chop|Weapon|Attack2)$/,
+  death: /(^|[|_])(Death|Die|Death_A)$/, hit: /(^|[|_])(HitReact|HitRecieve|Hit_reaction|Hit_A|Idle_HitReact_Left|Hit)$/
 };
 
 const MobModels = {
@@ -80,6 +152,7 @@ const MobModels = {
     else if (/eye/i.test(name) && (def.glowEye || def.glow)) m.emissive = new THREE.Color(def.glowEye || def.glow);
     if (def.glow && !/eye/i.test(name)) m.emissive = new THREE.Color(def.glow).multiplyScalar(0.18);
     if (def.ghost) m.emissive = new THREE.Color(0x1a3a6a);
+    if (key.startsWith('shadow:')) m.emissive = new THREE.Color(0x3a0a5a);
     m.name = name;
     this._mats[k] = m;
     return m;
@@ -97,7 +170,7 @@ const MobModels = {
     // malzemeler: örnek başına kopya (durum renklendirmesi için emissive kullanılır)
     model.traverse(o => {
       if (o.isMesh) {
-        const conv = (m) => { const b = this._material(def, m, mob.typeKey); const c = b.clone(); c.skinning = o.isSkinnedMesh; c.userData.baseEm = c.emissive.getHex(); return c; };
+        const conv = (m) => { const b = this._material(def, m, (mob.shadow ? 'shadow:' : '') + mob.typeKey); const c = b.clone(); c.skinning = o.isSkinnedMesh; c.userData.baseEm = c.emissive.getHex(); return c; };
         o.material = Array.isArray(o.material) ? o.material.map(conv) : conv(o.material);
         o.castShadow = !CONFIG.isTouch; o.receiveShadow = false; o.frustumCulled = false;
       }
@@ -139,6 +212,9 @@ const MobModels = {
       const c = e.clips.find(c => MOB_CLIPS[k].test(c.name));
       if (c) mob.actions[k] = mob.mixer.clipAction(c);
     }
+    if (def.atk) { const c = e.clips.find(c => c.name.endsWith(def.atk)); if (c) mob.actions.attack = mob.mixer.clipAction(c); }
+    if (!mob.actions.idle) mob.actions.idle = mob.actions.walk || mob.actions.run;
+    if (!mob.actions.walk) mob.actions.walk = mob.actions.run || mob.actions.idle;
     if (!mob.actions.run) mob.actions.run = mob.actions.walk;
     for (const k of ['attack', 'attack2', 'death', 'hit']) if (mob.actions[k]) { mob.actions[k].setLoop(THREE.LoopOnce, 1); mob.actions[k].clampWhenFinished = k === 'death'; }
     mob.base = null; mob.mixer.timeScale = 1;

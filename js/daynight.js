@@ -39,8 +39,26 @@ World.prototype.clockText = function () {
 World.prototype.isNight = function () { return this.night > 0.5; };
 
 World.prototype._updateDayNight = function (dt, playerPos, camera) {
+  if (IS_DUNGEON) return this._dungeonLight(playerPos, camera);
   this.timeOfDay = (this.timeOfDay + dt / DAY_LENGTH) % 1;
   this._applyDayNight(playerPos, camera);
+};
+// Zindan: sabit loş ışık, karakteri izleyen meşale ışığı, titreyen meşaleler
+World.prototype._dungeonLight = function (playerPos, camera) {
+  if (!this._dl) {
+    this._dl = new THREE.PointLight(ZONE.light || 0xffa050, 1.25, 34, 1.4); this.scene.add(this._dl);
+    this.sky.material.color.setHex(ZONE.dark); this.scene.fog.color.setHex(ZONE.dark); this.scene.fog.near = 25; this.scene.fog.far = 95;
+    this.sunMesh.visible = false; this.moonMesh.visible = false; this.stars.visible = false;
+    this.hemi.intensity = 0.42; this.hemi.color.setHex(0x9a9aba); this.hemi.groundColor.setHex(0x3a2a1a);
+    this.light.intensity = 0.35; this.light.color.setHex(0xc8b8a0);
+    if (this.lanternMat) this.lanternMat.color.setHex(0xffd070);
+    this.night = 1;
+  }
+  this._dl.position.set(playerPos.x, playerPos.y + 4, playerPos.z);
+  this.light.position.copy(playerPos).add(new THREE.Vector3(30, 80, 20)); this.light.target.position.copy(playerPos);
+  this.sky.position.copy(camera.position);
+  const t = performance.now() * 0.006;
+  if (this.torches) this.torches.forEach((f, i) => { const k = 1 + Math.sin(t + i * 1.7) * 0.12 + Math.sin(t * 2.3 + i) * 0.06; f.scale.set(1.6 * k, 2 * k, 1); });
 };
 
 World.prototype._applyDayNight = function (playerPos, camera) {

@@ -10,11 +10,17 @@ const JOBS = {
 };
 const JOB_MIN_LEVEL = 20;
 const JOB_EXP = [0, 1000, 3000, 7000, 14000, 26000, 45000];      // 1–7. meslek seviyesi eşikleri
-const ZONE_ORDER = ['jangan', 'donwhang', 'hotan'];
+// Yol zinciri sırası (fiyat farkı uzaklığa göre). İskenderiye ve Şambala yalnızca gemi / ışınla gidilir.
+const ZONE_ORDER = ['jangan', 'donwhang', 'hotan', 'samarkand', 'asiaminor', 'constantinople', 'alexandria', 'shambhala'];
 const TRADE_GOODS = {
-  jangan:   { base: 'tg_silk', name: 'İpek Topu', icon: '🧵', price: 120 },
-  donwhang: { base: 'tg_spice', name: 'Baharat Kesesi', icon: '🌶️', price: 220 },
-  hotan:    { base: 'tg_jade', name: 'Yeşim Taşı', icon: '💚', price: 380 }
+  jangan:   { base: 'tg_silk', name: 'İpek Topu', icon: '', price: 120 },
+  donwhang: { base: 'tg_spice', name: 'Baharat Kesesi', icon: '', price: 220 },
+  hotan:    { base: 'tg_jade', name: 'Yeşim Taşı', icon: '', price: 380 },
+  samarkand: { base: 'tg_carpet', name: 'Semerkant Halısı', icon: '', price: 520 },
+  asiaminor: { base: 'tg_olive', name: 'Zeytinyağı Küpü', icon: '', price: 300 },
+  constantinople: { base: 'tg_wine', name: 'Bizans Şarabı', icon: '', price: 260 },
+  alexandria: { base: 'tg_papyrus', name: 'Papirüs Tomarı', icon: '', price: 700 },
+  shambhala: { base: 'tg_incense', name: 'Kutsal Tütsü', icon: '', price: 900 }
 };
 const goodOrigin = base => ZONE_ORDER.find(z => TRADE_GOODS[z].base === base);
 
@@ -120,7 +126,7 @@ class JobSystem {
     const wave = 1 + 0.08 * Math.sin(day * 1.7 + ZONE_ORDER.indexOf(zone) * 2.1 + ZONE_ORDER.indexOf(o));
     return Math.round(g.price * (diff === 0 ? 1 : 1 + 0.6 * diff) * wave);
   }
-  localGood() { return TRADE_GOODS[CUR_ZONE_ID]; }
+  localGood() { return TRADE_GOODS[CUR_ZONE_ID] || TRADE_GOODS[ZONE.parent] || TRADE_GOODS.jangan; }
   buy(n) {
     const s = this.p.stats, g = this.localGood();
     if (this.job !== 'trader') return { ok: false, msg: 'Ticaret malı yalnızca Tüccarlara satılır. (Meslek Loncası)' };

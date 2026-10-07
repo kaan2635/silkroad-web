@@ -11,11 +11,16 @@
 const ECO_KEY = 'silkroad-web-economy';
 const ECO_CATS = { weapon: 'Silah', shield: 'Kalkan', armor: 'Zırh', acc: 'Takı', pot: 'İksir', mat: 'Simya', scroll: 'Parşömen', pet: 'Evcil · Binek' };
 const ECO_CAT_ICON = { weapon: 'sword', shield: 'shield', armor: 'chest', acc: 'necklace', pot: 'hp', mat: 'elx', scroll: 'ret', pet: 'horse' };
-const TOWN_TAX = { jangan: 0.05, donwhang: 0.08, hotan: 0.1 };
+const TOWN_TAX = { jangan: 0.05, donwhang: 0.08, hotan: 0.1, samarkand: 0.1, asiaminor: 0.06, constantinople: 0.05, alexandria: 0.12, shambhala: 0.12 };
 const ZONE_BIAS = {                      // şehre özgü talep: >1 pahalı (ve NPC daha çok öder)
   jangan:   { pot: 0.92, weapon: 1.0, armor: 1.0, acc: 1.06, mat: 1.05, scroll: 0.95 },
   donwhang: { weapon: 0.95, armor: 1.06, mat: 1.1, pot: 1.0, pet: 0.9 },
-  hotan:    { acc: 0.9, mat: 0.96, pot: 1.12, weapon: 1.05, shield: 1.06 }
+  hotan:    { acc: 0.9, mat: 0.96, pot: 1.12, weapon: 1.05, shield: 1.06 },
+  samarkand: { pet: 0.88, armor: 1.08, acc: 1.05, pot: 1.06 },
+  asiaminor: { mat: 1.08, weapon: 0.94, scroll: 0.95 },
+  constantinople: { shield: 0.92, armor: 0.95, acc: 1.08, pot: 0.95 },
+  alexandria: { acc: 0.9, mat: 1.12, weapon: 1.06, pot: 1.1 },
+  shambhala: { pot: 1.15, scroll: 1.1, mat: 0.95 }
 };
 const LEDGER_NAMES = {
   inc: { mob: 'Canavar ganimeti', sell: 'NPC satışları', market: 'Emanet Pazarı satışları', quest: 'Görev ödülleri', trade: 'Ticaret ve meslek', other: 'Diğer' },
@@ -24,7 +29,7 @@ const LEDGER_NAMES = {
 const SELLER_NAMES = ['KılıçUstası', 'AyKızı', 'Ejderhan', 'YeşimTüccar', 'KumFırtınası', 'GeceKartalı', 'SessizOk', 'AltınKervan', 'BuzKalbi', 'KızılYelpaze', 'DemirYumruk', 'İpekYolcusu', 'HotanBeyi', 'ÇölAslanı', 'MorBulut', 'KaraTilki', 'Bilgeİhtiyar', 'GökMızrak'];
 
 const _eh = s => { const x = Math.sin(s * 12.9898 + 78.233) * 43758.5453; return x - Math.floor(x); };
-const _zoneSeed = z => ({ jangan: 11, donwhang: 23, hotan: 37 })[z] || 5;
+const _zoneSeed = z => ({ jangan: 11, donwhang: 23, hotan: 37, samarkand: 41, asiaminor: 53, constantinople: 61, alexandria: 71, shambhala: 83 })[z] || 5;
 const _catSeed = c => Object.keys(ECO_CATS).indexOf(c) + 1;
 
 function ecoCat(base) {

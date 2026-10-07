@@ -1,6 +1,8 @@
 // Pencereler: Envanter (I), Karakter (C), Yetenekler (K), Simya, NPC (dükkân / sat / tamir / depo / görev),
 // Görev günlüğü (L), Dünya haritası (M). Hepsi dokunmatik için büyük hedeflerle tasarlandı.
 
+// Piyasa tablosunda gösterilen diğer şehirler: yol zincirinde en yakın 3 şehir
+const ecoTowns = () => { const i = ZONE_ORDER.indexOf(ZONE.id) < 0 ? 0 : ZONE_ORDER.indexOf(ZONE.id); return ZONE_ORDER.filter(z => z !== ZONE.id).sort((a, b) => Math.abs(ZONE_ORDER.indexOf(a) - i) - Math.abs(ZONE_ORDER.indexOf(b) - i)).slice(0, 3); };
 // Şehir dükkânlarının satış listesi (derece aralığı bölgeye göre)
 const SHOP_DEGREES = ZONE.shop;
 function shopStock(kind) {
@@ -764,9 +766,14 @@ class UI {
   }
 
   _teleHTML() {
-    const lv = { jangan: 'Sv. 1–20', donwhang: 'Sv. 20–40', hotan: 'Sv. 40–80' };
-    return '<div class="hint">Kervan yollarını aşmak uzun sürer. Ücreti öde, anında diğer şehre geç. (Yolun ucundaki kapılardan yürüyerek de gidebilirsin.)</div>' +
-      ZONE.tele.map(t => { const z = ZONES[t.zone]; return this._row(icon('rev', 'lightning'), z.town, 'Önerilen ' + lv[t.zone], '<b class="pr">' + t.cost.toLocaleString('tr-TR') + ' <i class="coin"></i></b><button data-act="travel" data-z="' + t.zone + '" data-c="' + t.cost + '">Işınlan</button>'); }).join('');
+    const L = this.p.stats.level;
+    return '<div class="hint">' + (IS_DUNGEON ? 'Zindandan çıkabilir ya da başka kata geçebilirsin.' : 'Kervan yollarını aşmak uzun sürer. Ücreti öde, anında diğer şehre geç. Gemi seferleri İskenderiye\'ye gider. Zindanlara giriş ücretsizdir ama seviye ister.') + '</div>' +
+      ZONE.tele.map(t => {
+        const z = ZONES[t.zone], lock = t.min && L < t.min;
+        const kind = t.dungeon ? 'Zindan' : t.ship ? 'Gemi seferi' : z.kind === 'dungeon' ? 'Zindan' : 'Şehir';
+        return this._row(icon(t.dungeon || z.kind === 'dungeon' ? 'menu_map' : t.ship ? 'stexp' : 'rev', t.dungeon ? 'bad' : t.ship ? 'cold' : 'lightning'), z.town, kind + ' · ' + (z.lv || '') + (t.min ? ' · en az Sv. ' + t.min : ''),
+          (t.cost ? '<b class="pr">' + t.cost.toLocaleString('tr-TR') + ' <i class="coin"></i></b>' : '') + '<button data-act="travel" data-z="' + t.zone + '" data-c="' + t.cost + '" data-min="' + (t.min || 0) + '"' + (lock ? ' class="dis"' : '') + '>' + (t.dungeon ? 'Gir' : t.ship ? 'Bin' : 'Işınlan') + '</button>');
+      }).join('');
   }
   _jobHTML() {
     const J = this.jobs, s = this.p.stats;
@@ -863,13 +870,13 @@ class UI {
     }
     if (t === 'prices') {
       const deal = E.dealCat();
-      let h = '<div class="hint">Talep endeksi her saat değişir. Yüksekken sat, düşükken al. Şehirler arası farklarla ticaret yapabilirsin.</div><table class="ptable"><tr><th></th><th>Kategori</th><th>' + ZONE.name + '</th><th>12 saat</th>' + Object.keys(ZONES).filter(z => z !== ZONE.id).map(z => '<th>' + ZONES[z].name + '</th>').join('') + '<th>NPC alım</th></tr>';
+      let h = '<div class="hint">Talep endeksi her saat değişir. Yüksekken sat, düşükken al. Şehirler arası farklarla ticaret yapabilirsin.</div><table class="ptable"><tr><th></th><th>Kategori</th><th>' + ZONE.name + '</th><th>12 saat</th>' + ecoTowns().map(z => '<th>' + ZONES[z].name + '</th>').join('') + '<th>NPC alım</th></tr>';
       for (const c of Object.keys(ECO_CATS)) {
         const ix = E.index(c), tr = E.trend(c);
         h += '<tr><td>' + icon(ECO_CAT_ICON[c], 'gold') + '</td><td>' + ECO_CATS[c] + (c === deal ? ' <em class="deal">−%20</em>' : '') + '</td><td class="' + (ix >= 1 ? 'up' : 'dn') + '">%' + Math.round(ix * 100) + (tr > 0 ? ' ▲' : tr < 0 ? ' ▼' : '') + '</td><td>' + ecoSpark(E.history(c)) + '</td>' +
-          Object.keys(ZONES).filter(z => z !== ZONE.id).map(z => { const o = E.index(c, z); return '<td class="' + (o >= 1 ? 'up' : 'dn') + '">%' + Math.round(o * 100) + '</td>'; }).join('') + '<td>%' + Math.round(E.satMult(c) * 100) + '</td></tr>';
+          ecoTowns().map(z => { const o = E.index(c, z); return '<td class="' + (o >= 1 ? 'up' : 'dn') + '">%' + Math.round(o * 100) + '</td>'; }).join('') + '<td>%' + Math.round(E.satMult(c) * 100) + '</td></tr>';
       }
-      return h + '</table><div class="eco-tax">' + ZONE.town + ' vergisi %' + Math.round(E.tax() * 100) + ' · ' + Object.keys(ZONES).filter(z => z !== ZONE.id).map(z => ZONES[z].name + ' %' + Math.round(TOWN_TAX[z] * 100)).join(' · ') + '</div>';
+      return h + '</table><div class="eco-tax">' + ZONE.town + ' vergisi %' + Math.round(E.tax() * 100) + ' · ' + ecoTowns().map(z => ZONES[z].name + ' %' + Math.round(TOWN_TAX[z] * 100)).join(' · ') + '</div>';
     }
     if (t === 'ledger') {
       const L = E.s.led, rows = (o, names, cls) => Object.keys(names).filter(k => o[k]).map(k => '<tr><td>' + names[k] + '</td><td class="' + cls + '">' + Math.round(o[k]).toLocaleString('tr-TR') + '</td></tr>').join('');
@@ -950,6 +957,7 @@ class UI {
       if (r.msg) this._say(r.msg, r.ok ? '#a8f0a0' : '#ff8a7a');
     } else if (act === 'travel') {
       const c = +btn.dataset.c;
+      if (+btn.dataset.min > s.level) { SFX.play('error'); return this._say('Bu yer için en az ' + btn.dataset.min + '. seviye gerekli.', '#ff8a7a'); }
       if (s.gold < c) { SFX.play('error'); return this._say('Yeterli altının yok.', '#ff8a7a'); }
       if (this.p.dead) return;
       s.gold -= c; Eco.exp('travel', c); SFX.play('cast');
