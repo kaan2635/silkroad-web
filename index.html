@@ -146,14 +146,23 @@
       <p class="sub">İpek Yolu'nda yolculuğun başlıyor</p>
       <input id="name-input" maxlength="16" placeholder="Karakter adın" autocomplete="off" spellcheck="false">
       <div id="create">
+        <div class="cl">Irk</div>
+        <div class="chips" id="pick-r">
+          <button data-r="ch" class="on">Çin <small>(Jangan)</small></button><button data-r="eu">Avrupa <small>(Konstantinopolis)</small></button>
+        </div>
+        <p class="race-note" id="race-note"></p>
         <div class="cl">Başlangıç silahı</div>
         <div class="chips" id="pick-w">
-          <button data-w="blade" class="on">Bıçak + Kalkan</button><button data-w="sword">Kılıç + Kalkan</button>
-          <button data-w="spear">Mızrak</button><button data-w="glaive">Pala</button><button data-w="bow">Yay</button>
+          <button data-w="blade" data-race="ch" class="on">Bıçak + Kalkan</button><button data-w="sword" data-race="ch">Kılıç + Kalkan</button>
+          <button data-w="spear" data-race="ch">Mızrak</button><button data-w="glaive" data-race="ch">Pala</button><button data-w="bow" data-race="ch">Yay</button>
+          <button data-w="esword" data-race="eu">Kılıç + Kalkan</button><button data-w="tsword" data-race="eu">Çift El Kılıcı</button><button data-w="axe" data-race="eu">Çift Balta</button>
+          <button data-w="xbow" data-race="eu">Arbalet</button><button data-w="dagger" data-race="eu">Hançer</button><button data-w="staff" data-race="eu">Asa</button>
+          <button data-w="dstaff" data-race="eu">Kara Asa</button><button data-w="rod" data-race="eu">Rahip Asası</button><button data-w="harp" data-race="eu">Arp</button>
         </div>
         <div class="cl">Zırh türü</div>
         <div class="chips" id="pick-a">
-          <button data-a="garment">Kumaş <small>(büyücü)</small></button><button data-a="protector" class="on">Hafif</button><button data-a="armor">Ağır <small>(savaşçı)</small></button>
+          <button data-a="garment" data-race="ch">Kumaş <small>(büyücü)</small></button><button data-a="protector" data-race="ch" class="on">Hafif</button><button data-a="armor" data-race="ch">Ağır <small>(savaşçı)</small></button>
+          <button data-a="robe" data-race="eu">Cüppe <small>(büyücü)</small></button><button data-a="light" data-race="eu">Deri</button><button data-a="heavy" data-race="eu">Plaka <small>(savaşçı)</small></button>
         </div>
       </div>
       <p id="continue-note"></p>
@@ -161,7 +170,7 @@
       <p id="loadtxt">Varlıklar yükleniyor…</p>
       <button id="start-btn" disabled>Oyuna Başla</button>
       <p class="hint-touch">Telefonu yatay tut</p>
-      <p class="ver">Faz 5 · Ustalık, simya, 3 bölge, Unique, meslekler</p>
+      <p class="ver">Faz 6 · iSRO: iki ırk, Sv. 140, 8 bölge, 7 zindan</p>
     </div>
   </div>
 

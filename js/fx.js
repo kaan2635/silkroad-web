@@ -63,7 +63,8 @@ const vfxShockTex = () => _vfxCanvas('shock', 128, (x, S) => {
 // Element paletleri: [ana, sıcak çekirdek, ikincil]
 const VFX_PAL = {
   fire: [0xff6a1a, 0xffd27a, 0xff2a0a], cold: [0x7fd8ff, 0xffffff, 0x3a8aff], lightning: [0xb8a4ff, 0xffffff, 0x6a5aff],
-  force: [0xffe680, 0xffffff, 0xffb84a], phys: [0xffe2a0, 0xffffff, 0xff9a3a], heal: [0x7aff8a, 0xeaffd0, 0x2ad86a], blood: [0xc8201a, 0xff6a4a, 0x6a0a06]
+  force: [0xffe680, 0xffffff, 0xffb84a], phys: [0xffe2a0, 0xffffff, 0xff9a3a], heal: [0x7aff8a, 0xeaffd0, 0x2ad86a], blood: [0xc8201a, 0xff6a4a, 0x6a0a06],
+  dark: [0x9a4aff, 0xe0c0ff, 0x4a0a8a], sound: [0x6affd8, 0xffffff, 0x2ab890]
 };
 
 class VFX {
@@ -164,7 +165,7 @@ class VFX {
   // ---------- Mermi ----------
   projectile(from, target, kind, onHit) {
     const geo = kind === 'arrow' ? this.geo.arrow : kind === 'ice' ? this.geo.shard : this.geo.ball;
-    const pal = kind === 'ice' ? VFX_PAL.cold : kind === 'bolt' ? VFX_PAL.lightning : kind === 'arrow' ? VFX_PAL.phys : VFX_PAL.fire;
+    const pal = kind === 'ice' ? VFX_PAL.cold : kind === 'bolt' ? VFX_PAL.lightning : kind === 'arrow' ? VFX_PAL.phys : VFX_PAL[kind] || VFX_PAL.fire;
     const mesh = new THREE.Mesh(geo, kind === 'arrow' ? new THREE.MeshBasicMaterial({ color: 0xe8d8b0 }) : this._mat(pal[1], 0.95));
     mesh.position.set(from.x, from.y, from.z);
     if (kind !== 'arrow') {   // dış parıltı

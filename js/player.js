@@ -49,7 +49,8 @@ function buildHumanoid(o) {
       const br = add(g, new THREE.Mesh(new THREE.BoxGeometry(0.09, 0.022, 0.02), dark), s * 0.095, 2.1, 0.248); br.rotation.z = s * -0.15;
     }
     add(g, new THREE.Mesh(new THREE.BoxGeometry(0.045, 0.075, 0.045), new THREE.MeshLambertMaterial({ color: 0xd09a70 })), 0, 1.97, 0.27);
-    const hair = add(g, new THREE.Mesh(new THREE.SphereGeometry(0.285, 12, 8, 0, 6.283, 0, 1.75), dark), 0, 2.03, -0.035); hair.rotation.x = -0.35;
+    var hairMat = new THREE.MeshLambertMaterial({ color: o.hair || 0x1a1410 });
+    const hair = add(g, new THREE.Mesh(new THREE.SphereGeometry(0.285, 12, 8, 0, 6.283, 0, 1.75), hairMat), 0, 2.03, -0.035); hair.rotation.x = -0.35;
   }
   let hat = null;
   if (o.hat === 'straw') hat = add(g, new THREE.Mesh(new THREE.ConeGeometry(0.75, 0.42, 14), new THREE.MeshLambertMaterial({ color: 0xd8b66a })), 0, 2.4, 0);
@@ -67,10 +68,15 @@ function buildHumanoid(o) {
 
   const hand = new THREE.Group(); hand.position.set(0, -0.78, 0); armR.add(hand);
   const handL = new THREE.Group(); handL.position.set(0, -0.72, 0.05); armL.add(handL);
-  const h = { group: g, legL, legR, armL, armR, hand, handL, robe, robeDark, body, hat, weapon: null, shield: null };
+  const h = { group: g, legL, legR, armL, armR, hand, handL, robe, robeDark, skin, hairMat, body, hat, weapon: null, shield: null, off: null };
   h.setWeapon = (type, o) => {
     if (h.weapon) { hand.remove(h.weapon); h.weapon = null; }
-    if (type) { h.weapon = weaponMesh(type, o); hand.add(h.weapon); if (type === 'bow') { h.weapon.rotation.x = -Math.PI / 2; h.weapon.position.z = 0.1; } }
+    if (type) { h.weapon = weaponMesh(type, o); hand.add(h.weapon); if (type === 'bow' || type === 'staff' || type === 'dstaff') { h.weapon.rotation.x = -Math.PI / 2; h.weapon.position.z = 0.1; } }
+  };
+  // sol el silahı (Avrupa çift balta)
+  h.setOff = (type, o) => {
+    if (h.off) { handL.remove(h.off); h.off = null; }
+    if (type) { h.off = weaponMesh(type, o); handL.add(h.off); }
   };
   h.setShield = (on, o) => {
     if (h.shield) { handL.remove(h.shield); h.shield = null; }
@@ -113,6 +119,7 @@ class Player {
     this.stats = { level: 1, hp: 150, maxHp: 150, mp: 120, maxMp: 120, exp: 0, maxExp: 120, gold: 0,
       str: 20, int: 20, statPts: 0, zerk: 0, STR: 20, INT: 20, silk: 0 };
     this.d = {};                       // türetilmiş değerler
+    this.race = 'ch';
     this.inv = new Inventory(this);
     this.book = new SkillBook(this);
 
@@ -143,6 +150,15 @@ class Player {
 
   get pos() { return this.group.position; }
 
+  // Irk: 'ch' Çin / 'eu' Avrupa — görünüm, eşya ve ustalıklar buna göre
+  setRace(r) {
+    this.race = r === 'eu' ? 'eu' : 'ch'; RACE = this.race; this.book.race = this.race;
+    this.h.noHat = this.race === 'eu';
+    if (this.h.hat) this.h.hat.visible = !this.h.noHat;
+    this.h.hairMat.color.setHex(this.race === 'eu' ? 0x7a4a22 : 0x1a1410);
+    this.h.skin.color.setHex(this.race === 'eu' ? 0xf0c8a8 : 0xe8b98a);
+  }
+
   setName(name) {
     this.name = name;
     if (this.label) { this.group.remove(this.label); this.label.material.map.dispose(); this.label.material.dispose(); }
@@ -157,6 +173,8 @@ class Player {
     const opt = it => (it ? { d: ITEM_BASES[it.base].d, tier: ITEM_BASES[it.base].tier || 0, plus: it.plus || 0, rarity: it.rarity || 0 } : null);
     this.h.setWeapon(this.inv.weaponType(), opt(eq.weapon));
     this.h.setShield(!!eq.shield, opt(eq.shield));
+    const wt = this.inv.weaponType();
+    this.h.setOff(wt && WEAPON_TYPES[wt].dual ? wt : null, opt(eq.weapon));
     dressHumanoid(this.h, eq);
     this.recalc();
   }
@@ -232,9 +250,9 @@ class Player {
     const W = wt ? WEAPON_TYPES[wt] : null;
     d.range = W ? W.range + (W.ranged ? (bf.range || 0) : 0) : 2.4;
     d.atkInt = W ? W.spd : 1;
-    d.ranged = !!(W && W.ranged);
+    d.ranged = !!(W && W.ranged); d.ammo = !!(W && W.ammo); d.magic = W ? W.magic || null : null;
     d.dmgTaken = bf.dmgTaken || 1;
-    d.regen = bf.regen || 0;
+    d.regen = bf.regen || 0; d.mregen = bf.mregen || 0;
     d.weapM = weapM; d.wtype = wt;
   }
 
@@ -402,6 +420,7 @@ class Player {
   _regen(dt) {
     const s = this.stats;
     if (this.d.regen) s.hp = Math.min(s.maxHp, s.hp + s.maxHp * this.d.regen / 100 * dt);
+    if (this.d.mregen) s.mp = Math.min(s.maxMp, s.mp + s.maxMp * this.d.mregen / 100 * dt);
     if (this.combatT > 0) return;               // savaşırken doğal yenilenme yok
     s.hp = Math.min(s.maxHp, s.hp + s.maxHp * 0.012 * dt);
     s.mp = Math.min(s.maxMp, s.mp + s.maxMp * 0.02 * dt);

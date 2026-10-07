@@ -87,10 +87,12 @@ class Inventory {
     if (!it || !isGear(it.base)) return { ok: false, msg: '' };
     const n = itemInfo(it);
     if (this.p.stats.level < n.req) return { ok: false, msg: 'Bu eşya için ' + n.req + '. seviye gerekli.' };
+    const rc = itemRace(ITEM_BASES[it.base]);
+    if (rc && rc !== (this.p.race || 'ch')) return { ok: false, msg: 'Bu eşya ' + RACE_NAMES[rc] + ' ırkına özel.' };
     const slot = this._slotFor(it);
     if (slot === 'shield') {
       const w = this.weapon();
-      if (w && !WEAPON_TYPES[w.wtype].oneHand) return { ok: false, msg: 'Kalkan sadece kılıç veya bıçakla kullanılır.' };
+      if (w && !WEAPON_TYPES[w.wtype].oneHand) return { ok: false, msg: 'Kalkan sadece tek elli silahla kullanılır.' };
     }
     const old = this.equip[slot];
     this.equip[slot] = it;
@@ -213,18 +215,19 @@ class Inventory {
   }
 
   // Yeni karakter başlangıç ekipmanı (silah seçimine göre)
-  starter(wtype = 'blade') {
+  starter(wtype = 'blade', at) {
     this.slots.fill(null); this.storage.fill(null);
     for (const k in this.equip) this.equip[k] = null;
     this.equip.weapon = makeItem(wtype + '_1');
     if (WEAPON_TYPES[wtype].oneHand) this.equip.shield = makeItem('shield_1');
-    this.equip.chest = makeItem('chest_protector_1');
-    this.equip.feet = makeItem('feet_protector_1');
+    at = at || (WEAPON_TYPES[wtype].race === 'eu' ? 'light' : 'protector');
+    this.equip.chest = makeItem('chest_' + at + '_1');
+    this.equip.feet = makeItem('feet_' + at + '_1');
     this.add(makeStack('hp1', 30), this.slots, true);
     this.add(makeStack('mp1', 30), this.slots, true);
     this.add(makeStack('ret', 3), this.slots, true);
     this.add(makeStack('pill', 5), this.slots, true);
-    if (wtype === 'bow') this.add(makeStack('arrow', 1000), this.slots, true);
+    if (WEAPON_TYPES[wtype].ammo) this.add(makeStack('arrow', 1000), this.slots, true);
     this.p.stats.gold = 200;
     this.recalc();
     this.changed();

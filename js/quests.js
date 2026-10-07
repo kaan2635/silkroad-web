@@ -263,8 +263,8 @@ class QuestManager {
   _gearBase(base) {
     const m = /^(WEAPON|CHEST)_(\d+)$/.exec(base);
     if (!m) return base;
-    if (m[1] === 'WEAPON') return (this.p.inv.weaponType() || 'blade') + '_' + m[2];
-    const ch = this.p.inv.equip.chest; return 'chest_' + (ch ? ITEM_BASES[ch.base].atype : 'protector') + '_' + m[2];
+    if (m[1] === 'WEAPON') return (this.p.inv.weaponType() || raceWeapons()[0]) + '_' + m[2];
+    const ch = this.p.inv.equip.chest; return 'chest_' + (ch ? ITEM_BASES[ch.base].atype : RACE === 'eu' ? 'light' : 'protector') + '_' + m[2];
   }
 
   // Ödül metni

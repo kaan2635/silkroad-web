@@ -11,10 +11,10 @@ function shopStock(kind) {
     POT_GRADES.forEach((g, i) => { out.push('hp' + (i + 1)); out.push('mp' + (i + 1)); });
     out.push('pill', 'ret', 'rev', 'spd');
   } else if (kind === 'weapon') {
-    for (const d of SHOP_DEGREES) for (const T of TIERS) { for (const t in WEAPON_TYPES) out.push(t + '_' + d + T.suf); out.push('shield_' + d + T.suf); }
+    for (const d of SHOP_DEGREES) for (const T of TIERS) { for (const t of raceWeapons()) out.push(t + '_' + d + T.suf); out.push('shield_' + d + T.suf); }
     out.push('arrow');
   } else if (kind === 'armor') {
-    for (const d of SHOP_DEGREES) for (const T of TIERS) for (const at in ARMOR_TYPES) for (const p of ARMOR_PARTS) out.push(p + '_' + at + '_' + d + T.suf);
+    for (const d of SHOP_DEGREES) for (const T of TIERS) for (const at of raceArmors()) for (const p of ARMOR_PARTS) out.push(p + '_' + at + '_' + d + T.suf);
   } else if (kind === 'stable') {
     out.push('horse', 'camel', 'pet_grab', 'pet_atk', 'pet_pot');
   } else if (kind === 'acc') {
@@ -482,14 +482,17 @@ class UI {
   _skSay(r) { this.skMsg = r.msg ? { text: r.msg, ok: r.ok } : null; this.refreshSk(); }
   // Silkroad tarzı: solda ustalık listesi, sağda ustalık seviyesine göre kademelenen yetenek ağacı, altta ayrıntı
   refreshSk() {
+    if (MASTERIES[this.skTab].race !== RACE) this.skTab = raceMasteries()[0];
     const p = this.p, book = p.book, L = p.stats.level, k = this.skTab, M = MASTERIES[k], m = book.mastery[k];
+    const cls = book.race === 'eu' ? book.classes() : null;
     const list = SKILL_DEFS.filter(x => x.m === k);
     if (!this.skSel || SKILLS_BY_ID[this.skSel].m !== k) this.skSel = list[0].id;
     const can = book.canRaise(k);
-    let h = '<div class="sk-head"><span class="sp">' + book.sp.toLocaleString('tr-TR') + ' SP</span><span class="lim">Toplam ustalık ' + book.total() + ' / ' + book.limit() + ' · her ustalık en çok karakter seviyesi (' + L + ')</span>' +
+    let h = '<div class="sk-head"><span class="sp">' + book.sp.toLocaleString('tr-TR') + ' SP</span><span class="lim">Toplam ustalık ' + book.total() + ' / ' + book.limit() + ' · her ustalık en çok karakter seviyesi (' + L + ')' +
+      (cls ? ' · Sınıf: ' + (cls.length ? cls.map((c, i) => MASTERIES[c].name + (i ? ' (yan)' : ' (ana)')).join(' / ') : 'seçilmedi (en çok 2)') : '') + '</span>' +
       '<span class="sk-tools"><button data-act="pinatk" class="small" title="Normal saldırıyı hotbara koy">' + icon('atk') + '</button><button data-act="pinzerk" class="small" title="Berserk düğmesini hotbara koy">' + icon('zerk', 'fire') + '</button><button data-act="clear" class="small warn">Yuvayı boşalt</button></span></div>' +
       '<div class="sk-msg" style="color:' + (this.skMsg && this.skMsg.ok ? '#a8f0a0' : '#ff8a7a') + '">' + (this.skMsg ? this.skMsg.text : '') + '</div><div class="sk-main"><div class="ml-list">' +
-      Object.keys(MASTERIES).map(id => '<div class="ml-it' + (id === k ? ' on' : '') + '" data-mtab="' + id + '" data-tip="ms:' + id + '">' + masteryIcon(id) +
+      raceMasteries().map(id => '<div class="ml-it' + (id === k ? ' on' : '') + (cls && cls.length >= 2 && !cls.includes(id) ? ' off' : '') + '" data-mtab="' + id + '" data-tip="ms:' + id + '">' + masteryIcon(id) +
         '<div class="t"><b>' + MASTERIES[id].name + '</b><small>' + MASTERIES[id].full.replace(' Ustalığı', '') + '</small></div><span class="lv">' + book.mastery[id] + '</span></div>').join('') + '</div>';
     h += '<div class="tree"><div class="tree-head">' + masteryIcon(k).replace('class="ico"', 'class="ico" style="width:44px;height:44px;flex:0 0 44px;border-radius:4px"') +
       '<div class="t"><b>' + M.full + '</b><small>' + M.desc + (M.weapons ? ' Silah: ' + M.weapons.map(w => WEAPON_TYPES[w].name).join(', ') : '') + '</small></div>' +
@@ -714,11 +717,13 @@ class UI {
     const lvl = this.p.stats.level;
     const degF = SHOP_DEGREES.map(d => '<button data-f="d:' + d + '" class="' + (this.filter.d === d ? 'on' : '') + '">' + d + '. derece</button>').join('');
     if (kind === 'armor') {
-      filt = '<div class="filt">' + Object.keys(ARMOR_TYPES).map(a => '<button data-f="at:' + a + '" class="' + (this.filter.at === a ? 'on' : '') + '">' + ARMOR_TYPES[a].name + '</button>').join('') + degF + '</div>';
+      if (ARMOR_TYPES[this.filter.at].race !== RACE) this.filter.at = RACE === 'eu' ? 'light' : 'protector';
+      filt = '<div class="filt">' + raceArmors().map(a => '<button data-f="at:' + a + '" class="' + (this.filter.at === a ? 'on' : '') + '">' + ARMOR_TYPES[a].name + '</button>').join('') + degF + '</div>';
       list = list.filter(b => ITEM_BASES[b].atype === this.filter.at && ITEM_BASES[b].d === this.filter.d);
     } else if (kind === 'weapon') {
-      const wt = this.filter.wt || this.inv.weaponType() || 'blade';
-      filt = '<div class="filt">' + [...Object.keys(WEAPON_TYPES), 'shield'].map(t => '<button data-f="wt:' + t + '" class="' + (wt === t ? 'on' : '') + '">' + (t === 'shield' ? 'Kalkan' : WEAPON_TYPES[t].name) + '</button>').join('') + degF + '</div>';
+      let wt = this.filter.wt || this.inv.weaponType() || raceWeapons()[0];
+      if (wt !== 'shield' && WEAPON_TYPES[wt].race !== RACE) wt = raceWeapons()[0];
+      filt = '<div class="filt">' + [...raceWeapons(), 'shield'].map(t => '<button data-f="wt:' + t + '" class="' + (wt === t ? 'on' : '') + '">' + (t === 'shield' ? 'Kalkan' : WEAPON_TYPES[t].name) + '</button>').join('') + degF + '</div>';
       list = list.filter(b => b === 'arrow' || ((ITEM_BASES[b].wtype || 'shield') === wt && ITEM_BASES[b].d === this.filter.d));
     } else if (kind === 'acc') {
       filt = '<div class="filt">' + degF + '</div>';

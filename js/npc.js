@@ -225,7 +225,7 @@ class Townsfolk {
     for (const x of [-24, -16, 16, 24]) this.points.push([x, -1.5], [x, 1.5]);
     for (let i = 0; i < n; i++) {
       const [c1, c2] = FOLK_COLORS[i % FOLK_COLORS.length];
-      const look = { robe: c1, dark: c2, sash: FOLK_COLORS[(i + 3) % 8][0], hat: hats[i % hats.length], hair: rng() < 0.2 ? 0x8a8a8a : 0x1a1a1a, beard: rng() < 0.3 ? 0x2a2a2a : 0, skin: [0xe8b98a, 0xd8a070, 0xc89060][i % 3], basket: i % 4 === 1, sack: i % 4 === 3 };
+      const look = { robe: c1, dark: c2, sash: FOLK_COLORS[(i + 3) % 8][0], hat: hats[i % hats.length], hair: rng() < 0.2 ? 0x8a8a8a : ZONE.europe ? [0x6a4020, 0xc8a050, 0x3a2412, 0x8a3a1a][i % 4] : 0x1a1a1a, beard: rng() < 0.3 ? (ZONE.europe ? 0x5a3a1a : 0x2a2a2a) : 0, skin: ZONE.europe ? [0xf0c8a8, 0xe8b898, 0xd8a888][i % 3] : [0xe8b98a, 0xd8a070, 0xc89060][i % 3], basket: i % 4 === 1, sack: i % 4 === 3 };
       if (!look.beard) delete look.beard;
       const m = buildRobed(look);
       const p = this.points[Math.floor(rng() * this.points.length)];

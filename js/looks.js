@@ -99,13 +99,70 @@ function weaponMesh(type, o = {}) {
     str.rotation.x = Math.PI / 2; str.position.set(0.06, 0, 0); g.add(str);
     if (d >= 6) for (const sz of [-1, 1]) add(_wg('bowtip', () => new THREE.ConeGeometry(0.03, 0.12, 6)), gold, 0.06, 0, sz * k, sz > 0 ? Math.PI / 2 : -Math.PI / 2, 0, 0);
   }
-  if (d >= 6 && type !== 'bow' && type !== 'spear' && type !== 'glaive') add(_wg('wgem', () => new THREE.OctahedronGeometry(0.035)), gem, 0, 0.03, 0.08);
+  else if (type === 'esword' || type === 'tsword') {   // Avrupa düz kılıcı: haç biçimli siper
+    const big = type === 'tsword', w = (big ? 0.085 : 0.058) + d * 0.002, len = (big ? 1.45 : 1.05) * L;
+    add(_bladeGeo(type + d + tier, [[-w, 0], [-w * 0.9, len * 0.82], [0, len], [w * 0.9, len * 0.82], [w, 0]], big ? 0.03 : 0.024, 0.012), steel, 0, 0, 0.1);
+    add(_wg('fuller' + type + d, () => new THREE.BoxGeometry(0.008, 0.022, len * 0.7)), _metal(0x8a8f98, null, 40), 0, 0, 0.1 + len * 0.38);
+    add(_wg('xguard' + big, () => new THREE.BoxGeometry(big ? 0.46 : 0.34, 0.05, 0.05)), gold, 0, 0, 0.07);
+    const gl = big ? 0.44 : 0.26;
+    add(_wg('egrip' + big, () => { const c = new THREE.CylinderGeometry(0.03, 0.034, gl, 8); c.rotateX(Math.PI / 2); return c; }), wrap, 0, 0, 0.05 - gl / 2);
+    add(pommel, gold, 0, 0, 0.02 - gl);
+  } else if (type === 'axe') {         // tek elli savaş baltası
+    const hl = 0.75 * L;
+    add(_wg('axeh' + Math.round(hl * 10), () => { const c = new THREE.CylinderGeometry(0.03, 0.034, hl, 8); c.rotateX(Math.PI / 2); return c; }), wood, 0, 0, hl / 2 - 0.15);
+    const bw = 0.26 + d * 0.01, pts = [[0, -0.08], [0.05, -0.1]];
+    for (let i = 0; i <= 6; i++) { const t = i / 6; pts.push([0.08 + bw * Math.sin(t * Math.PI * 0.5) * 0.9, -0.16 + t * 0.4 - 0.05 * Math.sin(t * Math.PI)]); }
+    pts.push([0.05, 0.14], [0, 0.12]);
+    add(_bladeGeo('axb' + d, pts.map(p => [p[1], p[0]]), 0.03, 0.01), steel, 0.0, 0, hl - 0.3, 0, Math.PI / 2, 0);
+    if (d >= 4) add(_wg('axspk', () => new THREE.ConeGeometry(0.03, 0.14, 6)), steel, 0, 0, hl - 0.08, Math.PI / 2, 0, 0);
+    add(pommel, gold, 0, 0, -0.17);
+  } else if (type === 'dagger') {
+    const w = 0.05 + d * 0.0015, len = 0.5 * L;
+    add(_bladeGeo('dg' + d, [[-w, 0], [-w * 0.6, len * 0.75], [0, len], [w * 0.4, len * 0.8], [w, 0]], 0.022, 0.01), steel, 0, 0, 0.08);
+    add(_wg('dgguard', () => new THREE.BoxGeometry(0.2, 0.04, 0.04)), gold, 0, 0, 0.06);
+    add(grip, wrap, 0, 0, -0.07); add(pommel, gold, 0, 0, -0.2);
+  } else if (type === 'xbow') {        // arbalet: kundak +z boyunca, yaylar x ekseninde
+    add(_wg('xstock', () => new THREE.BoxGeometry(0.07, 0.08, 0.8)), wood, 0, 0, 0.2);
+    add(_wg('xgrip', () => new THREE.BoxGeometry(0.06, 0.16, 0.08)), wood, 0, -0.1, -0.05);
+    const k = 0.42 + d * 0.01, pts = [];
+    for (let i = 0; i <= 10; i++) { const t = i / 10 * 2 - 1; pts.push(new THREE.Vector3(t * k, 0, -0.1 * (1 - t * t))); }
+    add(_wg('xlimb' + d, () => new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts), 16, 0.022, 6, false)), d >= 4 ? _metal(new THREE.Color(metal).multiplyScalar(0.7), em, 40) : steel, 0, 0, 0.58);
+    const str = new THREE.Mesh(new THREE.CylinderGeometry(0.004, 0.004, 2 * k, 4), new THREE.MeshBasicMaterial({ color: 0xeeeeee }));
+    str.rotation.z = Math.PI / 2; str.position.set(0, 0.0, 0.4); g.add(str);
+    add(_wg('xbolt', () => new THREE.BoxGeometry(0.015, 0.015, 0.4)), steel, 0, 0.05, 0.45);
+  } else if (type === 'staff' || type === 'dstaff' || type === 'rod') {
+    const rod = type === 'rod', sl = (rod ? 0.85 : 1.9) * L, dark = type === 'dstaff';
+    const shaftM = dark ? new THREE.MeshLambertMaterial({ color: 0x1a1020 }) : wood;
+    add(_wg('stf' + Math.round(sl * 10), () => { const c = new THREE.CylinderGeometry(0.026, 0.034, sl, 8); c.rotateX(Math.PI / 2); return c; }), shaftM, 0, 0, sl / 2 - (rod ? 0.2 : 0.6));
+    const top = sl - (rod ? 0.2 : 0.6);
+    const orbC = dark ? 0x9a3aff : rod ? 0xfff0a0 : 0x4ad8ff;
+    const orb = new THREE.MeshPhongMaterial({ color: orbC, emissive: new THREE.Color(orbC).multiplyScalar(0.6), shininess: 120, transparent: true, opacity: 0.9 });
+    if (rod) {                          // rahip asası: güneş başlıklı topuz
+      add(_wg('rodhead', () => new THREE.SphereGeometry(0.09, 10, 8)), gold, 0, 0, top + 0.06);
+      for (let i = 0; i < 6; i++) { const a = i / 6 * 6.283; add(_wg('rodray', () => new THREE.ConeGeometry(0.025, 0.12, 5)), gold, Math.sin(a) * 0.1, Math.cos(a) * 0.1, top + 0.06, 0, 0, -a); }
+      add(_wg('rodgem', () => new THREE.OctahedronGeometry(0.05)), orb, 0, 0, top + 0.18);
+    } else {
+      for (const sx of [-1, 1]) add(_bladeGeo('stclaw' + dark, dark ? [[0, 0], [0.04, 0.1], [0.14, 0.22], [0.08, 0.24], [0.02, 0.12]] : [[0, 0], [0.03, 0.12], [0.1, 0.2], [0.06, 0.24], [0, 0.1]], 0.02, 0.008), dark ? _metal(0x5a3a6a, null, 40) : gold, 0, 0, top, 0, 0, sx > 0 ? 0 : Math.PI);
+      add(_wg('storb', () => new THREE.SphereGeometry(0.09, 12, 10)), orb, 0, 0, top + 0.16);
+      if (dark) add(_wg('stskull', () => new THREE.SphereGeometry(0.07, 8, 6)), new THREE.MeshLambertMaterial({ color: 0xd8d0c0 }), 0, 0, top - 0.06);
+    }
+  } else if (type === 'harp') {        // arp: kavisli çerçeve ve teller (x-z düzleminde)
+    g.scale.setScalar(1.5);
+    const fm = d >= 4 ? gold : wood, pts = [];
+    for (let i = 0; i <= 10; i++) { const t = i / 10; pts.push(new THREE.Vector3(-0.08 + Math.sin(t * Math.PI) * 0.12, 0, t * 0.6)); }
+    add(_wg('harpneck', () => new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts), 14, 0.025, 6, false)), fm, 0, 0, 0);
+    add(_wg('harpbody', () => { const c = new THREE.CylinderGeometry(0.03, 0.045, 0.42, 8); c.rotateZ(Math.PI / 2); return c; }), fm, 0.12, 0, 0.0);
+    add(_wg('harpcol', () => { const c = new THREE.CylinderGeometry(0.022, 0.022, 0.62, 8); c.rotateX(Math.PI / 2); return c; }), fm, 0.32, 0, 0.3);
+    const sm = new THREE.MeshBasicMaterial({ color: 0xf8f0d0 });
+    for (let i = 0; i < 6; i++) { const x = -0.02 + i * 0.06, hgt = 0.56 - Math.abs(x - 0.12) * 0.6; const st = new THREE.Mesh(new THREE.CylinderGeometry(0.003, 0.003, hgt, 3), sm); st.rotation.x = Math.PI / 2; st.position.set(x, 0, hgt / 2 + 0.02); g.add(st); }
+  }
+  if (d >= 6 && (type === 'sword' || type === 'blade' || type === 'esword' || type === 'tsword' || type === 'dagger')) add(_wg('wgem', () => new THREE.OctahedronGeometry(0.035)), gem, 0, 0.03, 0.08);
   // +seviye parlaması: silahın etrafında katmanlı ışık
   if (glow) {
     const gm = new THREE.MeshBasicMaterial({ color: glow, transparent: true, opacity: 0.22, depthWrite: false, blending: THREE.AdditiveBlending });
-    const len = type === 'spear' || type === 'glaive' ? 2.6 * L : type === 'bow' ? 1.5 : 1.15 * L;
+    const len = type === 'spear' || type === 'glaive' || type === 'staff' || type === 'dstaff' ? 2.2 * L : type === 'bow' || type === 'xbow' || type === 'harp' ? 0.9 : type === 'tsword' ? 1.6 * L : 1.15 * L;
     const aura = new THREE.Mesh(new THREE.CylinderGeometry(0.06 + plus * 0.006, 0.06 + plus * 0.006, len, 8, 1, true), gm);
-    aura.rotation.x = Math.PI / 2; aura.position.z = type === 'bow' ? 0 : len / 2 + (type === 'spear' || type === 'glaive' ? 0.3 : 0);
+    aura.rotation.x = Math.PI / 2; aura.position.z = type === 'bow' ? 0 : len / 2 + (type === 'spear' || type === 'glaive' ? 0.3 : 0) - (type === 'staff' || type === 'dstaff' ? 0.6 : 0);
 
     g.add(aura); g.userData.glow = gm;
   }
@@ -148,7 +205,12 @@ function dressHumanoid(h, eq) {
   for (const m of h.outfit || []) m.parent && m.parent.remove(m);
   h.outfit = [];
   const add = (parent, mesh, x, y, z) => { mesh.position.set(x, y, z); mesh.castShadow = true; parent.add(mesh); h.outfit.push(mesh); return mesh; };
-  const B = slot => (eq[slot] ? { b: ITEM_BASES[eq[slot].base], it: eq[slot] } : null);
+  const B = slot => {
+    if (!eq[slot]) return null;
+    let b = ITEM_BASES[eq[slot].base];
+    if (b.cat === 'armor' && ARMOR_TYPES[b.atype].race === 'eu') b = { ...b, atype: ARMOR_TYPES[b.atype].vis, eu: true };   // Avrupa zırhı aynı görsel aileleri kullanır
+    return { b, it: eq[slot] };
+  };
   const ch = B('chest'), lg = B('legs'), hd = B('head'), sh = B('shoulder'), hn = B('hands'), ft = B('feet');
   const avD = B('av_dress'), avH = B('av_hat'), avA = B('av_attach');
   const sealE = x => (x && x.it.rarity ? new THREE.Color(RARITY[x.it.rarity].hex).multiplyScalar(0.18) : null);
@@ -179,20 +241,29 @@ function dressHumanoid(h, eq) {
         const a = (i / 7) * Math.PI * 2, p = add(h.group, new THREE.Mesh(new THREE.BoxGeometry(0.2, 0.34, 0.04), armorMat(at, d, ch.b.tier, null, true)), Math.sin(a) * 0.42, 0.9, Math.cos(a) * 0.42);
         p.rotation.y = a; p.rotation.x = 0.22;
       }
-      if (d >= 6) add(h.group, new THREE.Mesh(sph(0.08, 10, 8), gold), 0, 1.55, 0.4);
+      if (d >= 6 && !ch.b.eu) add(h.group, new THREE.Mesh(sph(0.08, 10, 8), gold), 0, 1.55, 0.4);
+      if (ch.b.eu) {                                                                                         // Avrupa plakası: haçlı arma örtüsü
+        const tab = new THREE.Color().setHSL(DEG_HUE[d - 1], 0.55, 0.32);
+        add(h.group, new THREE.Mesh(new THREE.BoxGeometry(0.42, 1.0, 0.03), _lm(tab)), 0, 1.15, 0.41).rotation.x = -0.05;
+        const cm = d >= 4 ? gold : _lm(0xe8e0d0);
+        add(h.group, new THREE.Mesh(new THREE.BoxGeometry(0.07, 0.36, 0.02), cm), 0, 1.45, 0.43);
+        add(h.group, new THREE.Mesh(new THREE.BoxGeometry(0.24, 0.07, 0.02), cm), 0, 1.5, 0.43);
+      }
     } else if (at === 'protector') {
       add(h.group, new THREE.Mesh(cyl(0.385, 0.35, 0.58), M), 0, 1.5, 0);
       const st = add(h.group, new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.85, 0.05), _lm(0x2a1a0e)), 0, 1.48, 0.38); st.rotation.z = 0.62;
       for (let i = 0; i < 6; i++) add(h.group, new THREE.Mesh(sph(0.025, 6, 4), _metal(d >= 4 ? 0xd8a830 : 0xb0b4bc, null, 60)), -0.2 + i * 0.08, 1.2 + i * 0.1 * 0.62 * 1.4, 0.39);
       for (let i = 0; i < 4; i++) { const a = (i / 4) * Math.PI * 2 + 0.4, f = add(h.group, new THREE.Mesh(new THREE.BoxGeometry(0.26, 0.3, 0.035), armorMat(at, d, ch.b.tier, null, true)), Math.sin(a) * 0.42, 0.92, Math.cos(a) * 0.42); f.rotation.y = a; f.rotation.x = 0.16; }
+      if (ch.b.eu) for (const sx of [-1, 1]) add(h.group, new THREE.Mesh(new THREE.BoxGeometry(0.14, 0.16, 0.1), _lm(0x3a2412)), sx * 0.28, 1.0, 0.33);   // kemer keseleri
     } else {
       add(h.group, new THREE.Mesh(cyl(0.44, 0.72, 0.92, 14, true), M), 0, 0.62, 0).material.side = THREE.DoubleSide;    // uzun cübbe
       for (const s of [-1, 1]) { const c = add(h.group, new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.5, 0.03), _lm(robe.clone().multiplyScalar(0.55))), s * 0.09, 1.62, 0.36); c.rotation.z = s * 0.5; }
       add(h.group, new THREE.Mesh(cyl(0.375, 0.375, 0.13), _lm(d >= 4 ? 0xd8a830 : 0x2a1a10)), 0, 1.04, 0);
+      if (ch.b.eu && !hd) { const hood = add(h.group, new THREE.Mesh(sph(0.34, 12, 8, 0, 1.7), M), 0, 2.02, -0.07); hood.rotation.x = -0.55; hood.material.side = THREE.DoubleSide; }   // cüppe başlığı
     }
   }
   // miğfer / avatar şapka
-  if (h.hat) h.hat.visible = !(hd || avH);
+  if (h.hat) h.hat.visible = !(hd || avH || h.noHat);
   if (avH) {
     const k = avH.b.look.kind;
     if (k === 'crown') { add(h.group, new THREE.Mesh(new THREE.CylinderGeometry(0.3, 0.26, 0.2, 8, 1, true), _lm(0xffd23a, 0x3a2a00)), 0, 2.25, 0).material.side = THREE.DoubleSide; for (let i = 0; i < 6; i++) { const a = i / 6 * 6.283; add(h.group, new THREE.Mesh(new THREE.ConeGeometry(0.05, 0.16, 4), _lm(0xffd23a)), Math.sin(a) * 0.28, 2.42, Math.cos(a) * 0.28); } }
@@ -205,7 +276,8 @@ function dressHumanoid(h, eq) {
       add(h.group, new THREE.Mesh(new THREE.TorusGeometry(0.29, 0.022, 5, 18), d >= 4 ? gold : M), 0, 2.13, -0.01).rotation.x = Math.PI / 2;
       add(h.group, new THREE.Mesh(new THREE.CylinderGeometry(0.3, 0.34, 0.26, 12, 1, true, Math.PI * 0.55, Math.PI * 0.9), M), 0, 1.97, -0.02).material.side = THREE.DoubleSide;
       add(h.group, new THREE.Mesh(new THREE.BoxGeometry(0.04, 0.14, 0.05), M), 0, 2.08, 0.29);      // burun siperi
-      const plume = add(h.group, new THREE.Mesh(new THREE.ConeGeometry(0.07, 0.36, 8), _lm(d >= 6 ? 0xd8a830 : 0xb02a1a)), 0, 2.42, -0.05); plume.rotation.x = -0.3;
+      if (hd.b.eu) add(h.group, new THREE.Mesh(new THREE.BoxGeometry(0.05, 0.12, 0.5), d >= 6 ? gold : M), 0, 2.3, -0.02);       // Avrupa miğferi: tepe sırtı
+      else { const plume = add(h.group, new THREE.Mesh(new THREE.ConeGeometry(0.07, 0.36, 8), _lm(d >= 6 ? 0xd8a830 : 0xb02a1a)), 0, 2.42, -0.05); plume.rotation.x = -0.3; }
       if (d >= 8) for (const sx of [-1, 1]) add(h.group, new THREE.Mesh(new THREE.ConeGeometry(0.05, 0.36, 6), _lm(0xe8e0d0)), sx * 0.27, 2.25, 0).rotation.z = -sx * 0.7;
     } else if (at === 'protector') {
       add(h.group, new THREE.Mesh(sph(0.3, 12, 8, 0, 1.45), M), 0, 2.03, -0.02);
@@ -267,7 +339,7 @@ function dropModel(it) {
   const sealE = it.rarity ? new THREE.Color(RARITY[it.rarity].hex).multiplyScalar(0.25) : null;
   if (b.cat === 'weapon') {
     const w = weaponMesh(b.wtype, { d: b.d, tier: b.tier, plus: it.plus || 0, rarity: it.rarity || 0 });
-    const long = b.wtype === 'spear' || b.wtype === 'glaive';
+    const long = b.wtype === 'spear' || b.wtype === 'glaive' || b.wtype === 'staff' || b.wtype === 'dstaff';
     w.rotation.set(b.wtype === 'bow' ? 0 : -Math.PI / 2, 0, 0.5);
     w.position.y = long ? -0.9 : -0.45;
     w.scale.setScalar(long ? 0.75 : 1.05);

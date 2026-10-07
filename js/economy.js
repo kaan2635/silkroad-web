@@ -195,7 +195,8 @@ const Eco = {
     const pick = a => a[Math.floor(rng() * a.length)];
     for (let i = 0; i < 9; i++) {           // ekipman
       const d = pick(degs), sf = pick(['', '', 'b', 'c']), r = rng();
-      const kind = r < 0.3 ? pick(Object.keys(WEAPON_TYPES)) + '_' + d : r < 0.38 ? 'shield_' + d : r < 0.8 ? pick(ARMOR_PARTS) + '_' + pick(Object.keys(ARMOR_TYPES)) + '_' + d : pick(['earring', 'necklace', 'ring']) + '_' + d;
+      const rc = rng() < 0.75 ? RACE : RACE === 'eu' ? 'ch' : 'eu';
+      const kind = r < 0.3 ? pick(raceWeapons(rc)) + '_' + d : r < 0.38 ? 'shield_' + d : r < 0.8 ? pick(ARMOR_PARTS) + '_' + pick(raceArmors(rc)) + '_' + d : pick(['earring', 'necklace', 'ring']) + '_' + d;
       const q = rng(), rar = q < 0.03 ? 3 : q < 0.1 ? 2 : q < 0.3 ? 1 : 0;
       const it = makeSeal(kind + sf, rar, rng); it.uid = 0;
       it.plus = rng() < 0.5 ? 0 : Math.floor(rng() * rng() * 7);

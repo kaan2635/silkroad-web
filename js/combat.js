@@ -7,6 +7,9 @@ const SP_PER_EXP = 14;           // her 1 EXP = 14 SP-EXP (400 SP-EXP = 1 SP)
 const ZERK_MAX = 5;
 const rnd = (a, b) => a + Math.random() * (b - a);
 
+// Element → mermi görünümü
+const projKind = elem => (elem === 'cold' ? 'ice' : elem === 'lightning' ? 'bolt' : elem === 'fire' || !elem ? 'fire' : elem);
+
 class Combat {
   constructor(player, mm, world, camera) {
     this.player = player; this.mm = mm; this.world = world; this.camera = camera;
@@ -78,7 +81,12 @@ class Combat {
   // ---------- Hasar ----------
   _K() { return 40 + 10 * this.player.stats.level; }
   _lvlPenalty(m) { const diff = m.level - this.player.stats.level; return diff > 0 ? Math.max(0.4, 1 - 0.04 * diff) : 1; }
-  _elemM(elem) { return this.player.book.mastery[elem] || 0; }
+  // Elementin ustalığı: Çin'de ustalığın kendisi, Avrupa'da büyünün geldiği sınıf
+  _elemM(elem, mk) {
+    const b = this.player.book.mastery;
+    if (mk && MASTERIES[mk] && MASTERIES[mk].race === 'eu') return b[mk] || 0;
+    return b[elem] || 0;
+  }
 
   hitPhys(m, mult, o = {}) {
     if (m.dead) return;
@@ -90,7 +98,7 @@ class Combat {
     let elem = null;
     if (pl.imbue) {
       const im = pl.imbue;
-      dmg += rnd(d.magMin, d.magMax) * im.val * mult * (1 + this._elemM(im.elem) * 0.012) * K / (K + m.mdef);
+      dmg += rnd(d.magMin, d.magMax) * im.val * mult * (1 + this._elemM(im.elem, im.id && SKILLS_BY_ID[im.id] ? SKILLS_BY_ID[im.id].m : null) * 0.012) * K / (K + m.mdef);
       elem = im.elem;
       if (im.status && Math.random() < im.chance) m.applyStatus(im.status, im.sdur, dmg);
     }
@@ -102,11 +110,12 @@ class Combat {
   hitMag(m, mult, elem, o = {}) {
     if (m.dead) return;
     const pl = this.player, d = pl.d, K = this._K();
-    let raw = rnd(d.magMin, d.magMax) * mult * (1 + this._elemM(elem) * 0.012);
+    let raw = rnd(d.magMin, d.magMax) * mult * (1 + this._elemM(elem, o.mk) * 0.012);
     const crit = Math.random() * 100 < d.crit * 0.5;
     if (crit) raw *= 1.8;
     let dmg = raw * K / (K + m.mdef) * this._lvlPenalty(m) * (m.dmgTakenMult || 1);
     if (o.status && Math.random() < o.chance) m.applyStatus(o.status, o.sdur, dmg);
+    if (o.drain) { const st = pl.stats, h = Math.round(dmg * o.drain); st.hp = Math.min(st.maxHp, st.hp + h); if (h > 0) this.fx(pl, '+' + h, 'heal'); }
     this.damageMonster(m, Math.max(1, Math.round(dmg)), crit, elem);
   }
   damageMonster(m, dmg, crit, elem, dot) {
@@ -364,7 +373,7 @@ class Combat {
   _checkWeapon(s) {
     const pl = this.player, wt = pl.inv.weaponType(), M = MASTERIES[s.m];
     if (!wt) return 'Yetenek kullanmak için silah kuşan.';
-    if (M.kind === 'weapon' && !M.weapons.includes(wt)) return 'Bu yetenek için ' + M.weapons.map(w => WEAPON_TYPES[w].name).join(' / ') + ' gerekli.';
+    if (M.weapons && !M.weapons.includes(wt)) return 'Bu yetenek için ' + M.weapons.map(w => WEAPON_TYPES[w].name).join(' / ') + ' gerekli.';
     if (s.needShield && !pl.inv.equip.shield) return 'Bu yetenek için kalkan gerekli.';
     return null;
   }
@@ -392,7 +401,7 @@ class Combat {
     if (this._needsTarget(s)) {
       t = this._target();
       if (!t) { this.hud.log('Hedef yok.'); SFX.play('error'); return; }
-      if (s.type === 'atk' && pl.d.ranged && pl.inv.count('arrow') < (s.hits || 1)) { this.hud.log('Okun kalmadı! Demirciden ok al.'); SFX.play('error'); return; }
+      if (s.type === 'atk' && pl.d.ammo && pl.inv.count('arrow') < (s.hits || 1)) { this.hud.log('Okun kalmadı! Demirciden ok al.'); SFX.play('error'); return; }
       if (this.dist(t) > this._skillRange(s)) {           // önce menzile yürü
         this.queued = { id, t };
         pl.target = { x: t.x, z: t.z };
@@ -411,7 +420,7 @@ class Combat {
     this._setCd(s.id, s.cd); this.gcd = 0.4;
     this.queued = null;
     if (t) { this.target = t; this.faceTarget(t); this.attacking = true; }
-    const o = { status: s.status, chance: s.chance, sdur: s.sdur };
+    const o = { status: s.status, chance: s.chance, sdur: s.sdur, mk: s.m, drain: s.drain };
     const mult = sval(s.mult, s, r);
     const aoeTargets = (cx, cz, rad) => this.mm.list.filter(m => !m.dead && Math.hypot(m.x - cx, m.z - cz) <= rad + (m.type.hit || 1) * 0.5).slice(0, 10);
 
@@ -435,8 +444,8 @@ class Combat {
           pl.swingT = 0.3;
           if (!s.aoe || s.at !== 'self') { if (!m || m.dead) return; }
           if (ranged && s.at !== 'self') {
-            if (!pl.inv.take('arrow', 1)) return;
-            v.projectile({ x: P.x, y: P.y + 1.6, z: P.z }, m, 'arrow', () => apply(m));
+            if (pl.d.ammo && !pl.inv.take('arrow', 1)) return;
+            v.projectile({ x: P.x, y: P.y + 1.6, z: P.z }, m, pl.d.ammo ? 'arrow' : projKind(pl.d.magic), () => apply(m));
           } else {
             if (!ranged) v.slash(P.x, P.z, pl.heading, pl.imbue ? ELEM_COLOR[pl.imbue.elem] : 0xffffff);
             apply(m);
@@ -449,14 +458,14 @@ class Combat {
       const col = ELEM_COLOR[s.elem];
       v.rune(P.x, P.z, col, 2.6, 0.7, P);
       const hitArea = (cx, cz) => {
-        if (s.id !== 'fr_meteor') v.nova(cx, cz, s.elem, s.aoe);
+        if (!s.meteor) v.nova(cx, cz, s.elem, s.aoe);
         for (const m of aoeTargets(cx, cz, s.aoe)) this.hitMag(m, mult, s.elem, o);
       };
       if (s.at === 'self') hitArea(P.x, P.z);
       else if (s.elem === 'lightning') { v.bolt(t.x, t.z, col); if (s.aoe) hitArea(t.x, t.z); else this.hitMag(t, mult, s.elem, o); }
-      else if (s.id === 'fr_meteor') { const tx = t.x, tz = t.z; v.meteor(tx, tz, s.aoe, () => hitArea(tx, tz)); }
+      else if (s.meteor) { const tx = t.x, tz = t.z; v.meteor(tx, tz, s.aoe, () => hitArea(tx, tz)); }
       else if (s.proj || !s.aoe) {
-        v.projectile({ x: P.x, y: P.y + 1.7, z: P.z }, t, s.elem === 'cold' ? 'ice' : 'fire', () => (s.aoe ? hitArea(t.x, t.z) : this.hitMag(t, mult, s.elem, o)));
+        v.projectile({ x: P.x, y: P.y + 1.7, z: P.z }, t, projKind(s.elem), () => (s.aoe ? hitArea(t.x, t.z) : this.hitMag(t, mult, s.elem, o)));
       } else hitArea(t.x, t.z);
     } else if (s.type === 'buff') {
       const b = {}; for (const k in s.buff) b[k] = sval(s.buff[k], s, r);
@@ -469,7 +478,7 @@ class Combat {
       this.fx(pl, s.name, 'buff'); SFX.play('buff');
       v.burst(P.x, P.z, ELEM_COLOR[s.elem], 2.2, 0.4); v.buffCast(P.x, P.z, ELEM_COLOR[s.elem], VFX_PAL[s.elem]);
     } else if (s.type === 'heal') {
-      const h = Math.round(st.maxHp * sval(s.val, s, r) * (1 + this._elemM('force') * 0.01));
+      const h = Math.round(st.maxHp * sval(s.val, s, r) * (1 + this._elemM('force', s.m) * 0.01));
       st.hp = Math.min(st.maxHp, st.hp + h);
       this.fx(pl, '+' + h, 'heal'); SFX.play('potion');
       v.column(P.x, P.z, 0x8aff9a, 5, 0.8); v.heal(P.x, P.z);
@@ -576,7 +585,10 @@ class Combat {
         if (pl.attackCd <= 0 && this.gcd <= 0) {
           pl.attackCd = pl.d.atkInt * (pl.zerkT > 0 ? 0.7 : 1);
           pl.swingT = 0.3;
-          if (pl.d.ranged) {
+          if (pl.d.magic) {                     // asa / arp: büyülü uzak saldırı
+            pl.swingKind = 'cast'; SFX.play('cast');
+            this.vfx.projectile({ x: pl.pos.x, y: pl.pos.y + 1.7, z: pl.pos.z }, t, projKind(pl.d.magic), () => this.hitMag(t, 0.55, pl.d.magic));
+          } else if (pl.d.ranged) {
             if (!pl.inv.take('arrow', 1)) { this.attacking = false; this.hud.log('Okun kalmadı! Demirciden ok al.'); SFX.play('error'); }
             else { pl.swingKind = 'bow'; SFX.play('swing'); this.vfx.projectile({ x: pl.pos.x, y: pl.pos.y + 1.6, z: pl.pos.z }, t, 'arrow', () => this.hitPhys(t, 1)); }
           } else {

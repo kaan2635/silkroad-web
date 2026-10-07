@@ -40,20 +40,44 @@ const EQUIP_SLOTS = {
 const ARMOR_PARTS = ['head', 'shoulder', 'chest', 'hands', 'legs', 'feet'];
 const PART_W = { head: 0.15, shoulder: 0.12, chest: 0.30, hands: 0.10, legs: 0.22, feet: 0.11 };
 const PART_NAME = { head: 'Miğfer', shoulder: 'Omuzluk', chest: 'Göğüslük', hands: 'Eldiven', legs: 'Dizlik', feet: 'Çizme' };
+// race: 'ch' Çin, 'eu' Avrupa — iki ırk birbirinin silah ve zırhını kullanamaz (takı, kalkan ve avatar ortak)
 const ARMOR_TYPES = {
-  garment:   { name: 'Kumaş', phy: 0.7, mag: 1.35, mp: 1 },
-  protector: { name: 'Hafif', phy: 1.0, mag: 1.0,  hp: 0.5, mp: 0.5 },
-  armor:     { name: 'Ağır',  phy: 1.35, mag: 0.65, hp: 1 }
+  garment:   { name: 'Kumaş', phy: 0.7, mag: 1.35, mp: 1, race: 'ch', vis: 'garment' },
+  protector: { name: 'Hafif', phy: 1.0, mag: 1.0,  hp: 0.5, mp: 0.5, race: 'ch', vis: 'protector' },
+  armor:     { name: 'Ağır',  phy: 1.35, mag: 0.65, hp: 1, race: 'ch', vis: 'armor' },
+  robe:      { name: 'Cüppe', phy: 0.7, mag: 1.35, mp: 1, race: 'eu', vis: 'garment' },
+  light:     { name: 'Deri',  phy: 1.0, mag: 1.0,  hp: 0.5, mp: 0.5, race: 'eu', vis: 'protector' },
+  heavy:     { name: 'Plaka', phy: 1.35, mag: 0.65, hp: 1, race: 'eu', vis: 'armor' }
 };
 const WEAPON_TYPES = {
   sword:  { name: 'Kılıç',  icon: '⚔️', phy: 0.85, mag: 1.15, spd: 1.0,  range: 2.7, oneHand: true },
   blade:  { name: 'Bıçak',  icon: '🗡️', phy: 1.05, mag: 0.85, spd: 1.0,  range: 2.7, oneHand: true },
   spear:  { name: 'Mızrak', icon: '🔱', phy: 1.15, mag: 1.35, spd: 1.25, range: 3.4 },
   glaive: { name: 'Pala',   icon: '🪓', phy: 1.45, mag: 0.95, spd: 1.25, range: 3.4 },
-  bow:    { name: 'Yay',    icon: '🏹', phy: 1.05, mag: 0.6,  spd: 1.1,  range: 16, ranged: true }
+  bow:    { name: 'Yay',    icon: '🏹', phy: 1.05, mag: 0.6,  spd: 1.1,  range: 16, ranged: true, ammo: true },
+  // --- Avrupa ---
+  esword: { name: 'Tek El Kılıcı', icon: '🗡️', phy: 0.95, mag: 0.95, spd: 1.0,  range: 2.7, oneHand: true, race: 'eu' },
+  tsword: { name: 'Çift El Kılıcı', icon: '⚔️', phy: 1.45, mag: 0.8, spd: 1.3,  range: 3.2, race: 'eu' },
+  axe:    { name: 'Çift Balta', icon: '🪓', phy: 0.95, mag: 0.7,  spd: 0.85, range: 2.6, race: 'eu', dual: true },
+  xbow:   { name: 'Arbalet', icon: '🏹', phy: 1.15, mag: 0.55, spd: 1.2,  range: 15, ranged: true, ammo: true, race: 'eu' },
+  dagger: { name: 'Hançer', icon: '🔪', phy: 0.75, mag: 0.7,  spd: 0.7,  range: 2.4, race: 'eu' },
+  staff:  { name: 'Asa', icon: '🪄', phy: 0.5,  mag: 1.5,  spd: 1.2,  range: 12, ranged: true, magic: 'fire', race: 'eu' },
+  dstaff: { name: 'Kara Asa', icon: '🪄', phy: 0.5, mag: 1.5, spd: 1.2,  range: 12, ranged: true, magic: 'dark', race: 'eu' },
+  rod:    { name: 'Rahip Asası', icon: '⚚', phy: 0.75, mag: 1.25, spd: 1.0, range: 2.6, oneHand: true, race: 'eu' },
+  harp:   { name: 'Arp', icon: '🎵', phy: 0.6,  mag: 1.35, spd: 1.1,  range: 11, ranged: true, magic: 'sound', race: 'eu' }
 };
+for (const k in WEAPON_TYPES) WEAPON_TYPES[k].race = WEAPON_TYPES[k].race || 'ch';
+let RACE = 'ch';                                   // oyuncunun ırkı (main.js ayarlar)
+const RACE_NAMES = { ch: 'Çin', eu: 'Avrupa' };
+const raceWeapons = (r = RACE) => Object.keys(WEAPON_TYPES).filter(k => WEAPON_TYPES[k].race === r);
+const raceArmors = (r = RACE) => Object.keys(ARMOR_TYPES).filter(k => ARMOR_TYPES[k].race === r);
+// eşyanın ırkı (null = ortak)
+const itemRace = b => (b.cat === 'weapon' ? WEAPON_TYPES[b.wtype].race : b.cat === 'armor' ? ARMOR_TYPES[b.atype].race : null);
 const DEG_PREFIX = ['Söğüt', 'Bambu', 'Demir', 'Çelik', 'Yeşim', 'Kaplan', 'Anka', 'Ejder', 'Gök', 'Cennet', 'Firavun', 'Jüpiter', 'Şambala', 'Ejderkral'];
-const WEAPON_NOUN = { sword: 'Kılıcı', blade: 'Bıçağı', spear: 'Mızrağı', glaive: 'Palası', bow: 'Yayı' };
+const WEAPON_NOUN = { sword: 'Kılıcı', blade: 'Bıçağı', spear: 'Mızrağı', glaive: 'Palası', bow: 'Yayı',
+  esword: 'Uzun Kılıcı', tsword: 'Büyük Kılıcı', axe: 'Baltaları', xbow: 'Arbaleti', dagger: 'Hançeri', staff: 'Asası', dstaff: 'Kara Asası', rod: 'Rahip Asası', harp: 'Arpı' };
+// Avrupa eşyaları kendi derece adlarını taşır (iSRO'daki gibi farklı seriler)
+const DEG_PREFIX_EU = ['Meşe', 'Bronz', 'Demir', 'Çelik', 'Şövalye', 'Aslan', 'Grifon', 'Ejder', 'Kutsal', 'İmparatorluk', 'Osiris', 'Jüpiter', 'Şambala', 'Titan'];
 
 // Mavi statlar (büyü seçenekleri). max(d) = derece başına üst sınır
 const BLUES = {
@@ -81,7 +105,7 @@ const ITEM_BASES = {};
       for (const t in WEAPON_TYPES) {
         const w = WEAPON_TYPES[t], two = w.oneHand || w.ranged ? 1 : 1.35;
         ITEM_BASES[t + '_' + d + sf] = { ...common, cat: 'weapon', wtype: t, slot: 'weapon', icon: w.icon,
-          name: TIER_ADJ.weapon[ti] + DEG_PREFIX[d - 1] + ' ' + WEAPON_NOUN[t],
+          name: TIER_ADJ.weapon[ti] + (w.race === 'eu' ? DEG_PREFIX_EU : DEG_PREFIX)[d - 1] + ' ' + WEAPON_NOUN[t],
           phy: Math.round(P(dd) * w.phy * two), mag: Math.round(P(dd) * w.mag * two), value: val * (two > 1 ? 1.3 : 1) };
       }
       ITEM_BASES['shield_' + d + sf] = { ...common, cat: 'shield', slot: 'shield', icon: '🛡️', name: TIER_ADJ.shield[ti] + DEG_PREFIX[d - 1] + ' Kalkanı',
@@ -90,7 +114,7 @@ const ITEM_BASES = {};
         const a = ARMOR_TYPES[at];
         for (const p of ARMOR_PARTS) {
           ITEM_BASES[p + '_' + at + '_' + d + sf] = { ...common, cat: 'armor', atype: at, slot: p, icon: EQUIP_SLOTS[p].icon,
-            name: TIER_ADJ.armor[ti] + DEG_PREFIX[d - 1] + ' ' + a.name + ' ' + PART_NAME[p],
+            name: TIER_ADJ.armor[ti] + (a.race === 'eu' ? DEG_PREFIX_EU : DEG_PREFIX)[d - 1] + ' ' + a.name + ' ' + PART_NAME[p],
             pdef: Math.max(1, Math.round(D(dd) * PART_W[p] * a.phy)), mdef: Math.max(1, Math.round(D(dd) * PART_W[p] * a.mag)),
             hp: a.hp ? Math.round((8 + dd * 9) * PART_W[p] * 4 * a.hp) : 0, mp: a.mp ? Math.round((8 + dd * 9) * PART_W[p] * 4 * a.mp) : 0,
             value: val * PART_W[p] * 2.2 };
@@ -128,7 +152,7 @@ Object.assign(ITEM_BASES, {
   rev:    { cat: 'use', use: 'reverse', icon: '🌀', name: 'Ters Dönüş Parşömeni', stack: 50, value: 200, sub: 'Son öldüğün ya da döndüğün yere ışınlar', cd: 'scroll' },
   spd:    { cat: 'use', use: 'speed', icon: '🐎', name: 'Hız Parşömeni', stack: 50, value: 120, sub: '10 dakika %30 hız', cd: 'spd' },
   zerk:   { cat: 'use', use: 'zerk', icon: '😤', name: 'Berserk İksiri', stack: 50, value: 300, sub: 'Berserk kürelerini doldurur', cd: 'zerk' },
-  arrow:  { cat: 'ammo', icon: '➶', name: 'Ok Destesi', stack: 1000, value: 0.5, sub: 'Yay için gerekli' },
+  arrow:  { cat: 'ammo', icon: '➶', name: 'Ok Destesi', stack: 1000, value: 0.5, sub: 'Yay ve arbalet için gerekli' },
   elx_w:  { cat: 'mat', icon: '⚗️', name: 'Güçlendirme İksiri (Silah)', stack: 50, value: 400, sub: 'Simya: silahı + yükseltir', elx: 'weapon' },
   elx_a:  { cat: 'mat', icon: '⚗️', name: 'Güçlendirme İksiri (Zırh)', stack: 50, value: 300, sub: 'Simya: zırh parçasını + yükseltir', elx: 'armor' },
   elx_s:  { cat: 'mat', icon: '⚗️', name: 'Güçlendirme İksiri (Kalkan)', stack: 50, value: 300, sub: 'Simya: kalkanı + yükseltir', elx: 'shield' },
@@ -279,9 +303,11 @@ function randomGear(level, rng = Math.random, rareBoost = 1) {
   const r = rng();
   const kind = r < 0.3 ? 'weapon' : r < 0.38 ? 'shield' : r < 0.82 ? 'armor' : 'acc';
   let base;
-  if (kind === 'weapon') base = Object.keys(WEAPON_TYPES)[Math.floor(rng() * 5)] + '_' + d;
+  const race = rng() < 0.75 ? RACE : (RACE === 'eu' ? 'ch' : 'eu');      // düşen eşyaların çoğu kendi ırkına
+  const ws = raceWeapons(race), as = raceArmors(race);
+  if (kind === 'weapon') base = ws[Math.floor(rng() * ws.length)] + '_' + d;
   else if (kind === 'shield') base = 'shield_' + d;
-  else if (kind === 'armor') base = ARMOR_PARTS[Math.floor(rng() * 6)] + '_' + Object.keys(ARMOR_TYPES)[Math.floor(rng() * 3)] + '_' + d;
+  else if (kind === 'armor') base = ARMOR_PARTS[Math.floor(rng() * 6)] + '_' + as[Math.floor(rng() * as.length)] + '_' + d;
   else base = ['earring', 'necklace', 'ring'][Math.floor(rng() * 3)] + '_' + d;
   base += sf;
   // Mühür şansı (ekipman düşüşü başına): Star %7, Moon %2.2, Sun %0.6 — rütbe ile artar

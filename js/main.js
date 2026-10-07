@@ -103,7 +103,7 @@
     try {
       const s = player.stats;
       localStorage.setItem(CONFIG.saveKey, JSON.stringify({
-        v: 2, name: player.name, x: player.pos.x, z: player.pos.z,
+        v: 2, name: player.name, race: player.race, x: player.pos.x, z: player.pos.z,
         level: s.level, exp: s.exp, gold: s.gold, silk: s.silk || 0, day: lastDay, str: s.str, int: s.int, statPts: s.statPts, zerk: s.zerk,
         hp: Math.round(s.hp), mp: Math.round(s.mp),
         inv: player.inv.serialize(), book: player.book.serialize(), hotbar: hotbar.serialize(),
@@ -119,6 +119,7 @@
   let afterLoad = null, lastDay = '';
   function applySave(sv) {
     const s = player.stats;
+    player.setRace(sv.race || 'ch');
     s.level = clamp(sv.level | 0 || 1, 1, MAX_LEVEL);
     s.maxExp = expToNext(s.level);
     s.exp = clamp(sv.exp | 0, 0, s.maxExp - 1);
@@ -157,7 +158,17 @@
   const startBtn = document.getElementById('start-btn');
   const note = document.getElementById('continue-note'), create = document.getElementById('create');
   const saved = loadSave();
-  let pickW = 'blade', pickA = 'protector';
+  let pickW = 'blade', pickA = 'protector', pickR = 'ch';
+  const RACE_NOTE = { ch: 'Çinliler 7 ustalıktan istediklerini birleştirir (toplam sınır seviye ×3). Silah: kılıç, bıçak, mızrak, pala, yay.',
+    eu: 'Avrupalılar 6 sınıftan en çok ikisini seçer: ana + yan sınıf (Savaşçı, Haydut, Büyücü, Lanetçi, Rahip, Ozan; toplam sınır seviye ×2).' };
+  const setRacePick = r => {
+    pickR = r;
+    for (const id of ['pick-w', 'pick-a']) for (const b of document.getElementById(id).children) b.classList.toggle('hidden', b.dataset.race !== r);
+    const fw = document.querySelector('#pick-w button[data-race="' + r + '"]'), fa = document.querySelector('#pick-a button[data-a="' + (r === 'eu' ? 'light' : 'protector') + '"]');
+    if (!WEAPON_TYPES[pickW] || WEAPON_TYPES[pickW].race !== r) { pickW = fw.dataset.w; for (const b of fw.parentNode.children) b.classList.toggle('on', b === fw); }
+    if (!ARMOR_TYPES[pickA] || ARMOR_TYPES[pickA].race !== r) { pickA = fa.dataset.a; for (const b of fa.parentNode.children) b.classList.toggle('on', b === fa); }
+    document.getElementById('race-note').textContent = RACE_NOTE[r];
+  };
   const chip = (id, attr, set) => document.getElementById(id).addEventListener('click', e => {
     const b = e.target.closest('button'); if (!b) return;
     for (const x of b.parentNode.children) x.classList.toggle('on', x === b);
@@ -165,6 +176,7 @@
   });
   chip('pick-w', 'w', v => { pickW = v; });
   chip('pick-a', 'a', v => { pickA = v; });
+  chip('pick-r', 'r', v => setRacePick(v));
   const refreshStart = () => {
     const same = saved && saved.name && !saved.newChar && saved.name === (nameInput.value || '').trim();
     create.classList.toggle('hidden', !!same);
@@ -172,7 +184,8 @@
     startBtn.textContent = same ? 'Devam Et' : 'Karakteri Oluştur';
   };
   if (saved && saved.name) nameInput.value = saved.name;
-  if (saved && saved.newChar) { nameInput.value = saved.newChar.name; pickW = saved.newChar.w || 'blade'; pickA = saved.newChar.a || 'protector'; }
+  if (saved && saved.newChar) { nameInput.value = saved.newChar.name; pickW = saved.newChar.w || 'blade'; pickA = saved.newChar.a || 'protector'; pickR = saved.newChar.r || 'ch'; }
+  { const rb = document.querySelector('#pick-r button[data-r="' + pickR + '"]'); for (const b of rb.parentNode.children) b.classList.toggle('on', b === rb); setRacePick(pickR); }
   nameInput.addEventListener('input', refreshStart);
   refreshStart();
   let autostart = false;
@@ -182,20 +195,18 @@
     if (started) return;
     const name = (nameInput.value || '').trim() || 'Gezgin';
     const sameChar = saved && saved.name === name && !saved.newChar;
-    if (!sameChar && CUR_ZONE_ID !== 'jangan') {          // yeni karakter Jangan'da başlar
+    const home = pickR === 'eu' ? 'constantinople' : 'jangan';
+    if (!sameChar && CUR_ZONE_ID !== home) {          // yeni karakter ırkının başkentinde başlar (Jangan / Konstantinopolis)
       try {
-        localStorage.setItem(CONFIG.saveKey, JSON.stringify({ v: 2, newChar: { name, w: pickW, a: pickA }, zone: 'jangan' }));
+        localStorage.setItem(CONFIG.saveKey, JSON.stringify({ v: 2, newChar: { name, w: pickW, a: pickA, r: pickR }, zone: home }));
         sessionStorage.setItem('srw-autostart', '1');
       } catch (e) { /* yok */ }
       location.reload(); return;
     }
     if (sameChar) applySave(saved);
     else {
-      player.inv.starter(pickW);
-      if (pickA !== 'protector') {
-        player.inv.equip.chest = makeItem('chest_' + pickA + '_1');
-        player.inv.equip.feet = makeItem('feet_' + pickA + '_1');
-      }
+      player.setRace(pickR);
+      player.inv.starter(pickW, pickA);
       player.book.sp = 40;
       player.stats.silk = 100;
       player.inv.add(makeStack('pet_grab', 1));
@@ -230,7 +241,8 @@
     if (!sameChar) hud.log('Toplayıcı Tilki envanterinde: 2. hotbar sayfasından çağır, ganimeti senin için toplasın.', 'lvl');
     if (!sameChar) {
       hud.log('Yetenek penceresinden (K) SP harcayıp bir ustalık seç, yetenek öğren.', 'lvl');
-      hud.log('Kaptan Lee\'nin başındaki ! işaretine bak: görevler seni bekliyor.');
+      hud.log((ZONE.npc.captain || 'Kaptan') + ' başındaki ! işaretine bak: görevler seni bekliyor.');
+      if (player.race === 'eu') hud.log('Avrupalı: en çok iki sınıf seçebilirsin — ilk ustalığın ana sınıfın olur.', 'lvl');
     }
     hud.log(CONFIG.isTouch ? 'Joystick ile yürü, canavara dokun = saldır.' : 'Canavara tıkla = saldır. Yürümek için yere tıkla.');
     save();

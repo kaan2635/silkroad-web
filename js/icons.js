@@ -5,7 +5,8 @@ const ICON_TINT = {
   phys: ['#6b4a2a', '#2a1a0e'], cold: ['#2d6f9e', '#0d2236'], lightning: ['#5a4aa8', '#1a1440'], fire: ['#b8461c', '#3a0e06'],
   force: ['#b89a3a', '#3a2a08'], buff: ['#3a7a5a', '#0e2a1c'], pass: ['#4a4a58', '#16161c'], hp: ['#a82a22', '#360a08'], mp: ['#2a52a8', '#0a1838'],
   mat: ['#2a8a9a', '#0a2a30'], quest: ['#9a7a2a', '#2e2208'], pet: ['#7a5a2a', '#24180a'], mall: ['#9a3a8a', '#2e0a28'], menu: ['#5a3a1e', '#1c1008'],
-  bad: ['#7a1a1a', '#200606'], gold: ['#a8862a', '#2e2006']
+  bad: ['#7a1a1a', '#200606'], gold: ['#a8862a', '#2e2006'],
+  dark: ['#5a2a7a', '#1a0a26'], sound: ['#2a8a7a', '#0a2a24']
 };
 const _iconCache = {};
 let _iconId = 0;
