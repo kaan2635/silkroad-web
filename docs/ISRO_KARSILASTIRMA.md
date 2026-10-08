@@ -84,5 +84,21 @@ partine katılırlar, lonca kurarlar, savaşırlar.
 ## Faz 6 sonrası ek olarak
 | Özellik | Bizde |
 |---|---|
-| Oto av (iSRO'da üçüncü parti bot) | ➕ H tuşu / OTO düğmesi |
+| Oto av (iSRO'da üçüncü parti botlar: sBot, mBot, phBot) | ➕ H / U: eğitim alanı, yetenek setleri, buff, koruma, hedef ve toplama filtreleri, şehir döngüsü, ölünce devam, istatistik |
 | Kalıcı çok oyunculu sunucu | ⬜ Faz 7 — şimdilik tüm sosyal sistemler yapay oyuncularla |
+
+## Bot karşılaştırması (sBot / mBot / phBot → Oto Av)
+
+| Bot özelliği | Bizde |
+|---|---|
+| Eğitim alanı ve yarıçap, alana yürüyerek / atla dönüş | ✅ Genel sekmesi |
+| Rütbeye göre saldırı setleri (normal / güçlü), sıralama | ✅ Yetenekler sekmesi |
+| Buff ve aşılama tazeleme, berserk kuralı | ✅ |
+| HP / MP iksir eşikleri, Evrensel Hap, oturarak dinlenme | ✅ Koruma sekmesi |
+| Evcil can iksiri ve yem | ✅ |
+| Rütbe / tür yok sayma, öncelik, KS koruması, seviye sınırı | ✅ Hedef sekmesi |
+| Toplama filtresi (altın, ekipman, derece, mühürlü, iksir, malzeme) | ✅ Toplama sekmesi (toplayıcı evcil de uyar) |
+| Şehir döngüsü: dönüş parşömeni, iksir / ok alımı, tamir, satış, depo | ✅ Şehir sekmesi |
+| Ölünce dirilip devam, seviye / süre ile durma | ✅ |
+| Saatlik EXP / altın / av istatistiği | ✅ |
+| Parti botu, takas / tezgâh botu, çoklu hesap | ⬜ tek oyunculu yapıda gerekmiyor |

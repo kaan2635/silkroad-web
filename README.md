@@ -20,7 +20,7 @@ python3 -m http.server 8000   # sonra http://localhost:8000
 | Saldır | Canavara tıkla, Space | Canavara dokun, 🎯 |
 | Kamera | Sağ tık + sürükle, Q / E, tekerlek | Tek parmak kaydır, iki parmak yakınlaş |
 | Hotbar | 1–8, Shift+1–8 (sonraki sayfa), F1–F4 | Sağ alttaki yuvalar, sayfa düğmesi |
-| Oto av | H | OTO düğmesi |
+| Oto av / bot ayarları | H / U | OTO ve ⚙ düğmeleri |
 | Otur / el hareketleri | X · sohbette /selam /dans /eğil /sevin /hayır /ağla | Sohbet penceresi |
 | Topluluk / Etkinlik / Sohbet | O / J / Enter | ☰ menüsü |
 | Berserk | Z | Can çubuğunun altındaki 5 küre |
@@ -105,7 +105,8 @@ Yetenek veya iksiri hotbara koymak için pencerede **📌**'a bas, sonra bir yuv
 - Rütbeler: Güçlü, Şampiyon, Elit, Dev, Parti; Gölge Unique'ler; 21 Unique
 
 **Yapay oyuncular ve topluluk (O)**
-- Dünyada avlanan, tezgâh açan, sohbet eden 180 kişilik oyuncu kadrosu; gerçek zamanla seviye atlarlar
+- Dünyada avlanan, tezgâh açan, sohbet eden 420 kişilik oyuncu kadrosu (aynı anda ~250 çevrimiçi); gerçek zamanla seviye atlarlar
+- Bölge başına 26 (telefonda 15) görünür oyuncu: tezgâhlar, şehirde dolaşanlar, grup halinde kasılanlar, kapılardan çıkıp av alanına koşan ve şehre dönen yolcular, PvP pelerinliler
 - Sohbet kanalları: Genel, Parti, Lonca, Birlik, Fısıltı, Küresel (parşömenle)
 - Parti (8 kişi, EXP bonusu, şifacı üyeler) ve parti eşleştirme; lonca (seviye, GP bağışı, depo, unvan, birlik); arkadaşlar; akademi
 - Oyuncu tezgâhı (sen dururken satar), bot tezgâhları, takas
@@ -120,7 +121,8 @@ Yetenek veya iksiri hotbara koymak için pencerede **📌**'a bas, sonra bir yuv
 - Gelişmiş İksir (kalıcı +2), Kanıt Taşı, söküm (öz + tablet) ve sentez; mühür seti bonusları; Şeytan Ruhu; meslek kıyafetleri
 
 **Kolaylıklar**
-- Oto av (H), oturarak hızlı yenilenme (X), el hareketleri, 4 hotbar sayfası
+- Oto av (H) ve phBot / mBot / sBot tarzı bot ayarları (U): eğitim alanı, normal / güçlü canavar yetenek setleri, buff bakımı, berserk kuralı, iksir-hap-dinlenme koruması, kaçınılacak rütbe ve türler, KS yok, toplama filtresi, şehir döngüsü (parşömen, alışveriş, tamir, çöp satışı, depo), ölünce devam, durma koşulları, saatlik istatistik
+- Oturarak hızlı yenilenme (X), el hareketleri, 4 hotbar sayfası
 - Saldırı evcilleri seviye ve tokluk kazanır (Savaş Kurdu, Kaplan Yavrusu, Ejder Yavrusu); öküz arabası ve ticaret arabası
 - Günlük ve tekrarlanabilir görevler, ad değiştirme
 
@@ -142,7 +144,7 @@ js/combat.js      savaş, yetenekler, EXP          js/pets.js       binek ve evc
 js/jobs.js        meslekler ve kervanlar          js/camera.js     kamera
 js/hotbar.js      4 sayfalık hotbar               js/hud.js        arayüz, mini harita
 js/dungeon.js     zindan ve arena haritaları      js/weather.js    hava durumu
-js/autohunt.js    oto av                          js/economy.js    piyasa ve Emanet Pazarı
+js/autohunt.js    oto av motoru                       js/economy.js    piyasa ve Emanet Pazarı
 js/social.js      yapay oyuncular, parti, lonca, PvP   js/socialui.js   topluluk ve sohbet pencereleri
 js/events.js      arenalar, Kale Savaşı, takvim   js/eventsui.js   etkinlik penceresi
 js/quests.js      görevler                        js/worldmap.js   dünya haritası

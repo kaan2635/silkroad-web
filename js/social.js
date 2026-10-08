@@ -24,11 +24,11 @@ const GUILD_LV = [null,
   { cap: 40, slots: 60, gp: 15000, gold: 400000 },
   { cap: 50, slots: 90, gp: 35000, gold: 1000000 }];
 
-// --- Kadro: 180 yapay oyuncu ---
+// --- Kadro: 420 yapay oyuncu (ilk 180'i eski kayıtlarla uyumlu kalır) ---
 const Roster = (() => {
   const rng = mulberry32(90210), list = [], used = new Set();
   const pick = a => a[Math.floor(rng() * a.length)];
-  for (let i = 0; i < 180; i++) {
+  for (let i = 0; i < 420; i++) {
     let name;
     do {
       const r = rng();
@@ -197,7 +197,9 @@ class SimPlayer {
   update(dt) {
     const soc = this.soc, P = soc.player.pos, p = this.group.position;
     const dp = Math.hypot(P.x - p.x, P.z - p.z);
-    this.group.visible = !this.engaged && dp < (CONFIG.isTouch ? 110 : 170);
+    this.group.visible = !this.engaged && !this.cull && dp < (CONFIG.isTouch ? 110 : 170);
+    const sh = this.group.visible && dp < (CONFIG.isTouch ? 26 : 45);      // uzaktakiler gölge düşürmez (çizim çağrısı tasarrufu)
+    if (sh !== this._sh) { this._sh = sh; this.h.group.traverse(o => { if (o.isMesh) o.castShadow = sh; }); }
     if (this.engaged) return;
     const party = soc.party.includes(this.bot.id);
     this.label.visible = Settings.data.names && (dp < 16 || party && dp < 30);
@@ -210,21 +212,23 @@ class SimPlayer {
       if (this.downT > (party ? 12 : 20)) {
         this.dead = false; this.hp = this.maxHp; this.h.group.rotation.z = 0;
         if (this.mode === 'ally' && soc.allyBase) p.set(soc.allyBase.x + (Math.random() - 0.5) * 6, 0, soc.allyBase.z + (Math.random() - 0.5) * 6);
-        else if (!party) { const s = soc.townSpot(); p.set(s.x, terrainHeight(s.x, s.z), s.z); }
+        else if (!party && (this.mode === 'hunt' || this.mode === 'pvp') && dp > 40) p.set(this.home.x, terrainHeight(this.home.x, this.home.z), this.home.z);   // görünmezken alanına geri döner
+        else if (!party) { const s = soc.townSpot(); p.set(s.x, terrainHeight(s.x, s.z), s.z); if (this.mode === 'hunt') this.mode = 'travel'; if (this.mode === 'travel') { this.trip = { ph: 'rest', t: 20 }; this.home = s; this.goal = null; this.target = null; } }
       }
       return;
     }
-    if (dp > 140 && !party) return;                   // uzaktakiler uyur
+    if (dp > 140 && !party && this.mode !== 'travel') return;                   // uzaktakiler uyur (yolcular yürümeye devam eder)
     this.moving = false;
     if (party) this._party(dt, dp);
     else if (this.mode === 'hunt' || this.mode === 'pvp') this._hunt(dt);
     else if (this.mode === 'town') this._wander(dt);
     else if (this.mode === 'ally') this._ally(dt);
+    else if (this.mode === 'travel') this._travel(dt);
     // can yenilenmesi
     if (this.hp < this.maxHp) this.hp = Math.min(this.maxHp, this.hp + this.maxHp * (this.target ? 0.01 : 0.05) * dt);
     p.y = terrainHeight(p.x, p.z) - (this.mode === 'stall' ? 0.38 : 0);
     this.group.rotation.y = this.heading;
-    this._animate(dt);
+    if (this.group.visible) this._animate(dt);
   }
   _wander(dt) {
     this.wait -= dt;
@@ -264,6 +268,33 @@ class SimPlayer {
     }
     if (this.target) { this._fight(dt, this.target); return; }
     const g = soc.allyGoal; if (g && Math.hypot(g.x - this.x, g.z - this.z) > 4) this._move(g.x + (this.slot % 3 - 1) * 3, g.z + (this.slot - 1) * 2, 6, dt);
+  }
+  // Yolcu: şehirden kapıdan çıkar, av alanına koşar, bir süre avlanır, şehre döner, dinlenir, tekrar çıkar
+  _go(tx, tz, speed, dt) {
+    const w = townWaypoint(this.soc.world, this.x, this.z, tx, tz), r = this._move(w.x, w.z, speed, dt);
+    return w.x === tx && w.z === tz ? r : r + 50;
+  }
+  _travel(dt) {
+    const soc = this.soc, T = this.trip || (this.trip = { ph: inSafeZone(this.x, this.z) ? 'rest' : 'hunt', t: 5 + Math.random() * 30 });
+    if (T.ph === 'out') {
+      if (!this.goal) {
+        let ms = soc.monsters.list.filter(m => !m.dead && !m.type.job && !m.walker && !m.pvp && Math.abs(m.level - this.lvl) < 12 && !inSafeZone(m.x, m.z));
+        const nearT = ms.filter(m => Math.hypot(m.x, m.z) < 150); if (nearT.length > 4) ms = nearT;     // çoğunlukla şehre yakın alanlar (yollar canlı kalsın)
+        const m = ms.length ? ms[Math.floor(Math.random() * ms.length)] : null;
+        if (!m) { T.ph = 'rest'; T.t = 30; return; }
+        this.goal = { x: m.x + (Math.random() - 0.5) * 10, z: m.z + (Math.random() - 0.5) * 10 };
+      }
+      if (this._go(this.goal.x, this.goal.z, 5.2, dt) < 3) { this.home = this.goal; this.goal = null; T.ph = 'hunt'; T.t = 60 + Math.random() * 150; }
+    } else if (T.ph === 'hunt') {
+      this._hunt(dt); T.t -= dt;
+      if (T.t <= 0 && !this.target) { T.ph = 'in'; this.goal = soc.townSpot(); }
+    } else if (T.ph === 'in') {
+      if (!this.goal) this.goal = soc.townSpot();
+      if (this._go(this.goal.x, this.goal.z, 5.2, dt) < 1) { this.home = this.goal; this.goal = null; T.ph = 'rest'; T.t = 15 + Math.random() * 40; }
+    } else {
+      this._wander(dt); T.t -= dt;
+      if (T.t <= 0) { T.ph = 'out'; this.goal = null; }
+    }
   }
   _wander2(dt) {
     this.wait -= dt;
@@ -362,27 +393,38 @@ class Social {
     const busy = new Set();
     const cand = Roster.filter(b => botOnline(b));
     const shuffle = a => { for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(rng() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
-    const N = CONFIG.isTouch ? 7 : 12;
+    const touch = CONFIG.isTouch, N = touch ? 15 : 26;
+    let grp = null;
     const take = (filter, n, mode) => {
       for (const b of shuffle(cand.filter(b => !busy.has(b.id) && filter(b))).slice(0, n)) {
         busy.add(b.id);
-        let x, z;
-        if (mode === 'hunt' || mode === 'pvp') {
-          const ms = this.monsters.list.filter(m => !m.dead && !m.type.job && Math.abs(m.level - botLevel(b)) < 10 && !inSafeZone(m.x, m.z));
-          if (!ms.length) { mode = 'town'; } else { const m = ms[Math.floor(rng() * ms.length)]; x = m.x + (rng() - 0.5) * 8; z = m.z + (rng() - 0.5) * 8; }
+        let x, z, md = mode;
+        if (md === 'hunt' || md === 'pvp') {
+          if (md === 'hunt' && grp && rng() < 0.4 && Math.abs(grp.lv - botLevel(b)) < 12) { x = grp.x + (rng() - 0.5) * 6; z = grp.z + (rng() - 0.5) * 6; }    // birlikte kasılan gruplar
+          else {
+            const ms = this.monsters.list.filter(m => !m.dead && !m.type.job && Math.abs(m.level - botLevel(b)) < 10 && !inSafeZone(m.x, m.z));
+            if (!ms.length) md = 'town'; else { const m = ms[Math.floor(rng() * ms.length)]; x = m.x + (rng() - 0.5) * 8; z = m.z + (rng() - 0.5) * 8; grp = { x, z, lv: botLevel(b) }; }
+          }
+        }
+        if (md === 'travel' && rng() < 0.5) {         // yarısı yolda başlar
+          const s = this.townSpot(), a = rng() * 6.283, r = 45 + rng() * 60; x = Math.sin(a) * r; z = Math.cos(a) * r;
+          if (inSafeZone(x, z)) { x = s.x; z = s.z; }
         }
         if (x === undefined) { const s = this.townSpot(); x = s.x; z = s.z; }
-        const sim = new SimPlayer(this, b, mode, x, z);
-        if (mode === 'stall') { sim.stallTitle = this._stallTitle(b); sim.heading = Math.atan2(-x, -z); sim.relabel(); }
+        const sim = new SimPlayer(this, b, md, x, z);
+        if (md === 'stall') { sim.stallTitle = this._stallTitle(b); sim.heading = Math.atan2(-x, -z); sim.relabel(); }
         this.sims.push(sim);
       }
     };
-    if (IS_DUNGEON) take(b => botLevel(b) >= lo - 4 && botLevel(b) <= hi + 8, 3, 'hunt');
+    const fit = b => botLevel(b) >= lo - 3 && botLevel(b) <= hi + 6;
+    if (IS_DUNGEON) take(b => botLevel(b) >= lo - 4 && botLevel(b) <= hi + 8, touch ? 4 : 7, 'hunt');
     else {
-      take(() => true, 3, 'stall');
-      take(() => true, 2, 'town');
-      take(b => botLevel(b) >= lo - 3 && botLevel(b) <= hi + 6, N - 6, 'hunt');
-      if (hi >= 20) take(b => botLevel(b) >= Math.max(20, lo - 3) && botLevel(b) <= hi + 6, 1, 'pvp');
+      const stalls = touch ? 3 : 5, town = touch ? 2 : 4, trav = touch ? 3 : 5, pvp = hi >= 20 ? (touch ? 1 : 2) : 0;
+      take(() => true, stalls, 'stall');
+      take(() => true, town, 'town');
+      take(fit, trav, 'travel');
+      take(fit, N - stalls - town - trav - pvp, 'hunt');
+      if (pvp) take(b => botLevel(b) >= Math.max(20, lo - 3) && botLevel(b) <= hi + 6, pvp, 'pvp');
     }
   }
   _stallTitle(b) { return ['Ucuz eşya!', 'Mühürlü set', 'İksir & iksir', '+7 silahlar', 'Elixir burada', 'Her şey yarı fiyat', 'Simya malzemesi'][b.seed % 7]; }
@@ -824,6 +866,12 @@ class Social {
   // ---------- Döngü ----------
   update(dt) {
     const pl = this.player;
+    // görünürlük bütçesi: en yakın N yapay oyuncu çizilir (telefonda çizim çağrısı sınırı)
+    if ((this._visT = (this._visT || 0) - dt) <= 0) {
+      this._visT = 0.5; const P = pl.pos, cap = CONFIG.isTouch ? 10 : 18;
+      const ord = this.sims.filter(x => !x.engaged).map(x => [x, Math.hypot(x.x - P.x, x.z - P.z) - (this.party.includes(x.bot.id) ? 1e4 : 0)]).sort((a, b) => a[1] - b[1]);
+      ord.forEach(([x], i) => { x.cull = i >= cap; });
+    }
     for (const s of this.sims) s.update(dt);
     // biten çatışmalar (oyuncu şehre kaçtı / öldü / uzaklaştı)
     if (this.fight) {

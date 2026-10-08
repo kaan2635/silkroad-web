@@ -103,6 +103,7 @@ Orijinal iSRO ile ayrıntılı karşılaştırma: [docs/ISRO_KARSILASTIRMA.md](d
 - [x] 6D Yapay oyuncular: sohbet, parti ve eşleştirme, lonca, arkadaş, akademi, tezgâh, takas, PvP pelerini, düello, cinayet, Hwan unvanları, sıralamalar
 - [x] 6E Etkinlikler: Savaş Arenası, Bayrak Kapmaca, Hayatta Kalma, Kale Savaşı, Gold Time, giriş takvimi, Magic POP, mevsimsel etkinlik
 - [x] 6F Simya: beyaz statlar, Özellik Taşları, dirençler, Şans / Sabit / Astral, Gelişmiş İksir, söküm ve sentez, set bonusları, Şeytan Ruhu, meslek kıyafetleri
+- [x] 6H Bot ve kalabalık: phBot tarzı oto av (U penceresi), 28 yeni canavar türü ve ~2,5 kat yoğunluk, 420 kişilik oyuncu kadrosu, yolcular ve av grupları
 - [x] 6G Kolaylıklar: oturma, el hareketleri, 4 hotbar sayfası, evcil seviye ve tokluk, yeni evciller, öküz ve ticaret arabası, günlük / tekrarlanabilir görevler, ad değiştirme
 
 ## Faz 7 — Çok Oyunculu Altyapı

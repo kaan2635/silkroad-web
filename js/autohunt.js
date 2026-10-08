@@ -268,41 +268,7 @@ class AutoHunt {
     }
     this._mount(); this._walk(0, 6);
   }
-  // Şehir surları: kapılardan geçerek yürü (surların içinden dışına düz çizgi duvara takılır)
-  _exits() {
-    if (this._ex !== undefined) return this._ex;
-    const ob = this.mm.world ? this.mm.world.obstacles : [], walls = ob.filter(o => o.type === 'wall' && Math.hypot(o.x, o.z) < 60);
-    if (walls.length < 8) return (this._ex = null);
-    const W = Math.max(...walls.map(o => Math.max(Math.abs(o.x), Math.abs(o.z)))), sides = {};
-    for (const o of ob) {
-      if (o.type !== 'gate') continue;
-      const ax = Math.abs(o.x), az = Math.abs(o.z);
-      if (Math.abs(Math.max(ax, az) - W) > 3) continue;
-      const k = az > ax ? 'z' + Math.sign(o.z) : 'x' + Math.sign(o.x);
-      (sides[k] = sides[k] || []).push(o);
-    }
-    const ex = [];
-    for (const k in sides) {
-      const g = sides[k], alongX = k[0] === 'z'; g.sort((a, b) => alongX ? a.x - b.x : a.z - b.z);
-      const m = g.length >> 1, a = g[m - 1] || g[0], b = g[m] || g[0], cx = (a.x + b.x) / 2, cz = (a.z + b.z) / 2, sg = +k.slice(1);
-      ex.push(alongX ? { ix: cx, iz: cz - sg * 4, ox: cx, oz: cz + sg * 5 } : { ix: cx - sg * 4, iz: cz, ox: cx + sg * 5, oz: cz });
-    }
-    return (this._ex = ex.length ? { W, ex } : null);
-  }
-  _walk(tx, tz) {
-    const P = this.p.pos, E = this._exits();
-    if (E) {
-      const W = E.W - 0.5, inside = (x, z) => Math.abs(x) < W && Math.abs(z) < W, pin = inside(P.x, P.z);
-      if (pin !== inside(tx, tz)) {
-        let best = null, bd = 1e9;
-        for (const e of E.ex) { const d = pin ? Math.hypot(P.x - e.ix, P.z - e.iz) + Math.hypot(e.ox - tx, e.oz - tz) : Math.hypot(P.x - e.ox, P.z - e.oz) + Math.hypot(e.ix - tx, e.iz - tz); if (d < bd) { bd = d; best = e; } }
-        const near = pin ? [best.ix, best.iz] : [best.ox, best.oz], far = pin ? [best.ox, best.oz] : [best.ix, best.iz];
-        const p = Math.hypot(P.x - near[0], P.z - near[1]) < 2.5 || Math.hypot(P.x - far[0], P.z - far[1]) < Math.hypot(near[0] - far[0], near[1] - far[1]) ? far : near;
-        this.p.target = { x: p[0], z: p[1] }; return;
-      }
-    }
-    this.p.target = { x: tx, z: tz };
-  }
+  _walk(tx, tz) { const w = townWaypoint(this.mm.world, this.p.pos.x, this.p.pos.z, tx, tz); this.p.target = { x: w.x, z: w.z }; }
   _mount() {
     const P = this.pets; if (!this.cfg.horse || !P || P.mounted || this.p.combatT > 0) return;
     const h = this.p.inv.count('horse2') ? 'horse2' : this.p.inv.count('horse') ? 'horse' : null;
@@ -382,4 +348,38 @@ class AutoHunt {
     this._walk(this.anchor.x, this.anchor.z);
   }
   onKill() { if (this.on) this.st.kills++; }
+}
+
+// Şehir surları: içeriden dışarıya (ya da tersi) giderken en uygun kapıdan geçen ara nokta.
+// Oto av ve yapay oyuncular kullanır; surlar yoksa hedefin kendisini döndürür.
+function townExits(world) {
+  if (world._townEx !== undefined) return world._townEx;
+  const ob = world.obstacles, walls = ob.filter(o => o.type === 'wall' && Math.hypot(o.x, o.z) < 60);
+  if (walls.length < 8) return (world._townEx = null);
+  const W = Math.max(...walls.map(o => Math.max(Math.abs(o.x), Math.abs(o.z)))), sides = {};
+  for (const o of ob) {
+    if (o.type !== 'gate') continue;
+    const ax = Math.abs(o.x), az = Math.abs(o.z);
+    if (Math.abs(Math.max(ax, az) - W) > 3) continue;
+    const k = az > ax ? 'z' + Math.sign(o.z) : 'x' + Math.sign(o.x);
+    (sides[k] = sides[k] || []).push(o);
+  }
+  const ex = [];
+  for (const k in sides) {
+    const g = sides[k], alongX = k[0] === 'z'; g.sort((a, b) => alongX ? a.x - b.x : a.z - b.z);
+    const m = g.length >> 1, a = g[m - 1] || g[0], b = g[m] || g[0], cx = (a.x + b.x) / 2, cz = (a.z + b.z) / 2, sg = +k.slice(1);
+    ex.push(alongX ? { ix: cx, iz: cz - sg * 4, ox: cx, oz: cz + sg * 5 } : { ix: cx - sg * 4, iz: cz, ox: cx + sg * 5, oz: cz });
+  }
+  return (world._townEx = ex.length ? { W, ex } : null);
+}
+function townWaypoint(world, px, pz, tx, tz) {
+  const E = townExits(world);
+  if (!E) return { x: tx, z: tz };
+  const W = E.W - 0.5, inside = (x, z) => Math.abs(x) < W && Math.abs(z) < W, pin = inside(px, pz);
+  if (pin === inside(tx, tz)) return { x: tx, z: tz };
+  let best = null, bd = 1e9;
+  for (const e of E.ex) { const d = pin ? Math.hypot(px - e.ix, pz - e.iz) + Math.hypot(e.ox - tx, e.oz - tz) : Math.hypot(px - e.ox, pz - e.oz) + Math.hypot(e.ix - tx, e.iz - tz); if (d < bd) { bd = d; best = e; } }
+  const near = pin ? [best.ix, best.iz] : [best.ox, best.oz], far = pin ? [best.ox, best.oz] : [best.ix, best.iz];
+  const p = Math.hypot(px - near[0], pz - near[1]) < 2.5 || Math.hypot(px - far[0], pz - far[1]) < Math.hypot(near[0] - far[0], near[1] - far[1]) ? far : near;
+  return { x: p[0], z: p[1] };
 }
