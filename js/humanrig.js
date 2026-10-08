@@ -1,20 +1,27 @@
-// Gerçekçi insan karakter: Quaternius Universal Base Characters (CC0) gövdesi + Universal Animation Library (CC0)
-// klipleri. buildHumanoid({ rig: true }) ile kurulan eski (prosedürel) gövde, model yüklenince bununla değiştirilir.
-// Giysi: gövde dokusu üzerine kemik ağırlıklarından çıkarılan bölge maskeleriyle (gömlek / pantolon / çizme / eldiven)
-// renk boyanır; zırh, cübbe eteği, miğfer, omuzluk gibi parçalar dinlenme pozunda hesaplanıp kemiklere takılır.
+// Gerçekçi insan karakter (Quaternius, CC0): Modular Character Outfits – Fantasy kıyafetleri (köylü / korucu, erkek / kadın)
+// + Universal Base Characters başları ve saçları + Universal Animation Library klipleri. buildHumanoid({ rig: true }) ile
+// kurulan eski (prosedürel) gövde, modeller yüklenince bununla değiştirilir. Kıyafet dokusu ekipman rengine boyanır;
+// zırh plakaları, cübbe eteği, miğfer, omuzluk gibi parçalar dinlenme pozunda hesaplanıp kemiklere takılır.
 
 const HUMAN_H = 2.2;                 // oyundaki boy (eski gövdeyle aynı ölçek)
+// Eski süper kahraman gövdesindeki kemik konumları: zırh parçalarının ölçüleri buna göre yazıldı, her şablona taşınır
+const RIG_REF = { pelvis: [0, 0.949, -0.043], spine_01: [0, 1.072, -0.007], spine_02: [0, 1.178, 0.004], spine_03: [0, 1.311, 0.007], neck_01: [0, 1.52, -0.041], Head: [0, 1.6, -0.017],
+  upperarm_l: [0.212, 1.455, -0.065], lowerarm_l: [0.463, 1.455, -0.073], hand_l: [0.706, 1.455, -0.065], upperarm_r: [-0.212, 1.455, -0.065], lowerarm_r: [-0.463, 1.455, -0.073], hand_r: [-0.706, 1.455, -0.065],
+  thigh_l: [0.114, 0.971, -0.036], calf_l: [0.114, 0.542, -0.036], thigh_r: [-0.114, 0.971, -0.036], calf_r: [-0.114, 0.542, -0.036] };
+const RIG_HAIR = { m: ['simpleparted', 'buzzed', 'buns', 'long'], f: ['long', 'buns', 'buzzedfemale'] };
 const HumanRig = {
-  ready: false, failed: false, src: null, clips: {}, rest: {}, waiting: [], S: 1,
+  ready: false, failed: false, T: {}, clips: {}, waiting: [], S: 1, src: {},
 
   load() {
     if (this._p) return this._p;
     if (!THREE.GLTFLoader || !THREE.SkeletonUtils) { this.failed = true; return (this._p = Promise.resolve(false)); }
-    const L = new THREE.GLTFLoader();
-    const get = f => new Promise((res, rej) => L.load(f, res, undefined, rej));
-    this._p = Promise.all([get('assets/models/human/male.glb'), get('assets/models/human/anims.glb')]).then(([body, an]) => {
-      this._prep(body.scene);
-      for (const c of an.animations) this.clips[c.name] = c;
+    const L = new THREE.GLTFLoader(), D = 'assets/models/human/';
+    const get = f => new Promise((res, rej) => L.load(D + f + '.glb', g => res([f, g]), undefined, rej));
+    const files = ['anims', 'm_peasant', 'm_ranger', 'f_peasant', 'f_ranger', 'm_head', 'f_head', 'hair_beard', ...new Set([...RIG_HAIR.m, ...RIG_HAIR.f].map(h => 'hair_' + h))];
+    this._p = Promise.all(files.map(get)).then(list => {
+      for (const [f, g] of list) this.src[f] = g;
+      for (const c of this.src.anims.animations) this.clips[c.name] = c;
+      for (const v of ['m_peasant', 'm_ranger', 'f_peasant', 'f_ranger']) this.T[v] = this._template(v);
       this.ready = true;
       for (const f of this.waiting) { try { f(); } catch (e) { console.error(e); } }
       this.waiting = [];
@@ -24,95 +31,57 @@ const HumanRig = {
   },
   whenReady(f) { if (this.ready) f(); else if (!this.failed) this.waiting.push(f); },
 
-  _prep(scene) {
-    this.src = scene;
+  // Şablon: kıyafet iskeleti + baş + saçlar + sakal + etekler (hepsi aynı kemiklere bağlı)
+  _template(v) {
+    const sx = v[0], scene = THREE.SkeletonUtils.clone(this.src[v].scene), bones = {};
     scene.updateMatrixWorld(true);
-    let body = null;
+    scene.traverse(o => { if (o.isBone) bones[o.name] = o; });
+    let holder = null; scene.traverse(o => { if (o.isSkinnedMesh && !holder) holder = o.parent; });
     scene.traverse(o => {
-      if (o.isBone || o.name === 'root') this.rest[o.name] = o.matrixWorld.clone();
-      if (o.isSkinnedMesh && /SuperHero/i.test(o.name)) body = o;
+      if (!o.isMesh) return;
+      o.userData.part = /Hood/.test(o.name) ? 'hood' : /Pauldron/.test(o.name) ? 'pauldron' : 'outfit';
+      if (/MI_Regular/.test(o.material.name)) o.userData.part = 'hands';
     });
-    const box = new THREE.Box3().setFromObject(scene);
-    this.S = HUMAN_H / (box.max.y - box.min.y);
-    // kemik → bölge (gömlek, pantolon, çizme, eldiven)
-    const bones = body.skeleton.bones.map(b => b.name);
-    const region = n => /^(spine|clavicle|upperarm|lowerarm)/.test(n) ? 0 : /^(pelvis|thigh|calf)/.test(n) ? 1 : /^(foot|ball)/.test(n) ? 2 : /^(hand|thumb|index|middle|ring|pinky)/.test(n) ? 3 : -1;
-    const g = body.geometry, P = g.attributes.position, SI = g.attributes.skinIndex, SW = g.attributes.skinWeight;
-    const cloth = new Float32Array(P.count * 4), head = new THREE.Box3(), v = new THREE.Vector3();
-    const bm = body.bindMatrix;
-    for (let i = 0; i < P.count; i++) {
-      const w = [0, 0, 0, 0]; let headW = 0;
-      const G = ['getX', 'getY', 'getZ', 'getW'];
-      for (let k = 0; k < 4; k++) {
-        const bi = SI[G[k]](i), wt = SW[G[k]](i); if (!wt) continue;
-        const n = bones[bi], r = region(n);
-        if (r >= 0) w[r] += wt;
-        if (/^(Head|neck_01)$/.test(n)) headW += wt;
+    const graft = (src, part) => {
+      src.updateMatrixWorld(true);
+      const list = []; src.traverse(o => { if (o.isSkinnedMesh) list.push(o); });
+      for (const sm of list) {
+        const nb = sm.skeleton.bones.map(b => bones[b.name]);
+        if (nb.some(b => !b)) continue;
+        const m = new THREE.SkinnedMesh(sm.geometry, sm.material); m.name = sm.name;
+        holder.add(m); m.bind(new THREE.Skeleton(nb, sm.skeleton.boneInverses), sm.bindMatrix);
+        m.userData.part = part === 'head' ? (/Eye|Face|Brow/.test(sm.name) && !/Retopology|SuperHero|Superhero_/.test(sm.name) ? (/Eyes?$|Face$/.test(sm.name) ? 'eyes' : 'brows') : 'head') : part;
       }
-      v.fromBufferAttribute(P, i).applyMatrix4(bm);
-      // çizme baldırın alt yarısını da kaplar; pantolon oraya kadar
-      if (v.y < 0.36 && w[1] > 0) { const f = Math.min(1, (0.36 - v.y) / 0.05); w[2] += w[1] * f; w[1] *= 1 - f; }
-      // gömlek yakası boyna biraz taşar
-      if (headW > 0.5 && v.y < 1.53) w[0] += 0.4;
-      for (let k = 0; k < 4; k++) cloth[i * 4 + k] = Math.min(1, w[k]);
-      if (headW > 0.85 && v.y > 1.55) head.expandByPoint(v);
-    }
-    g.setAttribute('cloth', new THREE.BufferAttribute(cloth, 4));
-    this.head = { c: head.getCenter(new THREE.Vector3()), s: head.getSize(new THREE.Vector3()) };
-    this.bones = bones;
-    // giysi kabukları: gövde ağının bölge üçgenleri, normal boyunca şişirilmiş (aynı iskelete bağlı → doğal kırışır)
-    const N = g.attributes.normal, I = g.index, UV = g.attributes.uv;
-    const shell = (ch, off, th = 0.5, extra) => {
-      const keep = [], map = new Map(), pos = [], nor = [], si = [], sw = [], uv = [];
-      for (let t = 0; t < I.count; t += 3) {
-        const a = I.getX(t), b2 = I.getX(t + 1), c = I.getX(t + 2);
-        if (cloth[a * 4 + ch] < th || cloth[b2 * 4 + ch] < th || cloth[c * 4 + ch] < th) continue;
-        for (const vi of [a, b2, c]) {
-          let ni = map.get(vi);
-          if (ni === undefined) {
-            ni = map.size; map.set(vi, ni);
-            v.fromBufferAttribute(P, vi); const n = new THREE.Vector3().fromBufferAttribute(N, vi);
-            const o = typeof off === 'function' ? off(v, n) : off;
-            pos.push(v.x + n.x * o, v.y + n.y * o, v.z + n.z * o); nor.push(n.x, n.y, n.z);
-            for (let k = 0; k < 4; k++) { si.push(SI[['getX', 'getY', 'getZ', 'getW'][k]](vi)); sw.push(SW[['getX', 'getY', 'getZ', 'getW'][k]](vi)); }
-            uv.push(UV ? UV.getX(vi) : 0, UV ? UV.getY(vi) : 0);
-          }
-          keep.push(ni);
-        }
-      }
-      if (extra && extra.smooth) this._smooth(pos, keep, extra.smooth);
-      const G = new THREE.BufferGeometry();
-      G.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); G.setAttribute('normal', new THREE.Float32BufferAttribute(nor, 3));
-      G.setAttribute('skinIndex', new THREE.Uint16BufferAttribute(si, 4)); G.setAttribute('skinWeight', new THREE.Float32BufferAttribute(sw, 4));
-      G.setAttribute('uv', new THREE.Float32BufferAttribute(uv, 2)); G.setIndex(keep);
-      if (extra && extra.smooth) this._normals(G);
-      return G;
     };
-    // gövdede bol giysi: göğüs / karın daha çok, kollarda az
-    const shirtOff = (p, n) => p.y > 1.0 && Math.abs(p.x) < 0.24 ? 0.016 + Math.max(0, 0.012 - Math.abs(p.y - 1.15) * 0.02) : 0.011;
-    this.shell = { shirt: shell(0, shirtOff, 0.45, { smooth: 10 }), pants: shell(1, p => 0.015 + (p.y > 0.8 ? 0.005 : 0), 0.45, { smooth: 8 }), boots: shell(2, 0.02, 0.4, { smooth: 6 }), glove: shell(3, 0.006, 0.5) };
-    // kabukların örttüğü gövde üçgenlerini at (görünmez; çizim yükünü yarıya indirir)
-    {
-      const th = [0.45, 0.45, 0.4], keep = [];
-      for (let t = 0; t < I.count; t += 3) {
-        const a = I.getX(t), b2 = I.getX(t + 1), c = I.getX(t + 2);
-        let hid = false;
-        for (let k = 0; k < 3 && !hid; k++) hid = cloth[a * 4 + k] >= th[k] && cloth[b2 * 4 + k] >= th[k] && cloth[c * 4 + k] >= th[k];
-        if (!hid) keep.push(a, b2, c);
-      }
-      g.setIndex(keep);
-    }
-    // etek (kalçaya ve uyluklara ağırlıklı → yürürken bacaklarla salınır)
-    const bi = n => bones.indexOf(n);
-    this.skirt = (len, r0, r1) => {
-      const seg = 28, rows = 8, pos = [], si = [], sw = [], idx = [], uv = [], top = 1.02, bot = top - len;
+    graft(this.src[sx + '_head'].scene, 'head');
+    for (const hs of RIG_HAIR[sx]) graft(this.src['hair_' + hs].scene, 'hair:' + hs);
+    if (sx === 'm') graft(this.src.hair_beard.scene, 'beard');
+    scene.updateMatrixWorld(true);
+    const rest = {}; scene.traverse(o => { if (o.isBone) rest[o.name] = o.matrixWorld.clone(); });
+    const T = { v, female: sx === 'f', scene, rest, holder };
+    const rp = b => new THREE.Vector3().setFromMatrixPosition(rest[b]);
+    // baş kutusu: baş ağının baş kemiğinden yukarısı
+    const hb = new THREE.Box3(), hy = rp('neck_01').y + 0.04, tv = new THREE.Vector3();
+    scene.traverse(o => { if (o.isSkinnedMesh && o.userData.part === 'head') { const P = o.geometry.attributes.position; for (let i = 0; i < P.count; i++) { tv.fromBufferAttribute(P, i).applyMatrix4(o.bindMatrix); if (tv.y > hy) hb.expandByPoint(tv); } } });
+    T.head = { c: hb.getCenter(new THREE.Vector3()), s: hb.getSize(new THREE.Vector3()) };
+    // eski ölçülerden bu şablona dönüşüm (genişlik ve boy oranı)
+    const ref = n => new THREE.Vector3(...RIG_REF[n]);
+    T.kx = Math.abs(rp('upperarm_l').x - rp('upperarm_r').x) / 0.424; T.ky = (rp('Head').y - rp('pelvis').y) / (1.6 - 0.949);
+    T.kx = Math.min(1.05, Math.max(0.8, T.kx)); T.ky = Math.min(1.05, Math.max(0.85, T.ky)); T.kz = T.kx * 0.95;
+    T.map = (b, x, y, z) => { const r = RIG_REF[b] ? ref(b) : null; if (!r) return new THREE.Vector3(x, y, z); const t = rp(b); return new THREE.Vector3(t.x + (x - r.x) * T.kx, t.y + (y - r.y) * T.ky, t.z + (z - r.z) * T.kz); };
+    // etekler (kalça + uyluklar, yürürken salınır)
+    const pel = rp('pelvis'), bl = ['pelvis', 'thigh_l', 'thigh_r'].map(n => bones[n]);
+    const inv = bl.map(b => new THREE.Matrix4().copy(rest[b.name]).invert());
+    const skirt = (len, r0, r1) => {
+      const seg = 28, rows = 8, pos = [], si = [], sw = [], idx = [], uv = [], top = pel.y + 0.07;
+      len *= T.ky; r0 *= T.kx; r1 *= T.kx;
       for (let j = 0; j <= rows; j++) {
         const t = j / rows, y = top - len * t, r = r0 + (r1 - r0) * Math.pow(t, 0.8);
         for (let i = 0; i <= seg; i++) {
-          const a = i / seg * Math.PI * 2, sx = Math.sin(a), cz = Math.cos(a);
-          pos.push(sx * r, y, cz * r * 0.82 - 0.03); uv.push(i / seg * 4, t * 3);
-          const k = Math.min(1, t * 1.15), wl = Math.max(0, sx) * k * 0.9 + (cz > 0 ? cz * 0.5 * k * 0.6 : 0), wr = Math.max(0, -sx) * k * 0.9 + (cz > 0 ? cz * 0.5 * k * 0.6 : 0);
-          si.push(bi('pelvis'), bi('thigh_l'), bi('thigh_r'), 0); sw.push(Math.max(0, 1 - wl - wr), wl, wr, 0);
+          const a = i / seg * Math.PI * 2, sxx = Math.sin(a), cz = Math.cos(a);
+          pos.push(sxx * r, y, cz * r * 0.82 + pel.z + 0.01); uv.push(i / seg * 4, t * 3);
+          const k = Math.min(1, t * 1.15), wl = Math.max(0, sxx) * k * 0.9 + (cz > 0 ? cz * 0.3 * k : 0), wr = Math.max(0, -sxx) * k * 0.9 + (cz > 0 ? cz * 0.3 * k : 0);
+          si.push(0, 1, 2, 0); sw.push(Math.max(0, 1 - wl - wr), wl, wr, 0);
         }
       }
       for (let j = 0; j < rows; j++) for (let i = 0; i < seg; i++) { const a = j * (seg + 1) + i, b2 = a + seg + 1; idx.push(a, b2, a + 1, a + 1, b2, b2 + 1); }
@@ -120,127 +89,80 @@ const HumanRig = {
       G.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); G.setAttribute('uv', new THREE.Float32BufferAttribute(uv, 2));
       G.setAttribute('skinIndex', new THREE.Uint16BufferAttribute(si, 4)); G.setAttribute('skinWeight', new THREE.Float32BufferAttribute(sw, 4));
       G.setIndex(idx); G.computeVertexNormals();
-      return G;
+      const m = new THREE.SkinnedMesh(G, new THREE.MeshLambertMaterial({ color: 0x884433, side: THREE.DoubleSide }));
+      scene.add(m); m.bind(new THREE.Skeleton(bl, inv), new THREE.Matrix4());
+      return m;
     };
-    this.skirts = { long: this.skirt(0.74, 0.19, 0.33), mid: this.skirt(0.5, 0.185, 0.27), short: this.skirt(0.3, 0.18, 0.22) };
-    // animasyonda modelden pek taşmayan sabit sınır küresi → ekran dışı karakterler çizilmez
+    for (const [k, a] of Object.entries({ long: [0.74, 0.2, 0.34], mid: [0.5, 0.19, 0.28], short: [0.3, 0.185, 0.23] })) skirt(...a).userData.part = 'skirt_' + k;
+    // ekran dışı kırpma için sabit sınır küresi
     const bs = new THREE.Sphere(new THREE.Vector3(0, 0.95, 0), 1.25);
-    for (const G2 of [g, ...Object.values(this.shell), ...Object.values(this.skirts)]) G2.boundingSphere = bs.clone();
-    scene.traverse(o => { if (o.isMesh && o.geometry !== g) o.geometry.boundingSphere = bs.clone(); });
-    // dokudaki ortalama ten rengi (ten tonunu buna göre ölçekleriz)
-    try {
-      const im = body.material.map.image, cv = document.createElement('canvas'); cv.width = cv.height = 64;
-      const x = cv.getContext('2d'); x.drawImage(im, 0, 0, 64, 64); const d = x.getImageData(0, 0, 64, 64).data;
-      let r = 0, gg = 0, b3 = 0, n = 0;
-      for (let i = 0; i < d.length; i += 4) if (d[i] > 60 && d[i] > d[i + 1] + 8 && d[i + 1] > d[i + 2]) { r += d[i]; gg += d[i + 1]; b3 += d[i + 2]; n++; }
-      if (n) this.skinAvg = new THREE.Color(r / n / 255, gg / n / 255, b3 / n / 255);
-    } catch (e) { /* yok */ }
-    // kumaş dokusu (dokuma + kıvrım gürültüsü)
-    const cv = document.createElement('canvas'); cv.width = cv.height = 128; const x = cv.getContext('2d');
-    const id = x.createImageData(128, 128), rr = typeof mulberry32 === 'function' ? mulberry32(7) : Math.random;
-    for (let yy = 0; yy < 128; yy++) for (let xx = 0; xx < 128; xx++) {
-      const w = ((xx + yy) % 2 ? 0.97 : 1) * (0.95 + 0.05 * Math.sin(yy * 0.2 + Math.sin(xx * 0.1) * 2)) * (0.95 + rr() * 0.05);
-      const k = (yy * 128 + xx) * 4, c = Math.round(255 * Math.min(1, w)); id.data[k] = id.data[k + 1] = id.data[k + 2] = c; id.data[k + 3] = 255;
-    }
-    x.putImageData(id, 0, 0);
-    this.fabric = new THREE.CanvasTexture(cv); this.fabric.wrapS = this.fabric.wrapT = THREE.RepeatWrapping; this.fabric.repeat.set(3, 3);
-  },
-
-  // Taubin yumuşatma (kas detayını giderir, hacmi korur); aynı konumdaki dikiş köşeleri birlikte taşınır
-  _groups(pos) {
-    const key = new Map(), gid = new Int32Array(pos.length / 3); let n = 0;
-    for (let i = 0; i < gid.length; i++) { const k = Math.round(pos[i * 3] * 1e4) + ',' + Math.round(pos[i * 3 + 1] * 1e4) + ',' + Math.round(pos[i * 3 + 2] * 1e4); let g = key.get(k); if (g === undefined) { g = n++; key.set(k, g); } gid[i] = g; }
-    return { gid, n };
-  },
-  _smooth(pos, idx, iters) {
-    const { gid, n } = this._groups(pos), P = new Float32Array(n * 3), cnt = new Uint16Array(n), nb = Array.from({ length: n }, () => new Set()), edge = new Map();
-    for (let i = 0; i < gid.length; i++) { const g = gid[i]; if (!cnt[g]) { P[g * 3] = pos[i * 3]; P[g * 3 + 1] = pos[i * 3 + 1]; P[g * 3 + 2] = pos[i * 3 + 2]; } cnt[g]++; }
-    for (let t = 0; t < idx.length; t += 3) for (let k = 0; k < 3; k++) {
-      const a = gid[idx[t + k]], b = gid[idx[t + (k + 1) % 3]]; nb[a].add(b); nb[b].add(a);
-      const e = a < b ? a + '_' + b : b + '_' + a; edge.set(e, (edge.get(e) || 0) + 1);
-    }
-    const fixed = new Uint8Array(n);
-    for (const [e, c] of edge) if (c === 1) { const [a, b] = e.split('_'); fixed[+a] = fixed[+b] = 1; }
-    const T = new Float32Array(n * 3);
-    for (let it = 0; it < iters * 2; it++) {
-      const f = it % 2 ? -0.53 : 0.5;
-      for (let g = 0; g < n; g++) {
-        if (fixed[g] || !nb[g].size) { T[g * 3] = P[g * 3]; T[g * 3 + 1] = P[g * 3 + 1]; T[g * 3 + 2] = P[g * 3 + 2]; continue; }
-        let x = 0, y = 0, z = 0; for (const o of nb[g]) { x += P[o * 3]; y += P[o * 3 + 1]; z += P[o * 3 + 2]; }
-        const k = nb[g].size; T[g * 3] = P[g * 3] + f * (x / k - P[g * 3]); T[g * 3 + 1] = P[g * 3 + 1] + f * (y / k - P[g * 3 + 1]); T[g * 3 + 2] = P[g * 3 + 2] + f * (z / k - P[g * 3 + 2]);
-      }
-      P.set(T);
-    }
-    for (let i = 0; i < gid.length; i++) { const g = gid[i]; pos[i * 3] = P[g * 3]; pos[i * 3 + 1] = P[g * 3 + 1]; pos[i * 3 + 2] = P[g * 3 + 2]; }
-  },
-  // dikişlerde kesintisiz normaller
-  _normals(G) {
-    G.computeVertexNormals();
-    const p = G.attributes.position.array, nr = G.attributes.normal.array, { gid, n } = this._groups(p), acc = new Float32Array(n * 3);
-    for (let i = 0; i < gid.length; i++) { const g = gid[i]; acc[g * 3] += nr[i * 3]; acc[g * 3 + 1] += nr[i * 3 + 1]; acc[g * 3 + 2] += nr[i * 3 + 2]; }
-    for (let i = 0; i < gid.length; i++) { const g = gid[i], l = Math.hypot(acc[g * 3], acc[g * 3 + 1], acc[g * 3 + 2]) || 1; nr[i * 3] = acc[g * 3] / l; nr[i * 3 + 1] = acc[g * 3 + 1] / l; nr[i * 3 + 2] = acc[g * 3 + 2] / l; }
+    scene.traverse(o => { if (o.isMesh) { o.geometry.boundingSphere = bs.clone(); o.castShadow = true; } });
+    if (!this.Sset) { const box = new THREE.Box3().setFromObject(scene); this.S = HUMAN_H / Math.max(1.6, hb.max.y + 0.02); this.Sset = true; }
+    // dokulardaki ortalama ten rengi
+    const avg = map => {
+      try {
+        const cv = document.createElement('canvas'); cv.width = cv.height = 64; const x = cv.getContext('2d'); x.drawImage(map.image, 0, 0, 64, 64);
+        const d = x.getImageData(0, 0, 64, 64).data; let r = 0, g = 0, b = 0, n = 0;
+        for (let i = 0; i < d.length; i += 4) if (d[i] > 60 && d[i] > d[i + 1] + 8 && d[i + 1] > d[i + 2]) { r += d[i]; g += d[i + 1]; b += d[i + 2]; n++; }
+        return n ? new THREE.Color(r / n / 255, g / n / 255, b / n / 255) : null;
+      } catch (e) { return null; }
+    };
+    scene.traverse(o => { if (o.isMesh && (o.userData.part === 'head' || o.userData.part === 'hands') && o.material.map && !o.material.userData.avg) o.material.userData.avg = avg(o.material.map); });
+    return T;
   },
 
   // dinlenme pozundaki model uzayı → kemik yereli
   attach(rig, bone, obj, mat) {
-    const B = rig.bones[bone], R = this.rest[bone];
+    const B = rig.bones[bone], R = rig.T.rest[bone];
     if (!B || !R) return obj;
     const m = new THREE.Matrix4().copy(R).invert().multiply(mat);
     m.decompose(obj.position, obj.quaternion, obj.scale);
     B.add(obj);
     return obj;
   },
-  restPos(b) { return new THREE.Vector3().setFromMatrixPosition(this.rest[b]); },
+  restPos(b) { return new THREE.Vector3().setFromMatrixPosition(this._T.rest[b]); },
 
-  _bodyMat(src) {
+  // kıyafet malzemesi: dokunun açık yerleri gömlek, koyu yerleri pantolon rengine çekilir (desen korunur)
+  _tintMat(src) {
     const map = src.map; if (map) map.encoding = THREE.LinearEncoding;
-    const m = new THREE.MeshLambertMaterial({ map, skinning: true });
-    const U = m.userData.u = { uShirt: { value: new THREE.Color(0x8a3a2a) }, uPants: { value: new THREE.Color(0x3a2a20) }, uBoots: { value: new THREE.Color(0x2a1c12) }, uGlove: { value: new THREE.Color(0xe8b98a) }, uSkin: { value: new THREE.Color(1, 1, 1) }, uGloveOn: { value: 0 } };
+    const m = new THREE.MeshLambertMaterial({ map, skinning: true, side: THREE.DoubleSide });
+    const U = m.userData.u = { uA: { value: new THREE.Color(1, 1, 1) }, uB: { value: new THREE.Color(1, 1, 1) }, uK: { value: 0 } };
     m.onBeforeCompile = sh => {
       Object.assign(sh.uniforms, U);
-      sh.vertexShader = sh.vertexShader.replace('#include <common>', '#include <common>\nattribute vec4 cloth;\nvarying vec4 vCloth;\nvarying vec3 vRigPos;')
-        .replace('#include <begin_vertex>', '#include <begin_vertex>\nvCloth = cloth;\nvRigPos = position;');
-      sh.fragmentShader = sh.fragmentShader.replace('#include <common>', '#include <common>\nuniform vec3 uShirt; uniform vec3 uPants; uniform vec3 uBoots; uniform vec3 uGlove; uniform vec3 uSkin; uniform float uGloveOn;\nvarying vec4 vCloth;\nvarying vec3 vRigPos;')
+      sh.fragmentShader = sh.fragmentShader.replace('#include <common>', '#include <common>\nuniform vec3 uA; uniform vec3 uB; uniform float uK;')
         .replace('#include <map_fragment>', `#include <map_fragment>
           float lum = dot(diffuseColor.rgb, vec3(0.3, 0.59, 0.11));
-          vec4 cw = vCloth; cw.w *= uGloveOn;
-          float wsum = clamp(cw.x + cw.y + cw.z + cw.w, 0.0, 1.0);
-          vec3 fab = (uShirt * cw.x + uPants * cw.y + uBoots * cw.z + uGlove * cw.w) / max(0.001, cw.x + cw.y + cw.z + cw.w);
-          float weave = 0.94 + 0.06 * sin(vRigPos.y * 900.0) * sin(vRigPos.x * 700.0 + vRigPos.z * 500.0);
-          float shade = clamp(0.62 + (lum - 0.55) * 1.1, 0.35, 1.15) * weave;
-          diffuseColor.rgb = mix(diffuseColor.rgb * uSkin, fab * shade, wsum);`);
+          vec3 tint = mix(uB, uA, smoothstep(0.16, 0.42, lum));
+          diffuseColor.rgb = mix(diffuseColor.rgb, clamp(lum * tint * 2.1, 0.0, 1.0), uK);`);
     };
-    m.customProgramCacheKey = () => 'humanbody';
+    m.customProgramCacheKey = () => 'humantint';
     return m;
   },
 
-  // Yeni karakter örneği
-  make() {
-    const model = THREE.SkeletonUtils.clone(this.src), bones = {};
-    let body = null;
-    model.traverse(o => {
-      if (o.isBone || o.name === 'root') bones[o.name] = o;
-      if (o.isMesh) {
-        o.castShadow = true;
-        if (/SuperHero/i.test(o.name)) { body = o; o.material = this._bodyMat(o.material); }
-        else {
-          const s = o.material, map = s.map; if (map) map.encoding = THREE.LinearEncoding;
-          o.material = new THREE.MeshLambertMaterial({ map, skinning: true, transparent: /Hair/.test(s.name), alphaTest: /Hair/.test(s.name) ? 0.3 : 0, side: THREE.DoubleSide });
-          o.castShadow = false;
-          if (/Hair/.test(s.name)) o.material.userData.brow = true;
-        }
+  // Yeni karakter örneği. o: { v: 'm_peasant'.., hair, beard }
+  make(o = {}) {
+    const T = this.T[o.v] || this.T.m_peasant;
+    const model = THREE.SkeletonUtils.clone(T.scene), bones = {}, parts = {};
+    model.traverse(n => {
+      if (n.isBone) bones[n.name] = n;
+      if (!n.isMesh) return;
+      const p = n.userData.part || 'outfit', s = n.material;
+      (parts[p] = parts[p] || []).push(n);
+      if (p === 'outfit' || p === 'hood' || p === 'pauldron') n.material = this._tintMat(s);
+      else if (p.startsWith('skirt_')) n.material = s.clone();
+      else {
+        const map = s.map; if (map) map.encoding = THREE.LinearEncoding;
+        const hair = p.startsWith('hair') || p === 'beard' || p === 'brows';
+        n.material = new THREE.MeshLambertMaterial({ map, skinning: true, transparent: false, alphaTest: hair ? 0.35 : 0, side: hair ? THREE.DoubleSide : THREE.FrontSide });
+        n.material.userData.avg = s.userData.avg;
+        if (hair || p === 'eyes') n.castShadow = false;
       }
     });
     model.scale.setScalar(this.S);
     const root = new THREE.Group(); root.add(model);
-    const rig = { root, model, bones, body, U: body.material.userData.u, mixer: new THREE.AnimationMixer(model), actions: {}, cur: null, outfit: [], S: this.S, shells: {} };
-    const mkShell = (geo, k) => {
-      const m = new THREE.SkinnedMesh(geo, new THREE.MeshLambertMaterial({ color: 0x884433, map: this.fabric, skinning: true, side: k === 'skirt' ? THREE.DoubleSide : THREE.FrontSide }));
-      m.bind(body.skeleton, body.bindMatrix); m.castShadow = true;
-      body.parent.add(m); rig.shells[k] = m; return m;
-    };
-    for (const k in this.shell) mkShell(this.shell[k], k);
-    for (const k in this.skirts) mkShell(this.skirts[k], 'skirt_' + k).visible = false;
+    const rig = { root, model, bones, parts, T, v: T.v, mixer: new THREE.AnimationMixer(model), actions: {}, cur: null, outfit: [], S: this.S,
+      U: { uShirt: { value: new THREE.Color() }, uPants: { value: new THREE.Color() }, uBoots: { value: new THREE.Color() }, uGlove: { value: new THREE.Color() }, uSkin: { value: new THREE.Color(1, 1, 1) }, uGloveOn: { value: 0 } } };
+    this._T = T;
     // silah / kalkan tutucular (eski el grubunun ekseni: y dirseğe doğru, z ileri)
     for (const side of ['r', 'l']) {
       const hp = this.restPos('hand_' + side), ep = this.restPos('lowerarm_' + side), mp = this.restPos('middle_01_' + side);
@@ -253,9 +175,20 @@ const HumanRig = {
       holder.scale.multiplyScalar(1 / this.S);
       rig['hand' + side.toUpperCase()] = holder;
     }
-    rig.play = (name, o = {}) => this.play(rig, name, o);
+    this.setLook(rig, o);
+    rig.play = (name, oo = {}) => this.play(rig, name, oo);
     rig.update = dt => rig.mixer.update(dt);
     return rig;
+  },
+  // saç / sakal / başlık görünürlüğü
+  setLook(rig, o) {
+    const P = rig.parts, hair = o.hair && P['hair:' + o.hair] ? o.hair : RIG_HAIR[rig.T.female ? 'f' : 'm'][0];
+    for (const k in P) if (k.startsWith('hair:')) for (const m of P[k]) m.visible = !o.hideHair && k === 'hair:' + hair;
+    for (const m of P.beard || []) m.visible = !!o.beard;
+    for (const m of P.hood || []) m.visible = !!o.hood;
+    for (const m of P.pauldron || []) m.visible = o.pauldron !== false;
+    const hc = new THREE.Color(o.hairColor || 0x1a1410);
+    for (const k of Object.keys(P).filter(k => k.startsWith('hair:') || k === 'beard' || k === 'brows')) for (const m of P[k]) m.material.color.copy(hc).multiplyScalar(1.6);
   },
 
   play(rig, name, o) {
@@ -277,10 +210,15 @@ const HumanRig = {
   _clearOutfit(rig) { for (const m of rig.outfit) m.parent && m.parent.remove(m); rig.outfit = []; },
   // c: { robe, robeDark, boots, gloves, skin, hair, beard, ch, lg, hd, sh, hn, ft, avD, avH, avA, dv, sealE, hat, noHat, cape }
   dress(h, c) {
-    const rig = h.rig; if (!rig) return;
-    this._clearOutfit(rig);
-    const U = rig.U;
-    const R = (b, x, y, z, rx = 0, ry = 0, rz = 0, sx = 1, sy = 1, sz = 1) => new THREE.Matrix4().compose(new THREE.Vector3(x, y, z), new THREE.Quaternion().setFromEuler(new THREE.Euler(rx, ry, rz)), new THREE.Vector3(sx, sy, sz));
+    if (!h.rig) return;
+    // kıyafet türü: deri zırh → korucu, diğerleri → köylü kıyafeti (üstüne zırh / cübbe)
+    const fem = !!h.female, at0 = c.ch && c.ch.b.atype;
+    const want = (fem ? 'f_' : 'm_') + (at0 === 'protector' || (c.npc && c.npc.hat === 'hood') ? 'ranger' : 'peasant');
+    if (h.rig.v !== want && this.T[want]) swapRig(h, want);
+    const rig = h.rig;
+    this._clearOutfit(rig); this._T = rig.T;
+    const U = rig.U, TT = rig.T;
+    const R = (b, x, y, z, rx = 0, ry = 0, rz = 0, sx = 1, sy = 1, sz = 1) => { const hd0 = b === 'Head'; return new THREE.Matrix4().compose(hd0 ? new THREE.Vector3(x, y, z) : TT.map(b, x, y, z), new THREE.Quaternion().setFromEuler(new THREE.Euler(rx, ry, rz)), hd0 ? new THREE.Vector3(sx, sy, sz) : new THREE.Vector3(sx * TT.kx, sy * TT.ky, sz * TT.kz)); };
     const add = (bone, geo, mat, M, shadow = true) => { const m = new THREE.Mesh(geo, mat); m.castShadow = shadow && (!CONFIG.isTouch || h.isPlayer); this.attach(rig, bone, m, M); rig.outfit.push(m); return m; };
     const cyl = (rt, rb, hh, seg = 16, open = false) => new THREE.CylinderGeometry(rt, rb, hh, seg, 1, open);
     const sph = (r, a = 14, b = 10, t0 = 0, tl = Math.PI) => new THREE.SphereGeometry(r, a, b, 0, 6.283, t0, tl);
@@ -294,20 +232,11 @@ const HumanRig = {
     U.uBoots.value.copy(ft ? armorMat(ft.b.atype, ft.b.d, ft.b.tier, null, true).color : new THREE.Color(0x2a1c12));
     U.uGloveOn.value = hn ? 1 : 0;
     if (hn) U.uGlove.value.copy(armorMat(hn.b.atype, hn.b.d, hn.b.tier, null, true).color);
-    const av = this.skinAvg || new THREE.Color(0.91, 0.73, 0.54);
-    U.uSkin.value.copy(new THREE.Color(c.skin || 0xe8b98a)).multiply(new THREE.Color(1 / av.r, 1 / av.g, 1 / av.b)).multiplyScalar(0.92);
-    // saç (başlık yoksa)
-    const H = this.head, hc = H.c, hs = H.s;
-    const covered = !!(hd || avH || (c.hat && !c.noHat && c.hat !== 'band' && c.hat !== 'bun'));
-    const hairM = lm(c.hair || 0x1a1410);
-    if (!covered || (avH && avH.b.look.kind === 'ears')) {
-      add('Head', sph(1, 16, 10, 0, 1.75), hairM, R('Head', hc.x, hc.y + hs.y * 0.08, hc.z - hs.z * 0.06, -0.25, 0, 0, hs.x * 0.56, hs.y * 0.6, hs.z * 0.6));
-      if (c.race !== 'eu') {             // Çin: tepede topuz
-        add('Head', sph(0.05, 10, 8), hairM, R('Head', hc.x, hc.y + hs.y * 0.55, hc.z - hs.z * 0.12));
-        add('Head', cyl(0.018, 0.018, 0.13, 6), _metal(0xd8a830, null, 60), R('Head', hc.x, hc.y + hs.y * 0.55, hc.z - hs.z * 0.12, 0, 0, Math.PI / 2));
-      } else add('Head', sph(1, 14, 8, 1.2, 1.2), hairM, R('Head', hc.x, hc.y - hs.y * 0.05, hc.z - hs.z * 0.12, 0, 0, 0, hs.x * 0.55, hs.y * 0.55, hs.z * 0.5));
-    }
-    if (c.beard) add('Head', new THREE.ConeGeometry(0.045, 0.12, 8), lm(c.beard), R('Head', hc.x, hc.y - hs.y * 0.52, hc.z + hs.z * 0.38, Math.PI + 0.35, 0, 0));
+    for (const k of ['head', 'hands']) for (const m of rig.parts[k] || []) { const av = m.material.userData.avg || new THREE.Color(0.85, 0.65, 0.5); m.material.color.copy(new THREE.Color(c.skin || 0xe8b98a)).multiply(new THREE.Color(1 / av.r, 1 / av.g, 1 / av.b)).multiplyScalar(0.95); }
+    const H = TT.head, hc = H.c, hs = H.s;
+    const covered = !!(hd || avH || (c.hat && !c.noHat && !['band', 'bun', 'straw'].includes(c.hat)));
+    const style = c.hairStyle || (fem ? 'long' : c.race === 'eu' ? 'simpleparted' : 'buns');
+    this.setLook(rig, { hair: style, hideHair: covered && !(avH && avH.b.look.kind === 'ears'), beard: !!c.beard, hairColor: c.hair, hood: !!(c.npc && c.npc.hat === 'hood' && !hd), pauldron: !!(sh || (ch && ch.b.atype === 'protector')) });
     // gövde parçaları (model uzayı, metre)
     const sp3 = this.restPos('spine_03'), sp1 = this.restPos('spine_01'), pel = this.restPos('pelvis');
     if (avD) {
@@ -337,7 +266,7 @@ const HumanRig = {
         U.uShirt.value.copy(robe.clone().multiplyScalar(0.8));
       } else if (at === 'protector') {
         add('spine_03', cyl(0.195, 0.18, 0.34, 18), M, R('spine_03', 0, 1.3, 0.0, 0, 0, 0, 1, 1, 0.7));
-        skirt = 'short'; skirtCol = M.color.clone().multiplyScalar(0.85); U.uShirt.value.copy(M.color.clone().multiplyScalar(0.7));
+        U.uShirt.value.copy(M.color.clone().multiplyScalar(0.9));
         add('spine_03', new THREE.BoxGeometry(0.04, 0.46, 0.012), lm(0x2a1a0e), R('spine_03', 0, 1.28, 0.13, 0, 0, 0.62));
         for (let i = 0; i < 5; i++) add('spine_03', sph(0.012, 6, 4), _metal(d >= 4 ? 0xd8a830 : 0xb0b4bc, null, 60), R('spine_03', -0.12 + i * 0.06, 1.15 + i * 0.08 * 0.62 * 1.4 * 0.9, 0.135));
         add('spine_01', cyl(0.175, 0.17, 0.05), lm(0x2a1a0e), R('spine_01', 0, 1.0, 0, 0, 0, 0, 1, 1, 0.75));
@@ -355,7 +284,6 @@ const HumanRig = {
       }
     } else {
       // zırhsız: basit kumaş tunik + kuşak
-      skirt = 'mid'; skirtCol = robe.clone();
       add('spine_01', cyl(0.176, 0.17, 0.06), lm(robe.clone().multiplyScalar(0.5)), R('spine_01', 0, 1.0, 0, 0, 0, 0, 1, 1, 0.75));
     }
     // NPC: uzun cübbe, kuşak, geniş yen, önlük, maske, zırh
@@ -461,12 +389,11 @@ const HumanRig = {
       else if (k === 'flag') { add('spine_03', new THREE.BoxGeometry(0.025, 1.1, 0.025), lm(0x5a3a1a), R('spine_03', 0, 1.55, -0.2)); add('spine_03', new THREE.BoxGeometry(0.015, 0.4, 0.3), lm(avA.b.look.c1), R('spine_03', 0, 1.9, -0.36)); }
       else add('spine_03', new THREE.TorusGeometry(0.28, 0.025, 6, 24), new THREE.MeshBasicMaterial({ color: avA.b.look.c1, transparent: true, opacity: 0.8 }), R('spine_03', 0, 1.2, -0.25), false);
     }
-    // giysi kabukları
-    const SH = rig.shells, leather = ch && ch.b.atype === 'protector';
-    SH.shirt.material.color.copy(U.uShirt.value); SH.pants.material.color.copy(U.uPants.value); SH.boots.material.color.copy(U.uBoots.value);
-    SH.glove.visible = !!hn; if (hn) SH.glove.material.color.copy(U.uGlove.value);
-    SH.shirt.material.map = leather ? null : this.fabric; SH.shirt.material.needsUpdate = true;
-    for (const k of ['long', 'mid', 'short']) { const m = SH['skirt_' + k]; m.visible = skirt === k; if (skirt === k) m.material.color.copy(skirtCol); }
+    // kıyafet boyası
+    const at = ch && ch.b.atype, k = avD || (c.npc && !(N && N.armor)) ? 0.7 : at === 'protector' ? 0.3 : at === 'garment' ? 0.72 : at === 'armor' ? 0.5 : 0.55;
+    for (const p of ['outfit', 'hood', 'pauldron']) for (const m of rig.parts[p] || []) { const u = m.material.userData.u; u.uA.value.copy(U.uShirt.value); u.uB.value.copy(U.uPants.value); u.uK.value = k; }
+    for (const m of rig.parts.hands || []) if (hn) m.material.color.copy(U.uGlove.value).multiplyScalar(1.3);
+    for (const kk of ['long', 'mid', 'short']) for (const m of rig.parts['skirt_' + kk] || []) { m.visible = skirt === kk; if (skirt === kk) m.material.color.copy(skirtCol); }
     // Şeytan Ruhu
     if (dv && !avH) {
       const g = dv.b.look.g, hm = new THREE.MeshPhongMaterial({ color: g >= 3 ? 0x2a0a0a : 0x5a1010, emissive: g >= 3 ? 0x6a0a0a : 0x2a0404, shininess: 60 });
@@ -479,7 +406,7 @@ const HumanRig = {
 function upgradeHumanoid(h) {
   HumanRig.whenReady(() => {
     if (h.rig || h.disposed) return;
-    const rig = HumanRig.make();
+    const rig = HumanRig.make({ v: (h.female ? 'f_' : 'm_') + 'peasant' });
     h.rig = rig;
     // eski parçaları gizle; silah / kalkan tutucularını yeni ellere taşı
     for (const ch of h.group.children.slice()) ch.visible = false;
@@ -555,4 +482,15 @@ function rigMobEquip(gear, level) {
     for (let d = d0; d >= 1; d--) { const b = slot + '_' + gear.at + '_' + d; if (ITEM_BASES[b]) { eq[slot] = makeItem(b); break; } }
   }
   return eq;
+}
+
+// kıyafet türü değişince modeli değiştir (animasyon ve tutucular korunur)
+function swapRig(h, v) {
+  const old = h.rig, rig = HumanRig.make({ v });
+  for (const [o, n] of [[old.handR, rig.handR], [old.handL, rig.handL]]) for (const c of o.children.slice()) n.add(c);
+  const par = old.root.parent; if (par) { par.remove(old.root); par.add(rig.root); }
+  rig.root.position.copy(old.root.position);
+  if (CONFIG.isTouch && !h.isPlayer) rig.root.traverse(o => { if (o.isMesh) o.castShadow = false; });
+  HumanRig.play(rig, old.curName || 'Idle_Loop', { fade: 0 });
+  h.rig = rig;
 }

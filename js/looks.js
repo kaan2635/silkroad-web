@@ -229,7 +229,7 @@ function dressHumanoid(h, eq) {
   h.robe.color.copy(robe); h.robeDark.color.copy(robeDark);
   if (h.wantRig) {
     h.lastDress = { robe: robe.getHex(), robeDark: robeDark.getHex(), skin: h.skin.color.getHex(), hair: h.hairMat.color.getHex(), race: h.race, beard: h.beard,
-      ch, lg, hd, sh, hn, ft, avD, avH, avA, dv: B('devil'), sealE, hat: h.hatKind, noHat: h.noHat, cape: h.capeColor, npc: h.npcLook || null, baseRobe: h.baseRobe };
+      ch, lg, hd, sh, hn, ft, avD, avH, avA, dv: B('devil'), sealE, hat: h.hatKind, noHat: h.noHat, cape: h.capeColor, npc: h.npcLook || null, baseRobe: h.baseRobe, hairStyle: h.hairStyle };
     if (h.rig) { HumanRig.dress(h, h.lastDress); return; }
   }
 

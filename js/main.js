@@ -119,7 +119,7 @@
     try {
       const s = player.stats;
       localStorage.setItem(CONFIG.saveKey, JSON.stringify({
-        v: 2, name: player.name, race: player.race, x: player.pos.x, z: player.pos.z,
+        v: 2, name: player.name, race: player.race, g: player.gender || 'm', x: player.pos.x, z: player.pos.z,
         level: s.level, exp: s.exp, gold: s.gold, silk: s.silk || 0, day: lastDay, str: s.str, int: s.int, statPts: s.statPts, zerk: s.zerk,
         hp: Math.round(s.hp), mp: Math.round(s.mp),
         inv: player.inv.serialize(), book: player.book.serialize(), hotbar: hotbar.serialize(),
@@ -135,6 +135,7 @@
   let afterLoad = null, lastDay = '';
   function applySave(sv) {
     const s = player.stats;
+    player.setGender(sv.g || 'm');
     player.setRace(sv.race || 'ch');
     s.level = clamp(sv.level | 0 || 1, 1, MAX_LEVEL);
     s.maxExp = expToNext(s.level);
@@ -174,7 +175,7 @@
   const startBtn = document.getElementById('start-btn');
   const note = document.getElementById('continue-note'), create = document.getElementById('create');
   const saved = loadSave();
-  let pickW = 'blade', pickA = 'protector', pickR = 'ch';
+  let pickW = 'blade', pickA = 'protector', pickR = 'ch', pickG = 'm';
   const RACE_NOTE = { ch: 'Çinliler 7 ustalıktan istediklerini birleştirir (toplam sınır seviye ×3). Silah: kılıç, bıçak, mızrak, pala, yay.',
     eu: 'Avrupalılar 6 sınıftan en çok ikisini seçer: ana + yan sınıf (Savaşçı, Haydut, Büyücü, Lanetçi, Rahip, Ozan; toplam sınır seviye ×2).' };
   const setRacePick = r => {
@@ -193,6 +194,7 @@
   chip('pick-w', 'w', v => { pickW = v; });
   chip('pick-a', 'a', v => { pickA = v; });
   chip('pick-r', 'r', v => setRacePick(v));
+  chip('pick-g', 'g', v => { pickG = v; });
   const refreshStart = () => {
     const same = saved && saved.name && !saved.newChar && saved.name === (nameInput.value || '').trim();
     create.classList.toggle('hidden', !!same);
@@ -200,7 +202,7 @@
     startBtn.textContent = same ? 'Devam Et' : 'Karakteri Oluştur';
   };
   if (saved && saved.name) nameInput.value = saved.name;
-  if (saved && saved.newChar) { nameInput.value = saved.newChar.name; pickW = saved.newChar.w || 'blade'; pickA = saved.newChar.a || 'protector'; pickR = saved.newChar.r || 'ch'; }
+  if (saved && saved.newChar) { nameInput.value = saved.newChar.name; pickW = saved.newChar.w || 'blade'; pickA = saved.newChar.a || 'protector'; pickR = saved.newChar.r || 'ch'; pickG = saved.newChar.g || 'm'; { const gb = document.querySelector('#pick-g button[data-g="' + pickG + '"]'); if (gb) for (const b of gb.parentNode.children) b.classList.toggle('on', b === gb); } }
   { const rb = document.querySelector('#pick-r button[data-r="' + pickR + '"]'); for (const b of rb.parentNode.children) b.classList.toggle('on', b === rb); setRacePick(pickR); }
   nameInput.addEventListener('input', refreshStart);
   refreshStart();
@@ -214,13 +216,14 @@
     const home = pickR === 'eu' ? 'constantinople' : 'jangan';
     if (!sameChar && CUR_ZONE_ID !== home) {          // yeni karakter ırkının başkentinde başlar (Jangan / Konstantinopolis)
       try {
-        localStorage.setItem(CONFIG.saveKey, JSON.stringify({ v: 2, newChar: { name, w: pickW, a: pickA, r: pickR }, zone: home }));
+        localStorage.setItem(CONFIG.saveKey, JSON.stringify({ v: 2, newChar: { name, w: pickW, a: pickA, r: pickR, g: pickG }, zone: home }));
         sessionStorage.setItem('srw-autostart', '1');
       } catch (e) { /* yok */ }
       location.reload(); return;
     }
     if (sameChar) applySave(saved);
     else {
+      player.setGender(pickG);
       player.setRace(pickR);
       player.inv.starter(pickW, pickA);
       player.book.sp = 40;

@@ -13,4 +13,4 @@
 
 - Boyalı ikonlar, canavar portreleri ve logo: proje sahibinin hazırlattığı varlık sayfası (`tools/asset_sheet.png`), `tools/slice_sheet.py` ile `assets/ui/` atlaslarına bölünür.
 
-- Gerçekçi insan karakterler: Quaternius **Universal Base Characters** (Superhero Male) ve **Universal Animation Library** — CC0 1.0 (`assets/models/human/LICENSE-*.txt`). Gövde dokuları küçültüldü, animasyonlar ayıklandı (`tools/build_human.py`); giysi kabukları, etekler ve zırh parçaları oyunda üretilir (`js/humanrig.js`).
+- Gerçekçi insan karakterler: Quaternius **Modular Character Outfits – Fantasy** (köylü ve korucu kıyafetleri), **Universal Base Characters** (başlar, saçlar, sakal) ve **Universal Animation Library** — CC0 1.0 (`assets/models/human/LICENSE-*.txt`). Dokular küçültüldü, ağlar sadeleştirildi (`tools/build_outfits.py`, `tools/simplify_glb.mjs` — meshoptimizer, MIT), animasyonlar ayıklandı (`tools/build_human.py`); etekler ve zırh parçaları oyunda üretilir (`js/humanrig.js`).

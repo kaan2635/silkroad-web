@@ -83,7 +83,7 @@ function buildHumanoid(o) {
     if (on) { h.shield = shieldMesh(o); handL.add(h.shield); }
   };
   h.setWeapon(o.weapon === undefined ? 'sword' : o.weapon);
-  if (o.rig && typeof upgradeHumanoid === 'function') { h.wantRig = true; h.isPlayer = !!o.player; h.baseRobe = o.robe; h.baseDark = o.robeDark; h.hatKind = o.hat; h.race = o.race; upgradeHumanoid(h); }
+  if (o.rig && typeof upgradeHumanoid === 'function') { h.wantRig = true; h.isPlayer = !!o.player; h.female = !!o.female; h.hairStyle = o.hairStyle; h.baseRobe = o.robe; h.baseDark = o.robeDark; h.hatKind = o.hat; h.race = o.race; upgradeHumanoid(h); }
   return h;
 }
 
@@ -160,6 +160,10 @@ class Player {
   }
   doEmote(kind) { if (this.dead || this.mounted) return; this.sitting = false; this.target = null; this.emote = { kind, t: kind === 'dance' ? 6 : 3 }; }
 
+  setGender(g) {
+    this.gender = g === 'f' ? 'f' : 'm'; this.h.female = this.gender === 'f';
+    if (this.h.rig && this.h.lastDress) dressHumanoid(this.h, this.inv.equip);
+  }
   // Irk: 'ch' Çin / 'eu' Avrupa — görünüm, eşya ve ustalıklar buna göre
   setRace(r) {
     this.race = r === 'eu' ? 'eu' : 'ch'; RACE = this.race; this.book.race = this.race;

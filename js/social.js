@@ -100,7 +100,8 @@ class SimPlayer {
     this.dead = false; this.downT = 0; this.atkCd = 0; this.swingT = 0; this.walkPhase = Math.random() * 6; this.heading = Math.random() * 6.28;
     this.r = 0.7; this.wait = Math.random() * 3; this.goal = null; this.target = null; this.searchT = 0; this.healT = 4; this.slot = 0;
     const skinCol = bot.race === 'eu' ? 0xf0c8a8 : 0xe8b98a;
-    const h = this.h = buildHumanoid({ robe: bot.robe, robeDark: 0x2a1a10, skin: skinCol, hair: bot.race === 'eu' ? [0x6a4020, 0xc8a050, 0x3a2412][bot.id % 3] : 0x1a1410, hat: null, weapon: null, rig: true, race: bot.race });
+    const h = this.h = buildHumanoid({ robe: bot.robe, robeDark: 0x2a1a10, skin: skinCol, hair: bot.race === 'eu' ? [0x6a4020, 0xc8a050, 0x3a2412][bot.id % 3] : 0x1a1410, hat: null, weapon: null, rig: true, race: bot.race, female: bot.seed % 5 < 2, hairStyle: bot.seed % 5 < 2 ? ['long', 'buns', 'long', 'buzzedfemale'][bot.id % 4] : (bot.race === 'eu' ? ['simpleparted', 'buzzed', 'long'] : ['buns', 'buns', 'simpleparted', 'buzzed'])[bot.id % (bot.race === 'eu' ? 3 : 4)] });
+    if (bot.seed % 5 >= 2 && bot.seed % 7 < 2) h.beard = 1;
     this.group = new THREE.Group(); this.group.add(h.group);
     this.eq = botEquip(bot);
     const opt = it => ({ d: ITEM_BASES[it.base].d, tier: 0, plus: it.plus || 0, rarity: it.rarity || 0 });

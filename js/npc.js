@@ -22,6 +22,7 @@ if (IS_DUNGEON) {
   for (const n of NPC_DEFS) { if (n.id === 'tele') { n.x = -5; n.z = -6; n.title = 'Çıkış ve Kat Geçişi'; } else { n.x = 5; n.z = -6; n.title = 'İksir ve Parşömen'; } }
 }
 NPC_DEFS.forEach(n => { n.name = ZONE.npc[n.id] || ({ market: 'Pazar Ağası' })[n.id] || n.id; });
+const NPC_FEMALE = /\b(Mei|Su|Lin|Lan|Hua|Ying|Xiu|Yan|Hatun|Hanım|Ivy|Leyla|Elena|Maria|Sofia|Anna|Helena|Zeynep|Ayşe|Fatma|Nur|Gül|Sara|Lea|Irene|Theodora|Zoe|Nefer|Isis|Aisha|Layla|Shirin|Roxana|Mira)\b/i;
 
 // Görünüm: cübbe, iç renk, kuşak, şapka, saç, sakal, rol eşyası, hareket
 const NPC_LOOK = {
@@ -146,7 +147,7 @@ function npcProps(o, hand) {
 
 // Gerçekçi NPC: insan modeli + cübbe / şapka / sakal / rol eşyası
 function buildRobedRig(o) {
-  const h = buildHumanoid({ robe: o.robe, robeDark: o.dark, skin: o.skin || (ZONE.europe ? 0xf0c8a8 : 0xe8b98a), hair: o.hair, hat: o.hat, weapon: null, rig: true, race: ZONE.europe ? 'eu' : 'ch' });
+  const h = buildHumanoid({ robe: o.robe, robeDark: o.dark, skin: o.skin || (ZONE.europe ? 0xf0c8a8 : 0xe8b98a), hair: o.hair, hat: o.hat, weapon: null, rig: true, race: ZONE.europe ? 'eu' : 'ch', female: !!o.female, hairStyle: o.hairStyle || (o.female ? (o.hat === 'bun' ? 'buns' : 'long') : o.hat === 'bun' ? 'buns' : ZONE.europe ? 'simpleparted' : 'buns') });
   h.beard = o.beard || 0; h.npcLook = o;
   h.setWeapon(null);
   npcProps(o, h.hand);
@@ -161,7 +162,7 @@ class NPCManager {
     this.tex = { '!': makeMarkerTexture('!', '#ffd23a'), '?': makeMarkerTexture('?', '#7fe36a') };
     if (typeof planCity === 'function' && !IS_DUNGEON) planCity();
     for (const def of NPC_DEFS) {
-      const look = NPC_LOOK[def.id] || NPC_LOOK.merchant;
+      const look = { ...(NPC_LOOK[def.id] || NPC_LOOK.merchant) }; if (NPC_FEMALE.test(def.name)) { look.female = true; delete look.beard; }
       const h = buildRobed(look);
       const g = new THREE.Group();
       g.add(h.group);
@@ -251,6 +252,7 @@ class Townsfolk {
       const [c1, c2] = FOLK_COLORS[i % FOLK_COLORS.length];
       const look = { robe: c1, dark: c2, sash: FOLK_COLORS[(i + 3) % 8][0], hat: hats[i % hats.length], hair: rng() < 0.2 ? 0x8a8a8a : ZONE.europe ? [0x6a4020, 0xc8a050, 0x3a2412, 0x8a3a1a][i % 4] : 0x1a1a1a, beard: rng() < 0.3 ? (ZONE.europe ? 0x5a3a1a : 0x2a2a2a) : 0, skin: ZONE.europe ? [0xf0c8a8, 0xe8b898, 0xd8a888][i % 3] : [0xe8b98a, 0xd8a070, 0xc89060][i % 3], basket: i % 4 === 1, sack: i % 4 === 3 };
       if (!look.beard) delete look.beard;
+      if (i % 3 === 1) { look.female = true; delete look.beard; if (look.hat === 'scholar' || look.hat === 'band') look.hat = 'bun'; }
       const m = buildRobed(look);
       const p = this.points[Math.floor(rng() * this.points.length)];
       m.group.position.set(p[0], 0, p[1]);
