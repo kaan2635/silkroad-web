@@ -232,7 +232,7 @@ function buildCharMob(t) {
 }
 
 function buildHumanMob(L) {
-  const h = buildHumanoid({ robe: L.robe, robeDark: L.dark, hat: L.hat === 'band' ? 'band' : null, weapon: L.weapon || 'blade', skin: L.skin });
+  const h = buildHumanoid({ robe: L.robe, robeDark: L.dark, hat: L.hat === 'band' ? 'band' : null, weapon: L.weapon || 'blade', skin: L.skin, rig: !!L.rig, race: L.race });
   if (L.hat === 'ears' || L.hat === 'horns') {
     for (const sx of [-1, 1]) {
       const m = L.hat === 'ears' ? new THREE.Mesh(new THREE.ConeGeometry(0.1, 0.25, 4), new THREE.MeshLambertMaterial({ color: 0xe07a1a })) : new THREE.Mesh(new THREE.ConeGeometry(0.09, 0.5, 6), new THREE.MeshLambertMaterial({ color: 0x1a1010 }));
@@ -336,18 +336,21 @@ class Monster {
     this.moving = false;
 
     this.group = new THREE.Group();
-    const t = this.type, L = t.look || {};
+    const t = this.type, gear = typeof RIG_MOB_GEAR !== 'undefined' && !HumanRig.failed ? RIG_MOB_GEAR[typeKey] || (t.look && t.look.rig ? {} : null) : null;
+    const L = gear ? { ...(t.look || {}), rig: true, race: gear.race || (t.look && t.look.race) || 'ch', weapon: gear.w || (t.look && t.look.weapon) || 'blade' } : t.look || {};
+    this.rigMob = !!gear;
     const parts = t.model === 'camel' ? buildCamel() : t.model === 'quad' ? buildQuad(L) : t.model === 'scorpion' ? buildScorpion(L) : t.model === 'golem' ? buildGolem(L) :
       t.model === 'snake' ? buildSnake(L) : t.model === 'char' ? buildCharMob(t) : t.model === 'struct' ? buildStruct(L) : buildHumanMob(L);
     this.kind = parts.kind;
     this.segs = parts.segs || null; this.headPart = parts.head || null;
     this.body = parts.group; this.h = parts.h || null;
+    if (this.rigMob && this.h && gear.set) { this.h.hairMat.color.setHex(L.race === 'eu' ? 0x5a3a1a : 0x1a1410); this.h.skin.color.setHex(L.race === 'eu' ? 0xf0c8a8 : 0xd8a878); this.h.noHat = !L.hat; dressHumanoid(this.h, rigMobEquip(gear, this.level)); if (gear.shield) this.h.setShield(true, { d: degreeOf(this.level) }); }
     this.legs = parts.legs;
     this.arms = parts.arms || [];
     this.armR = parts.armR || null;
     this.group.add(this.body);
     this.mats = [];
-    this.body.traverse(o => { if (o.material && o.material.emissive) { o.material = o.material.clone(); this.mats.push(o.material); } });
+    this.body.traverse(o => { if (o.material && o.material.emissive && !o.material.userData.u) { o.material = o.material.clone(); this.mats.push(o.material); } });
     this.group.scale.setScalar(this.baseScale);
 
     // Tıklama için görünmez, cömert bir vuruş alanı (dokunmatik için de rahat)
@@ -481,6 +484,7 @@ class Monster {
     this.group.rotation.z = 0; this.group.visible = true; this.group.scale.setScalar(this.baseScale);
     this.wanderTarget = null;
     if (this.actions) { if (this.actions.death) this.actions.death.stop(); this.base = null; this._shot = null; this._play('idle', 0); }
+    if (this.h && this.h.rig) HumanRig.play(this.h.rig, 'Idle_Loop', { fade: 0 });
   }
 
   // Uzaktan saldıran canavarlar (okçu, büyücü, ejder): mermi görüntüsü
@@ -508,7 +512,8 @@ class Monster {
     if (this.state === 'dead') {
       this.deadT += dt;
       const k = Math.min(1, this.deadT / 0.5);
-      if (this.actions && this.actions.death) { if (this.deadT < 4.2) this.mixer.update(dt); if (this.fly) p.y = terrainHeight(p.x, p.z) + Math.max(0, this.fly * (1 - k)); }
+      if (this.h && this.h.rig) { if (this.deadT < 4.2) this._animate(dt); }
+      else if (this.actions && this.actions.death) { if (this.deadT < 4.2) this.mixer.update(dt); if (this.fly) p.y = terrainHeight(p.x, p.z) + Math.max(0, this.fly * (1 - k)); }
       else { this.group.rotation.z = k * (Math.PI / 2); p.y = terrainHeight(p.x, p.z) + k * 0.35 * this.baseScale; }
       if (this.deadT > 4) this.group.visible = false;
       if (this.deadT >= (this.respawnTime || RESPAWN_TIME)) { if (this.noRespawn) { this.removed = true; return; } this.respawn(); }
@@ -596,6 +601,16 @@ class Monster {
   }
 
   _animate(dt) {
+    if (this.h && this.h.rig) {
+      const run = this.state === 'chase' || this.state === 'return', swing = this.attackAnim > (this._la || 0) + 0.01; this._la = this.attackAnim;
+      const w = this.type.look && (this.type.look.weapon || (RIG_MOB_GEAR[this.typeKey] || {}).w);
+      const far = this._dp > 55;
+      if (far && ((this._fc = (this._fc || 0) + 1) % 3) !== 0) { this._acc = (this._acc || 0) + dt; return; }
+      rigAnimate(this.h.rig, { dead: this.dead, moving: this.moving, walk: !run, speed: run ? Math.min(1.4, this.type.speed / 5.2) : 0.9, swing, swingKind: this.type.magic ? 'cast' : w === 'bow' ? 'bow' : w === 'spear' || w === 'glaive' ? 'thrust' : 'slash', atkLen: 0.8,
+        combat: this.state === 'chase', wtype: w, magic: this.type.magic }, dt + (this._acc || 0));
+      this._acc = 0;
+      return;
+    }
     if (this.kind === 'gltf') {
       const run = this.state === 'chase' || this.state === 'return';
       if (this.attackAnim > 0 && !this._atkStarted) { this._atkStarted = true; if (!this._oneShot(this.actions.attack2 && Math.random() < 0.3 ? 'attack2' : 'attack', 1.25)) this._atkStarted = false; }

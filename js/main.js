@@ -370,5 +370,6 @@
   // Varlıkları (3D modeller) yükle, sonra oyunu kur. Yükleme başarısız olursa prosedürel modellerle devam.
   const sb = document.getElementById('start-btn'), lf = document.getElementById('loadfill'), lt = document.getElementById('loadtxt');
   const go = ok => { lf.style.width = '100%'; lt.textContent = ok ? 'Hazır!' : 'Basit grafiklerle başlıyor'; sb.disabled = false; setTimeout(() => document.getElementById('loadbar').classList.add('done'), 300); boot(); };
-  Assets.load(f => { lf.style.width = Math.round(f * 100) + '%'; }).then(go, () => go(false));
+  const hr = typeof HumanRig !== 'undefined' ? Promise.race([HumanRig.load(), new Promise(r => setTimeout(r, 12000))]) : Promise.resolve();
+  Promise.all([Assets.load(f => { lf.style.width = Math.round(f * 90) + '%'; }), hr]).then(([ok]) => go(ok), () => go(false));
 })();

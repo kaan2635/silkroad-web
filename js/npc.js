@@ -47,6 +47,7 @@ const _npcMat = new THREE.MeshLambertMaterial({ vertexColors: true });
 
 // Robalı insan modeli. Gövde tek ağ, kollar ayrı (hareket için). o: NPC_LOOK benzeri
 function buildRobed(o) {
+  if (typeof HumanRig !== 'undefined' && !HumanRig.failed && !o.noRig) return buildRobedRig(o);
   const root = new THREE.Group(), B = new ArchBatch(), A = (x, y, z, ry = 0, sx = 1, sy = 1, sz = 1, rx = 0, rz = 0) => AM(x, y, z, ry, sx, sy, sz, rx, rz);
   const skin = o.skin || 0xe8b98a, robe = o.robe, dark = o.dark, sash = o.sash || dark;
   const cyl = (rt, rb, h, s = 12) => new THREE.CylinderGeometry(rt, rb, h, s), sph = (r, a = 10, b = 8) => new THREE.SphereGeometry(r, a, b), box = new THREE.BoxGeometry(1, 1, 1);
@@ -111,7 +112,24 @@ function buildRobed(o) {
     return pv;
   };
   const armL = arm(-1), armR = arm(1);
-  // el eşyası
+  npcProps(o, armR.userData.hand);
+  return { group: root, armL, armR };
+}
+
+function makeMarkerTexture(ch, color) {
+  const c = document.createElement('canvas'); c.width = c.height = 64;
+  const x = c.getContext('2d');
+  x.font = 'bold 54px sans-serif'; x.textAlign = 'center'; x.textBaseline = 'middle';
+  x.lineWidth = 7; x.strokeStyle = '#2a1a00'; x.strokeText(ch, 32, 34);
+  x.fillStyle = color; x.fillText(ch, 32, 34);
+  return new THREE.CanvasTexture(c);
+}
+
+
+// Rol eşyası (çekiç, mızrak, asa, parşömen...) — el grubuna
+function npcProps(o, hand) {
+  const A = (x, y, z, ry = 0, sx = 1, sy = 1, sz = 1, rx = 0, rz = 0) => AM(x, y, z, ry, sx, sy, sz, rx, rz);
+  const cyl = (rt, rb, h, s = 12) => new THREE.CylinderGeometry(rt, rb, h, s), sph = (r, a = 10, b = 8) => new THREE.SphereGeometry(r, a, b), box = new THREE.BoxGeometry(1, 1, 1);
   const P = new ArchBatch(), hp = (geo, m, c) => P.add(_npcMat, geo, m, c);
   const pr = o.prop;
   if (pr === 'hammer') { hp(cyl(0.035, 0.035, 0.6, 6), A(0, -0.05, 0.18, 0, 1, 1, 1, Math.PI / 2), 0x5a3a20); hp(box, A(0, -0.05, 0.48, 0, 0.14, 0.14, 0.26), 0x5a5a60); }
@@ -123,17 +141,17 @@ function buildRobed(o) {
   if (pr === 'shield') { hp(cyl(0.3, 0.3, 0.05, 12), A(0, -0.05, 0.12, 0, 1, 1, 1, Math.PI / 2), 0x8a8f98); hp(sph(0.07, 6, 5), A(0, -0.05, 0.16), 0xd9a92e); }
   if (pr === 'whip') { hp(cyl(0.025, 0.03, 0.5, 6), A(0, 0.1, 0.1, 0, 1, 1, 1, 0.5), 0x4a2e18); hp(cyl(0.01, 0.01, 0.6, 4), A(0, -0.2, 0.25, 0, 1, 1, 1, -0.6), 0x2a1a10); }
   if (pr === 'dagger') { hp(box, A(0, -0.05, 0.22, 0, 0.04, 0.03, 0.36), 0xc8ccd4); hp(box, A(0, -0.05, 0.03, 0, 0.12, 0.04, 0.04), 0x5a3a20); }
-  if (P.groups.size) P.build(armR.userData.hand, true);
-  return { group: root, armL, armR };
+  if (P.groups.size) P.build(hand, true);
 }
 
-function makeMarkerTexture(ch, color) {
-  const c = document.createElement('canvas'); c.width = c.height = 64;
-  const x = c.getContext('2d');
-  x.font = 'bold 54px sans-serif'; x.textAlign = 'center'; x.textBaseline = 'middle';
-  x.lineWidth = 7; x.strokeStyle = '#2a1a00'; x.strokeText(ch, 32, 34);
-  x.fillStyle = color; x.fillText(ch, 32, 34);
-  return new THREE.CanvasTexture(c);
+// Gerçekçi NPC: insan modeli + cübbe / şapka / sakal / rol eşyası
+function buildRobedRig(o) {
+  const h = buildHumanoid({ robe: o.robe, robeDark: o.dark, skin: o.skin || (ZONE.europe ? 0xf0c8a8 : 0xe8b98a), hair: o.hair, hat: o.hat, weapon: null, rig: true, race: ZONE.europe ? 'eu' : 'ch' });
+  h.beard = o.beard || 0; h.npcLook = o;
+  h.setWeapon(null);
+  npcProps(o, h.hand);
+  dressHumanoid(h, {});
+  return { group: h.group, armL: h.armL, armR: h.armR, h };
 }
 
 class NPCManager {
@@ -207,6 +225,12 @@ class NPCManager {
         if (n.act > 0) { n.act -= dt; const k = Math.sin((1.6 - n.act) / 1.6 * Math.PI); rl = -2.4 * k; rzl = -0.3 * k; }
       }
       M.armL.rotation.x = rl; M.armR.rotation.x = rr; M.armR.rotation.z = rzr; M.armL.rotation.z = rzl;
+      if (M.h && M.h.rig && near < 70) {
+        const R = M.h.rig, greet = n.act > 0 && anim !== 'hammer' && anim !== 'count';
+        const clip = greet ? 'Interact' : anim === 'hammer' ? 'Fixing_Kneeling' : anim === 'guard' ? 'Sword_Idle' : (anim === 'count' || (anim === 'gesture' && near < 9)) ? 'Idle_Talking_Loop' : 'Idle_Loop';
+        HumanRig.play(R, clip, { fade: 0.35 });
+        R.mixer.update(dt);
+      }
     }
     if (this.folk) this.folk.update(dt, player);
   }
@@ -242,6 +266,7 @@ class Townsfolk {
         f.wait -= dt;
         if (f.wait <= 0) { const p = this.points[Math.floor(Math.random() * this.points.length)]; f.tx = p[0] + (Math.random() - 0.5) * 2; f.tz = p[1] + (Math.random() - 0.5) * 2; }
         f.m.armL.rotation.x *= 0.9; f.m.armR.rotation.x *= 0.9;
+        if (f.m.h && f.m.h.rig) { HumanRig.play(f.m.h.rig, 'Idle_Loop', { fade: 0.3 }); f.m.h.rig.mixer.update(dt); }
         continue;
       }
       const dx = f.tx - f.x, dz = f.tz - f.z, d = Math.hypot(dx, dz);
@@ -260,6 +285,7 @@ class Townsfolk {
       g.position.set(f.x, terrainHeight(f.x, f.z) + Math.abs(Math.sin(f.phase)) * 0.05, f.z);
       g.rotation.y = f.heading;
       f.m.armL.rotation.x = Math.sin(f.phase) * 0.45; f.m.armR.rotation.x = -Math.sin(f.phase) * 0.45;
+      if (f.m.h && f.m.h.rig) { HumanRig.play(f.m.h.rig, 'Walk_Loop', { fade: 0.3, speed: f.speed / 1.5 }); f.m.h.rig.mixer.update(dt); g.position.y = terrainHeight(f.x, f.z); }
     }
   }
 }

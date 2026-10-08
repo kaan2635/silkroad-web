@@ -100,7 +100,7 @@ class SimPlayer {
     this.dead = false; this.downT = 0; this.atkCd = 0; this.swingT = 0; this.walkPhase = Math.random() * 6; this.heading = Math.random() * 6.28;
     this.r = 0.7; this.wait = Math.random() * 3; this.goal = null; this.target = null; this.searchT = 0; this.healT = 4; this.slot = 0;
     const skinCol = bot.race === 'eu' ? 0xf0c8a8 : 0xe8b98a;
-    const h = this.h = buildHumanoid({ robe: bot.robe, robeDark: 0x2a1a10, skin: skinCol, hair: bot.race === 'eu' ? [0x6a4020, 0xc8a050, 0x3a2412][bot.id % 3] : 0x1a1410, hat: null, weapon: null });
+    const h = this.h = buildHumanoid({ robe: bot.robe, robeDark: 0x2a1a10, skin: skinCol, hair: bot.race === 'eu' ? [0x6a4020, 0xc8a050, 0x3a2412][bot.id % 3] : 0x1a1410, hat: null, weapon: null, rig: true, race: bot.race });
     this.group = new THREE.Group(); this.group.add(h.group);
     this.eq = botEquip(bot);
     const opt = it => ({ d: ITEM_BASES[it.base].d, tier: 0, plus: it.plus || 0, rarity: it.rarity || 0 });
@@ -154,7 +154,7 @@ class SimPlayer {
     const p = this.group.position, dx = tx - p.x, dz = tz - p.z, d = Math.hypot(dx, dz);
     if (d < 0.1) { this.moving = false; return 0; }
     this.heading += angleDiff(this.heading, Math.atan2(dx, dz)) * Math.min(1, dt * 10);
-    const st = Math.min(d, speed * dt);
+    const st = Math.min(d, speed * dt); this._spd = speed;
     p.x += dx / d * st; p.z += dz / d * st;
     pushOut(p, 0.5, this.soc.world.obstacles);
     if (Dungeon.on) Dungeon.clamp(p, 0.5);
@@ -199,7 +199,7 @@ class SimPlayer {
     const dp = Math.hypot(P.x - p.x, P.z - p.z);
     this.group.visible = !this.engaged && !this.cull && dp < (CONFIG.isTouch ? 110 : 170);
     const sh = this.group.visible && dp < (CONFIG.isTouch ? 26 : 45);      // uzaktakiler gölge düşürmez (çizim çağrısı tasarrufu)
-    if (sh !== this._sh) { this._sh = sh; this.h.group.traverse(o => { if (o.isMesh) o.castShadow = sh; }); }
+    if (sh !== this._sh && !(CONFIG.isTouch && this.h.rig)) { this._sh = sh; this.h.group.traverse(o => { if (o.isMesh) o.castShadow = sh; }); }
     if (this.engaged) return;
     const party = soc.party.includes(this.bot.id);
     this.label.visible = Settings.data.names && (dp < 16 || party && dp < 30);
@@ -208,7 +208,8 @@ class SimPlayer {
     if (this.swingT > 0) this.swingT -= dt;
     if (this.dead) {
       this.downT += dt;
-      this.h.group.rotation.z = Math.min(Math.PI / 2, this.downT * 4); p.y = terrainHeight(p.x, p.z) + 0.3;
+      if (this.h.rig) { p.y = terrainHeight(p.x, p.z); if (this.group.visible) this._animate(dt); }
+      else { this.h.group.rotation.z = Math.min(Math.PI / 2, this.downT * 4); p.y = terrainHeight(p.x, p.z) + 0.3; }
       if (this.downT > (party ? 12 : 20)) {
         this.dead = false; this.hp = this.maxHp; this.h.group.rotation.z = 0;
         if (this.mode === 'ally' && soc.allyBase) p.set(soc.allyBase.x + (Math.random() - 0.5) * 6, 0, soc.allyBase.z + (Math.random() - 0.5) * 6);
@@ -226,7 +227,7 @@ class SimPlayer {
     else if (this.mode === 'travel') this._travel(dt);
     // can yenilenmesi
     if (this.hp < this.maxHp) this.hp = Math.min(this.maxHp, this.hp + this.maxHp * (this.target ? 0.01 : 0.05) * dt);
-    p.y = terrainHeight(p.x, p.z) - (this.mode === 'stall' ? 0.38 : 0);
+    p.y = terrainHeight(p.x, p.z) - (this.mode === 'stall' && !this.h.rig ? 0.38 : 0);
     this.group.rotation.y = this.heading;
     if (this.group.visible) this._animate(dt);
   }
@@ -332,6 +333,15 @@ class SimPlayer {
   }
   _animate(dt) {
     const h = this.h;
+    if (h.rig) {
+      const swing = this.swingT > (this._ls || 0) + 0.01; this._ls = this.swingT;
+      const w = this.bot.w, ranged = w === 'bow' || w === 'xbow', magic = w === 'staff' || w === 'dstaff' || w === 'rod' || w === 'harp';
+      const sp = this._spd || 3;
+      rigAnimate(h.rig, { dead: this.dead, sitting: this.mode === 'stall', moving: this.moving, walk: sp < 3.4, speed: sp < 3.4 ? sp / 2.8 : sp / 5.2,
+        swing, swingKind: ranged ? 'bow' : magic ? 'cast' : w === 'spear' || w === 'glaive' ? 'thrust' : 'slash', atkLen: 0.8,
+        combat: !!this.target && !this.dead, wtype: w, magic, emote: this.emote || null }, dt);
+      return;
+    }
     if (this.mode === 'stall') { h.legL.rotation.x = h.legR.rotation.x = -1.45; h.armL.rotation.x = h.armR.rotation.x = -0.4; return; }
     this.walkPhase += dt * (this.moving ? 10 : 0);
     const k = this.moving ? 0.6 : 0, s = Math.sin(this.walkPhase);
@@ -764,7 +774,7 @@ class Social {
   // Yapay oyuncu görünümünde savaşan bir "canavar" üret (PvP, arenalar, Kale Savaşı)
   makePvpMob(b, lvl, x, z, mode, eq) {
     const W = WEAPON_TYPES[b.w], key = 'pvp_' + b.id;
-    MONSTER_TYPES[key] = { name: b.name, model: 'human', look: { robe: b.robe, dark: 0x2a1a10, weapon: b.w, skin: b.race === 'eu' ? 0xf0c8a8 : 0xe8b98a },
+    MONSTER_TYPES[key] = { name: b.name, model: 'human', look: { robe: b.robe, dark: 0x2a1a10, weapon: b.w, skin: b.race === 'eu' ? 0xf0c8a8 : 0xe8b98a, rig: true, race: b.race },
       hpM: mode === 'duel' ? 1.1 : 1.3, dmgM: 0.7, defM: 1.1, expM: 0, speed: 6.4, aggro: 40, range: W.ranged ? Math.min(11, W.range) : 2.6, atkInt: 1.25, hit: 1.1, scale: 1, labelY: 3.2, magic: !!W.magic };
     const m = new Monster(this.world, key, lvl, { x, z }, { rank: 'normal' });
     m.pvp = mode; m.noRespawn = true; m.respawnTime = 4; m.noLeash = true; m.state = 'chase'; m.provoked = true; m.bot = b;

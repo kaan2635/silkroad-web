@@ -158,7 +158,7 @@ const MobModels = {
   },
   // Canavara model takar (yüklenince)
   attach(mob) {
-    if (!this.ok) return;
+    if (!this.ok || mob.rigMob) return;
     const def = MOB_MODEL_DEFS[mob.typeKey];
     if (!def) return;
     this._load(def.file, e => { if (!mob.removed) this._apply(mob, def, e); });

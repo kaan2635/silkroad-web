@@ -12,3 +12,5 @@
 - **Büyü efektleri:** rün çemberi, parıltı, kılıç izi ve şok dalgası dokuları dosya olmadan canvas ile üretilir (`js/fx.js`).
 
 - Boyalı ikonlar, canavar portreleri ve logo: proje sahibinin hazırlattığı varlık sayfası (`tools/asset_sheet.png`), `tools/slice_sheet.py` ile `assets/ui/` atlaslarına bölünür.
+
+- Gerçekçi insan karakterler: Quaternius **Universal Base Characters** (Superhero Male) ve **Universal Animation Library** — CC0 1.0 (`assets/models/human/LICENSE-*.txt`). Gövde dokuları küçültüldü, animasyonlar ayıklandı (`tools/build_human.py`); giysi kabukları, etekler ve zırh parçaları oyunda üretilir (`js/humanrig.js`).

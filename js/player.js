@@ -83,6 +83,7 @@ function buildHumanoid(o) {
     if (on) { h.shield = shieldMesh(o); handL.add(h.shield); }
   };
   h.setWeapon(o.weapon === undefined ? 'sword' : o.weapon);
+  if (o.rig && typeof upgradeHumanoid === 'function') { h.wantRig = true; h.isPlayer = !!o.player; h.baseRobe = o.robe; h.baseDark = o.robeDark; h.hatKind = o.hat; h.race = o.race; upgradeHumanoid(h); }
   return h;
 }
 
@@ -123,7 +124,7 @@ class Player {
     this.inv = new Inventory(this);
     this.book = new SkillBook(this);
 
-    const h = buildHumanoid({ robe: 0xb03a2e, robeDark: 0x5a1d16, hat: 'straw', weapon: null });
+    const h = buildHumanoid({ robe: 0xb03a2e, robeDark: 0x5a1d16, hat: 'straw', weapon: null, rig: true, player: true });
     this.h = h;
     this.model = h.group;
     this.legL = h.legL; this.legR = h.legR; this.armL = h.armL; this.armR = h.armR;
@@ -162,10 +163,11 @@ class Player {
   // Irk: 'ch' Çin / 'eu' Avrupa — görünüm, eşya ve ustalıklar buna göre
   setRace(r) {
     this.race = r === 'eu' ? 'eu' : 'ch'; RACE = this.race; this.book.race = this.race;
-    this.h.noHat = this.race === 'eu';
-    if (this.h.hat) this.h.hat.visible = !this.h.noHat;
+    this.h.noHat = this.race === 'eu'; this.h.race = this.race;
+    if (this.h.hat && !this.h.rig) this.h.hat.visible = !this.h.noHat;
     this.h.hairMat.color.setHex(this.race === 'eu' ? 0x7a4a22 : 0x1a1410);
     this.h.skin.color.setHex(this.race === 'eu' ? 0xf0c8a8 : 0xe8b98a);
+    if (this.h.rig) this.refreshLook();
   }
 
   setName(name) {
@@ -191,6 +193,8 @@ class Player {
 
   // Meslek pelerini (Tüccar sarı, Avcı mavi, Hırsız kırmızı)
   setCape(color) {
+    this.h.capeColor = color || null;
+    if (this.h.rig || this.h.wantRig) { this.refreshLook(); if (this.h.rig) return; }
     if (this.cape) { this.model.remove(this.cape); this.cape = null; }
     if (color) {
       this.cape = new THREE.Mesh(new THREE.BoxGeometry(0.85, 1.25, 0.06), new THREE.MeshLambertMaterial({ color }));
@@ -282,8 +286,11 @@ class Player {
     if (this.dead) {
       this.moving = false; this.manualMove = false; this.target = null;
       const k = Math.min(1, dt * 6);
-      this.model.rotation.x += (-Math.PI / 2 - this.model.rotation.x) * k;
-      this.model.position.y += (0.45 - this.model.position.y) * k;
+      if (this.h.rig) this._animateRig(dt);
+      else {
+        this.model.rotation.x += (-Math.PI / 2 - this.model.rotation.x) * k;
+        this.model.position.y += (0.45 - this.model.position.y) * k;
+      }
       this.shieldMesh.visible = false; this.aura.visible = false; this.zerkAura.intensity = 0;
       if (this.mounted && this.onDeathMount) this.onDeathMount();
       pos.y = terrainHeight(pos.x, pos.z);
@@ -417,6 +424,7 @@ class Player {
   }
 
   _animate(dt) {
+    if (this.h.rig) return this._animateRig(dt);
     const sp = (this.d.speed || 1);
     this.walkBlend += ((this.moving ? 1 : 0) - this.walkBlend) * Math.min(1, dt * 10);
     this.walkPhase += dt * 11 * this.walkBlend * Math.min(1.6, sp);
@@ -452,6 +460,20 @@ class Player {
     }
     const bob = this.mounted ? Math.abs(Math.sin(performance.now() * 0.018)) * 0.12 * this.walkBlend : Math.abs(Math.sin(this.walkPhase)) * 0.12 * this.walkBlend + Math.sin(performance.now() * 0.002) * 0.015 * (1 - this.walkBlend);
     this.pos.y += bob;
+  }
+
+  // gerçekçi model: duruma göre animasyon klibi
+  _animateRig(dt) {
+    const swing = this.swingT > (this._lastSwing || 0) + 0.01;
+    this._lastSwing = this.swingT;
+    if (this.emote) { this.emote.t -= dt; if (this.emote.t <= 0 || this.moving || this.swingT > 0) this.emote = null; }
+    this.model.position.set(0, this.mounted ? 1.1 : 0, 0); this.model.rotation.set(0, 0, 0);
+    const wt = this.d.wtype;
+    rigAnimate(this.h.rig, {
+      dead: this.dead, mounted: this.mounted, sitting: this.sitting && !this.mounted, moving: this.moving, speed: this.d.speed || 1,
+      swing, swingKind: this.swingKind, atkLen: this.attackInterval ? this.attackInterval() * 0.8 : 0.7,
+      combat: this.combatT > 0, emote: this.emote && this.emote.kind, wtype: wt, unarmed: !wt, magic: false
+    }, dt);
   }
 
   _regen(dt) {

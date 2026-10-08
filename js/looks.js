@@ -222,11 +222,16 @@ function dressHumanoid(h, eq) {
   let robe, robeDark;
   if (avD) { robe = new THREE.Color(avD.b.look.c1); robeDark = new THREE.Color(avD.b.look.c2); }
   else {
-    robe = !ch ? new THREE.Color(0xb03a2e) : ch.b.atype === 'garment' ? armorColor('garment', ch.b.d, ch.b.tier) : ch.b.atype === 'armor' ? new THREE.Color(0x5a1a14) : new THREE.Color(0x6a4a30);
-    robeDark = lg ? armorColor(lg.b.atype, lg.b.d, lg.b.tier, true) : ch ? robe.clone().multiplyScalar(0.55) : new THREE.Color(0x5a1d16);
+    robe = !ch ? new THREE.Color(h.baseRobe !== undefined ? h.baseRobe : 0xb03a2e) : ch.b.atype === 'garment' ? armorColor('garment', ch.b.d, ch.b.tier) : ch.b.atype === 'armor' ? new THREE.Color(0x5a1a14) : new THREE.Color(0x6a4a30);
+    robeDark = lg ? armorColor(lg.b.atype, lg.b.d, lg.b.tier, true) : ch ? robe.clone().multiplyScalar(0.55) : new THREE.Color(h.baseDark !== undefined ? h.baseDark : 0x5a1d16);
     if (lg && lg.b.atype === 'protector') robeDark.lerp(new THREE.Color(0x4a3020), 0.5);
   }
   h.robe.color.copy(robe); h.robeDark.color.copy(robeDark);
+  if (h.wantRig) {
+    h.lastDress = { robe: robe.getHex(), robeDark: robeDark.getHex(), skin: h.skin.color.getHex(), hair: h.hairMat.color.getHex(), race: h.race, beard: h.beard,
+      ch, lg, hd, sh, hn, ft, avD, avH, avA, dv: B('devil'), sealE, hat: h.hatKind, noHat: h.noHat, cape: h.capeColor, npc: h.npcLook || null, baseRobe: h.baseRobe };
+    if (h.rig) { HumanRig.dress(h, h.lastDress); return; }
+  }
 
   if (avD) {
     add(h.group, new THREE.Mesh(cyl(0.44, 0.76, 1.0, 14, true), _lm(avD.b.look.c1)), 0, 0.62, 0).material.side = THREE.DoubleSide;
