@@ -691,3 +691,14 @@ body.touch #party-frames .pf { width: 118px; padding: 2px 5px 3px; }
 .bot-skb small { color: #8ef07a; font-weight: 700; }
 .win .bot-up { padding: 0 8px; background: none; border: 0; border-left: 1px solid #2e2010; box-shadow: none; color: var(--gold-2); font-size: 11px; min-width: 30px; }
 body.touch .bot-skb { min-height: 40px; }
+
+/* Boyalı varlık sayfası: hedef portresi ve logo */
+#tf-por { display: none; position: absolute; left: -50px; top: 50%; width: 56px; height: 56px; transform: translateY(-50%); border-radius: 50%;
+  background: url(../assets/ui/portraits.webp) no-repeat, radial-gradient(circle at 40% 35%, #3a2814, #0c0805); box-shadow: 0 0 0 2px #000, 0 0 0 3px var(--bronze-l), 0 4px 10px #000c; }
+#target-frame.por #tf-por { display: block; }
+#target-frame[data-rank="unique"] #tf-por { box-shadow: 0 0 0 2px #000, 0 0 0 3px #ff4ad8, 0 0 14px #ff4ad888; }
+body.touch #tf-por { width: 44px; height: 44px; left: -40px; }
+.logo-h { display: flex; flex-direction: column; align-items: center; gap: 0; line-height: 1; }
+.logo-img { width: min(340px, 72vw); height: auto; display: block; mix-blend-mode: screen; filter: drop-shadow(0 3px 6px #000); }
+.logo-h span { margin-top: 4px; letter-spacing: .5em; font-size: .45em; }
+@media (max-height: 460px) { .logo-img { width: min(230px, 50vw); } }

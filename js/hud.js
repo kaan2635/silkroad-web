@@ -12,7 +12,7 @@ class HUD {
       hp: $('hp-fill'), hpt: $('hp-text'), mp: $('mp-fill'), mpt: $('mp-text'),
       exp: $('exp-fill'), expt: $('exp-text'),
       pgold: $('pgold'), coords: $('coords'), fps: $('fps'), log: $('log'), hotbar: $('hotbar'), root: $('hud'),
-      tf: $('target-frame'), tfName: $('tf-name'), tfLvl: $('tf-lvl'), tfFill: $('tf-fill'), tfText: $('tf-text'), tfSt: $('tf-st'),
+      tf: $('target-frame'), tfName: $('tf-name'), tfLvl: $('tf-lvl'), tfFill: $('tf-fill'), tfText: $('tf-text'), tfSt: $('tf-st'), tfPor: $('tf-por'),
       buffs: $('buffs'), cast: $('cast'), castFill: $('cast-fill'), castText: $('cast-text'),
       death: $('death'), fx: $('fx'), clock: $('clock'), banner: $('banner'), tracker: $('tracker'),
       zerk: $('zerk'), page: $('hb-page'), placeHint: $('place-hint'), badgeC: $('badge-c'), badgeK: $('badge-k')
@@ -197,6 +197,7 @@ class HUD {
         e.tf.classList.remove('hidden');
         e.tf.dataset.rank = t.rank;
         e.tfName.textContent = t.displayName;
+        if (this._tfFor !== t) { this._tfFor = t; const ps = mobPortrait(t); e.tfPor.style.cssText = ps; e.tf.classList.toggle('por', !!ps); }
         e.tfLvl.textContent = 'Sv. ' + t.level;
         e.tfFill.style.width = (t.hp / t.maxHp * 100) + '%';
         e.tfText.textContent = Math.ceil(t.hp).toLocaleString('tr-TR') + ' / ' + t.maxHp.toLocaleString('tr-TR');

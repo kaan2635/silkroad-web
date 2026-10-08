@@ -10,3 +10,5 @@
 - **Arayüz ikonları:** [game-icons.net](https://game-icons.net) — Lorc, Delapouite, sbed, Skoll, Caro Asercion ve diğer katkıcılar. Lisans: **CC BY 3.0**. SVG yolları `js/iconpack.js` içinde; Silkroad tarzı boyalı zemin ve renkler `js/icons.js` ile çalışma anında ekleniyor.
 - **Yazı tipleri:** [Cinzel](https://github.com/NDISCOVER/Cinzel) (Natanael Gama) ve [Alegreya Sans](https://github.com/huertatipografica/Alegreya-Sans) (Huerta Tipográfica) — **SIL Open Font License 1.1** (`assets/fonts/OFL-*.txt`). Türkçe karakterler için alt kümelendi.
 - **Büyü efektleri:** rün çemberi, parıltı, kılıç izi ve şok dalgası dokuları dosya olmadan canvas ile üretilir (`js/fx.js`).
+
+- Boyalı ikonlar, canavar portreleri ve logo: proje sahibinin hazırlattığı varlık sayfası (`tools/asset_sheet.png`), `tools/slice_sheet.py` ile `assets/ui/` atlaslarına bölünür.
