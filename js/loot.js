@@ -175,7 +175,7 @@ class LootManager {
       const dist = Math.hypot(d.x - p.pos.x, d.z - p.pos.z);
       d.label.visible = dist < (d.rare ? 30 : 11);
       const range = PICKUP_RANGE + (p.pickRange || 0);
-      if (!p.dead && d.cool <= 0 && dist < range) this._collect(d);
+      if (!p.dead && d.cool <= 0 && dist < range && !(this.filter && !this.filter(d))) this._collect(d);
     }
   }
 }

@@ -47,6 +47,7 @@ class PetSystem {
   changed() { if (this.onChange) this.onChange(); }
   // Filtreye göre toplanacak mı?
   wants(d) {
+    if (this.loot.filter && !this.loot.filter(d)) return false;
     if (d.kind === 'gold') return this.filter === 'all' || this.filter === 'gold';
     if (this.filter === 'gold') return false;
     if (this.filter === 'gear') return isGear(d.item.base);

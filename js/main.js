@@ -53,6 +53,8 @@
   ui.mm = monsters; ui.jobs = jobs; ui.pets = pets;
   initSocialUI(ui, social);
   initEventsUI(ui, events);
+  auto.npcs = npcs; auto.pets = pets; auto.social = social;
+  initBotUI(ui, auto);
   pets.onChange = () => ui.refresh();
   jobs.onChange = () => ui.refresh();
   monsters.announce = (title, sub, kind) => {
@@ -231,6 +233,7 @@
     }
     player.setName(name);
     Eco.load(name);
+    auto.loadCfg();
     if (sameChar && isFinite(saved.x) && isFinite(saved.z)) player.teleport(saved.x, saved.z);
     if (sameChar && saved.arrive) {
       const z = saved.arrive === 'S' ? 258 : saved.arrive === 'N' ? -258 : 7;

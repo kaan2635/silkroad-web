@@ -50,7 +50,7 @@
     <div id="bottom">
       <div id="place-hint">Bir hotbar yuvasına dokun <button id="place-cancel">İptal</button></div>
       <button id="ctx-btn" class="hidden"></button>
-      <div class="hbwrap frame"><button id="hb-page" title="Hotbar sayfası (F1–F4)">1<small>F1</small></button><div id="hotbar"></div><button id="hb-auto" title="Oto av (H): çevredeki canavarları hotbardaki yeteneklerle otomatik avlar">OTO<small>H</small></button></div>
+      <div class="hbwrap frame"><button id="hb-page" title="Hotbar sayfası (F1–F4)">1<small>F1</small></button><div id="hotbar"></div><button id="hb-auto" title="Oto av (H): eğitim alanında otomatik avlar">OTO<small>H</small></button><button id="hb-bot" title="Oto av ayarları (U)">⚙<small>U</small></button></div>
       <div class="bar exp"><div id="exp-fill" class="fill"></div><span id="exp-text"></span></div>
     </div>
 
@@ -131,6 +131,12 @@
       <div class="win-head"><span>Etkinlikler</span><button class="x">✕</button></div>
       <div id="ev-tabs" class="tabs mtabs"></div>
       <div id="ev-body"></div>
+    </div>
+
+    <div id="botw" class="win hidden">
+      <div class="win-head"><span>Oto Av</span><button class="x">✕</button></div>
+      <div id="bot-tabs" class="tabs mtabs"></div>
+      <div id="bot-body"></div>
     </div>
 
     <div id="botmenu" class="hidden"></div>
@@ -259,6 +265,7 @@
   <script src="js/socialui.js"></script>
   <script src="js/events.js"></script>
   <script src="js/eventsui.js"></script>
+  <script src="js/botui.js"></script>
   <script src="js/main.js"></script>
 </body>
 </html>
