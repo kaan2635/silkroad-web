@@ -100,6 +100,34 @@ const MOB_MODEL_DEFS = {
   lavagolem: { file: 'giant', h: 3.1, tint: [0xb83a1a, 0.6], glow: 0xff3a00 },
   u_flamelord:{ file: 'demon', h: 3.4, colors: { BlueDemon_Main: 0xff4a10, BlueDemon_Secondary: 0x3a0806 }, glow: 0xff5a00 },
   u_fwboss:  { file: 'dragon', h: 2.6, fly: 1.0, colors: { Dragon_Main: 0x3a1a5a, Dragon_Secondary: 0x140a20 }, glow: 0xff6ae8 },
+  // Faz 6.5
+  rat:        { file: 'rat', h: 0.75, rot: -Math.PI / 2 },
+  frog:       { file: 'frog', h: 0.9, rot: -Math.PI / 2 },
+  mangyang:   { file: 'alpaca', h: 1.7, rot: -Math.PI / 2, tint: [0x8a6a4a, 0.35] },
+  donkeyw:    { file: 'donkey', h: 1.8, rot: -Math.PI / 2 },
+  bull2:      { file: 'cow', h: 1.9, rot: -Math.PI / 2, tint: [0x2a1a10, 0.55] },
+  deerw:      { file: 'stag', h: 1.9, rot: -Math.PI / 2, tint: [0x8a2a10, 0.4] },
+  sandwolf:   { file: 'wolf', h: 1.35, rot: -Math.PI / 2, colors: { Main: 0xc8a870, Main_Light: 0xf0e0c0 } },
+  blackwolf:  { file: 'wolf', h: 1.45, rot: -Math.PI / 2, colors: { Main: 0x1e1e24, Main_Light: 0x3a3a44 }, glowEye: 0xff3a1a },
+  glub:       { file: 'glub', h: 1.3, fly: 0.9 },
+  goleling:   { file: 'goleling_evolved', h: 1.8, fly: 0.5 },
+  fgoleling:  { file: 'flying_goleling', h: 1.5, fly: 1.0 },
+  dragonling: { file: 'dragon_evolved', h: 2.3, fly: 0.8 },
+  raptorv:    { file: 'velociraptor', h: 1.6, rot: -Math.PI / 2, tint: [0xb8904a, 0.35] },
+  bigorc:     { file: 'big_orc', h: 2.5 },
+  bigorcskull:{ file: 'big_orc_skull', h: 2.5 },
+  bigdemon:   { file: 'big_demon', h: 2.7 },
+  bluedemon:  { file: 'big_bluedemon', h: 2.7 },
+  bigninja:   { file: 'big_ninja', h: 2.3 },
+  bigtribal:  { file: 'big_tribal', h: 2.4 },
+  bigyeti:    { file: 'big_yeti', h: 2.7 },
+  cactoro:    { file: 'big_cactoro', h: 2.3 },
+  mushking:   { file: 'big_mushroomking', h: 2.5 },
+  voidspawn:  { file: 'big_alien', h: 2.4 },
+  barcher:    { file: 'rogue_hooded', h: 2.05, tint: [0x4a3a2a, 0.35], weapon: 'bow' },
+  skelarcher: { file: 'skeleton_rogue', h: 2.1, weapon: 'bow' },
+  darkmage:   { file: 'mage', h: 2.05, tint: [0x2a1a3a, 0.6] },
+  knightfallen:{ file: 'knight', h: 2.15, tint: [0x2a2a34, 0.55], weapon: 'sword' },
 };
 // Klip eşleme (dosyalardaki adların sonu)
 const MOB_CLIPS = {
@@ -214,7 +242,7 @@ const MobModels = {
     }
     if (def.atk) { const c = e.clips.find(c => c.name.endsWith(def.atk)); if (c) mob.actions.attack = mob.mixer.clipAction(c); }
     if (!mob.actions.idle) mob.actions.idle = mob.actions.walk || mob.actions.run;
-    if (!mob.actions.walk) mob.actions.walk = mob.actions.run || mob.actions.idle;
+    if (!mob.actions.walk) { const j = e.clips.find(c => /Jump$/.test(c.name)); mob.actions.walk = mob.actions.run || (j ? mob.mixer.clipAction(j) : null) || mob.actions.idle; }
     if (!mob.actions.run) mob.actions.run = mob.actions.walk;
     for (const k of ['attack', 'attack2', 'death', 'hit']) if (mob.actions[k]) { mob.actions[k].setLoop(THREE.LoopOnce, 1); mob.actions[k].clampWhenFinished = k === 'death'; }
     mob.base = null; mob.mixer.timeScale = 1;

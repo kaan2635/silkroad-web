@@ -101,6 +101,34 @@ const MONSTER_TYPES = {
   u_frostqueen: { name: 'Buz Kraliçesi', model: 'human', look: { robe: 0xc8e8ff, dark: 0x5a8ac8, weapon: null }, magic: true, unique: { hp: 18, dmg: 2.2, exp: 40, drop: 1.2 }, hpM: 1.4, dmgM: 1.3, defM: 1.35, expM: 1.35, speed: 6, aggro: 16, range: 7, atkInt: 1.4, hit: 2.4, scale: 2.2, labelY: 3.4, status: { kind: 'freeze', chance: 0.28, dur: 2 } },
   u_flamelord: { name: 'Alev Lordu', model: 'char', look: { tint: 0xff4a10, h: 2.8, horns: true, glow: 0xff3a00 }, magic: true, char: 'vampire', unique: { hp: 20, dmg: 2.3, exp: 40, drop: 1.2 }, hpM: 1.4, dmgM: 1.3, defM: 1.35, expM: 1.35, speed: 6, aggro: 16, range: 7, atkInt: 1.4, hit: 2.4, scale: 3.0, labelY: 3.4, status: { kind: 'burn', chance: 0.3, dur: 6 } },
   u_fwboss: { name: 'Unutulmuş Kral', model: 'quad', look: { fur: 0x3a1a5a, dark: 0x140a20, horns: true, eye: 0xff6ae8, body: [1.3, 1.2, 2.4] }, magic: true, unique: { hp: 14, dmg: 1.9, exp: 40, drop: 1.2 }, hpM: 1.4, dmgM: 1.3, defM: 1.35, expM: 1.35, speed: 6, aggro: 16, range: 7, atkInt: 1.4, hit: 2.4, scale: 2.8, labelY: 3.4, status: { kind: 'stun', chance: 0.2, dur: 1.6 } },
+  // --- Faz 6.5: daha çok çeşit (Quaternius CC0 modelleri) ---
+  rat:       { name: 'Çöl Faresi', model: 'quad', look: { fur: 0x8a7a6a, dark: 0x4a3a2a, body: [0.35, 0.3, 0.7], legH: 0.25 }, hpM: 0.8, dmgM: 0.85, defM: 0.85, expM: 0.85, speed: 5.6, aggro: 7, range: 1.8, atkInt: 1.3, hit: 1.0, scale: 0.9, labelY: 1.8 },
+  frog:      { name: 'Vaha Kurbağası', model: 'quad', look: { fur: 0x4a9a3a, dark: 0x2a5a1a, body: [0.5, 0.4, 0.6], legH: 0.25 }, hpM: 0.95, dmgM: 0.9, defM: 0.9, expM: 0.95, speed: 4.6, aggro: 7, range: 2.0, atkInt: 1.5, hit: 1.1, scale: 1.0, labelY: 1.9, status: { kind: 'poison', chance: 0.1, dur: 4 } },
+  mangyang:  { name: 'Mangyang', model: 'quad', look: { fur: 0x9a7a5a, dark: 0x5a4030, horns: true }, hpM: 1.0, dmgM: 0.95, defM: 1.0, expM: 1.0, speed: 5.4, aggro: 8, range: 2.2, atkInt: 1.5, hit: 1.3, scale: 1.0, labelY: 2.4 },
+  donkeyw:   { name: 'Yaban Eşeği', model: 'quad', look: { fur: 0x7a6a5a, dark: 0x3a3028 }, hpM: 1.05, dmgM: 0.95, defM: 1.0, expM: 1.0, speed: 6.0, aggro: 7, range: 2.2, atkInt: 1.6, hit: 1.4, scale: 1.05, labelY: 2.6 },
+  bull2:     { name: 'Bozkır Öküzü', model: 'quad', look: { fur: 0x3a2a20, dark: 0x1a1008, horns: true }, hpM: 1.4, dmgM: 1.05, defM: 1.2, expM: 1.2, speed: 5.2, aggro: 8, range: 2.4, atkInt: 1.8, hit: 1.6, scale: 1.15, labelY: 2.8 },
+  deerw:     { name: 'Kızıl Geyik', model: 'quad', look: { fur: 0x8a3a1a, dark: 0x4a1a0a, horns: true }, hpM: 0.95, dmgM: 0.9, defM: 0.9, expM: 0.95, speed: 6.4, aggro: 6, range: 2.2, atkInt: 1.5, hit: 1.3, scale: 1.0, labelY: 2.6 },
+  sandwolf:  { name: 'Kum Kurdu', model: 'quad', look: { fur: 0xc8a870, dark: 0x8a6a40 }, hpM: 1.0, dmgM: 1.05, defM: 0.95, expM: 1.0, speed: 6.4, aggro: 11, range: 2.2, atkInt: 1.3, hit: 1.3, scale: 1.0, labelY: 2.2 },
+  blackwolf: { name: 'Kara Kurt', model: 'quad', look: { fur: 0x1a1a1e, dark: 0x0a0a0e, eye: 0xff3a1a }, hpM: 1.1, dmgM: 1.15, defM: 1.0, expM: 1.1, speed: 6.8, aggro: 12, range: 2.2, atkInt: 1.2, hit: 1.3, scale: 1.05, labelY: 2.2, status: { kind: 'bleed', chance: 0.12, dur: 4 } },
+  glub:      { name: 'Göz Hayaleti', model: 'golem', look: { c: 0x6a5aa8 }, magic: true, hpM: 1.0, dmgM: 1.1, defM: 0.9, expM: 1.1, speed: 4.8, aggro: 11, range: 8, atkInt: 1.8, hit: 1.2, scale: 1.0, labelY: 2.6, proj: 'bolt' },
+  goleling:  { name: 'Kaya Cini', model: 'golem', look: { c: 0x8a8a7a }, magic: true, hpM: 1.3, dmgM: 1.15, defM: 1.3, expM: 1.25, speed: 4.8, aggro: 10, range: 7, atkInt: 1.9, hit: 1.4, scale: 1.1, labelY: 2.8, proj: 'ice' },
+  fgoleling: { name: 'Uçan Taş Cini', model: 'golem', look: { c: 0xa89a7a }, magic: true, hpM: 1.15, dmgM: 1.1, defM: 1.15, expM: 1.2, speed: 5.4, aggro: 11, range: 7, atkInt: 1.8, hit: 1.3, scale: 1.0, labelY: 2.8, proj: 'fire' },
+  dragonling:{ name: 'Ejder Yavrusu', model: 'quad', look: { fur: 0x9a2a1a, dark: 0x3a0a08, horns: true, eye: 0xffd23a }, magic: true, hpM: 1.6, dmgM: 1.45, defM: 1.35, expM: 1.6, speed: 6.0, aggro: 14, range: 8, atkInt: 1.8, hit: 1.6, scale: 1.2, labelY: 3.4, status: { kind: 'burn', chance: 0.18, dur: 4 }, proj: 'fire' },
+  raptorv:   { name: 'Kum Raptoru', model: 'quad', look: { fur: 0xb8904a, dark: 0x6a4a20 }, hpM: 1.15, dmgM: 1.2, defM: 1.0, expM: 1.15, speed: 7.4, aggro: 13, range: 2.2, atkInt: 1.1, hit: 1.3, scale: 1.1, labelY: 2.6, status: { kind: 'bleed', chance: 0.12, dur: 4 } },
+  bigorc:    { name: 'Ork Reisi', model: 'char', look: { tint: 0x5a8a3a, h: 2.4 }, hpM: 1.5, dmgM: 1.3, defM: 1.3, expM: 1.4, speed: 5.2, aggro: 11, range: 2.6, atkInt: 1.7, hit: 1.6, scale: 1.2, labelY: 3.6 },
+  bigorcskull:{ name: 'Kafatası Ork', model: 'char', look: { tint: 0x7a6a5a, h: 2.4 }, hpM: 1.55, dmgM: 1.35, defM: 1.35, expM: 1.45, speed: 5.4, aggro: 12, range: 2.6, atkInt: 1.6, hit: 1.6, scale: 1.2, labelY: 3.6, status: { kind: 'stun', chance: 0.08, dur: 1 } },
+  bigdemon:  { name: 'Kızıl İblis', model: 'char', char: 'vampire', look: { tint: 0xc83a2a, h: 2.6, horns: true }, magic: true, hpM: 1.6, dmgM: 1.45, defM: 1.35, expM: 1.6, speed: 5.4, aggro: 13, range: 7, atkInt: 1.7, hit: 1.6, scale: 1.25, labelY: 3.8, status: { kind: 'burn', chance: 0.15, dur: 4 }, proj: 'fire' },
+  bluedemon: { name: 'Mavi İblis', model: 'char', char: 'vampire', look: { tint: 0x3a6ad0, h: 2.6, horns: true }, magic: true, hpM: 1.6, dmgM: 1.45, defM: 1.35, expM: 1.6, speed: 5.4, aggro: 13, range: 7, atkInt: 1.7, hit: 1.6, scale: 1.25, labelY: 3.8, status: { kind: 'freeze', chance: 0.12, dur: 1.5 }, proj: 'ice' },
+  bigninja:  { name: 'Kara Ninja', model: 'human', look: { robe: 0x1a1a22, dark: 0x0a0a0e, weapon: 'blade' }, hpM: 1.3, dmgM: 1.4, defM: 1.05, expM: 1.4, speed: 7.2, aggro: 14, range: 2.4, atkInt: 1.0, hit: 1.4, scale: 1.1, labelY: 3.4, status: { kind: 'bleed', chance: 0.15, dur: 5 } },
+  bigtribal: { name: 'Kabile Savaşçısı', model: 'human', look: { robe: 0x8a5a2a, dark: 0x4a2a10, weapon: 'spear' }, hpM: 1.35, dmgM: 1.3, defM: 1.15, expM: 1.35, speed: 6.0, aggro: 12, range: 2.6, atkInt: 1.5, hit: 1.5, scale: 1.15, labelY: 3.5 },
+  bigyeti:   { name: 'Kar Devi', model: 'char', look: { tint: 0xe8f0ff, h: 2.6 }, hpM: 1.7, dmgM: 1.35, defM: 1.4, expM: 1.6, speed: 5.0, aggro: 11, range: 2.8, atkInt: 1.9, hit: 1.7, scale: 1.3, labelY: 3.8, status: { kind: 'freeze', chance: 0.1, dur: 1.5 } },
+  cactoro:   { name: 'Kaktüs Canavarı', model: 'golem', look: { c: 0x4a8a3a }, hpM: 1.35, dmgM: 1.15, defM: 1.3, expM: 1.25, speed: 4.6, aggro: 9, range: 2.4, atkInt: 1.7, hit: 1.5, scale: 1.15, labelY: 3.2, status: { kind: 'poison', chance: 0.18, dur: 5 } },
+  mushking:  { name: 'Mantar Kral', model: 'golem', look: { c: 0xb83a2a }, magic: true, hpM: 1.6, dmgM: 1.2, defM: 1.35, expM: 1.45, speed: 4.4, aggro: 10, range: 2.6, atkInt: 1.9, hit: 1.6, scale: 1.25, labelY: 3.4, status: { kind: 'poison', chance: 0.2, dur: 6 } },
+  voidspawn: { name: 'Boşluk Yaratığı', model: 'char', look: { tint: 0x7a5ad0, h: 2.4 }, magic: true, hpM: 1.7, dmgM: 1.5, defM: 1.4, expM: 1.7, speed: 5.8, aggro: 14, range: 7, atkInt: 1.6, hit: 1.6, scale: 1.2, labelY: 3.6, status: { kind: 'stun', chance: 0.1, dur: 1 }, proj: 'bolt' },
+  barcher:   { name: 'Haydut Okçu', model: 'human', look: { robe: 0x4a3a2a, dark: 0x2a1a10, hat: 'band', weapon: 'bow' }, hpM: 1.0, dmgM: 1.1, defM: 0.9, expM: 1.15, speed: 5.6, aggro: 14, range: 11, atkInt: 1.8, hit: 1.3, scale: 1.0, labelY: 3.3, proj: 'arrow' },
+  skelarcher:{ name: 'İskelet Okçu', model: 'char', char: 'skeleton', look: { h: 2.1 }, hpM: 1.1, dmgM: 1.25, defM: 0.95, expM: 1.25, speed: 5.2, aggro: 14, range: 11, atkInt: 1.8, hit: 1.3, scale: 1.0, labelY: 3.2, proj: 'arrow' },
+  darkmage:  { name: 'Kara Büyücü', model: 'human', look: { robe: 0x2a1a3a, dark: 0x140a20, weapon: null }, magic: true, hpM: 1.1, dmgM: 1.4, defM: 0.95, expM: 1.35, speed: 5.0, aggro: 14, range: 9, atkInt: 1.8, hit: 1.3, scale: 1.0, labelY: 3.3, status: { kind: 'slow', chance: 0.12, dur: 3 }, proj: 'bolt' },
+  knightfallen:{ name: 'Düşmüş Şövalye', model: 'human', look: { robe: 0x3a3a44, dark: 0x1a1a22, weapon: 'sword' }, hpM: 1.5, dmgM: 1.25, defM: 1.45, expM: 1.4, speed: 5.4, aggro: 11, range: 2.6, atkInt: 1.6, hit: 1.4, scale: 1.1, labelY: 3.4 },
   // --- Meslek sistemi ---
   kthief:    { name: 'Kervan Hırsızı', model: 'human', look: { robe: 0x5a1a1a, dark: 0x2a0a0a, hat: 'band', weapon: 'blade' }, job: true, hpM: 0.8, dmgM: 0.8, defM: 0.9, expM: 0.8, speed: 6.4, aggro: 18, range: 2.4, atkInt: 1.4, hit: 1.3, scale: 1.0, labelY: 3.3 },
   kguard:    { name: 'Kervan Muhafızı', model: 'human', look: { robe: 0x1a3a8a, dark: 0x0a1a4a, hat: 'band', weapon: 'spear' }, job: true, hpM: 1.4, dmgM: 1.1, defM: 1.2, expM: 0.9, speed: 6.0, aggro: 14, range: 2.8, atkInt: 1.5, hit: 1.3, scale: 1.05, labelY: 3.3 },
@@ -455,6 +483,13 @@ class Monster {
     if (this.actions) { if (this.actions.death) this.actions.death.stop(); this.base = null; this._shot = null; this._play('idle', 0); }
   }
 
+  // Uzaktan saldıran canavarlar (okçu, büyücü, ejder): mermi görüntüsü
+  _shoot(target, combat) {
+    const t = this.type; if (t.range < 4 || !combat.vfx || !this.group.visible) return;
+    const st = t.status && t.status.kind, kind = t.proj || (st === 'burn' ? 'fire' : st === 'freeze' || st === 'slow' ? 'ice' : t.magic ? 'bolt' : 'arrow');
+    const p = this.group.position;
+    combat.vfx.projectile({ x: p.x, y: p.y + 1.6 * this.baseScale + (this.fly || 0), z: p.z }, target, kind, () => {});
+  }
   _moveToward(tx, tz, speed, dt) {
     const p = this.group.position;
     const dx = tx - p.x, dz = tz - p.z, d = Math.hypot(dx, dz);
@@ -480,7 +515,7 @@ class Monster {
       return;
     }
 
-    const dpx = player.pos.x - p.x, dpz = player.pos.z - p.z, dp = Math.hypot(dpx, dpz);
+    const dpx = player.pos.x - p.x, dpz = player.pos.z - p.z, dp = Math.hypot(dpx, dpz); this._dp = dp;
     this.group.visible = dp < (CONFIG.isTouch ? 110 : 170);                          // sis ötesindekiler çizilmez
     if (dp > 140 && this.state === 'idle') return;          // uzaktaki canavarlar uyur
     this.label.visible = Settings.data.names && (combat.target === this || (this.state === 'chase' && dp < 30) || dp < 16 || this.rank === 'unique' && dp < 60);
@@ -535,7 +570,7 @@ class Monster {
       if (ent && (dp > 7 || playerSafe) && !inSafeZone(ent.x, ent.z)) {
         const ex = ent.x - p.x, ez = ent.z - p.z, de = Math.hypot(ex, ez);
         if (de > this.type.range * 0.85 + (ent.r || 0.8)) this._moveToward(ent.x, ent.z, this.type.speed * slow, dt);
-        else { this.heading = Math.atan2(ex, ez); if (this.atkCd <= 0) { this.atkCd = this.type.atkInt / slow; this.attackAnim = 0.3; ent.hurt(this.dmg, this); } }
+        else { this.heading = Math.atan2(ex, ez); if (this.atkCd <= 0) { this.atkCd = this.type.atkInt / slow; this.attackAnim = 0.3; this._shoot(ent, combat); ent.hurt(this.dmg, this); } }
       } else if (playerSafe || (homeDist > LEASH && !this.noLeash)) { this.state = 'return'; this.provoked = false; if (this.noLeash) { this.home.x = p.x; this.home.z = p.z; } }
       else if (dp > this.type.range * 0.85) {
         this._moveToward(player.pos.x, player.pos.z, this.type.speed * slow, dt);
@@ -544,6 +579,7 @@ class Monster {
         if (this.atkCd <= 0) {
           this.atkCd = this.type.atkInt / slow;
           this.attackAnim = 0.3;
+          this._shoot(player, combat);
           combat.damagePlayer(this.dmg, this, this.type.magic ? 'mag' : 'phys');
         }
       }
@@ -568,7 +604,9 @@ class Monster {
       if (!this._shot) this._play(this.moving ? (run ? 'run' : 'walk') : 'idle');
       this.mixer.timeScale = this.status.slow ? 0.5 : 1;
       if (this.base && this.moving) this.base.timeScale = run ? Math.min(1.6, this.type.speed / 5.5) : 1;
-      this.mixer.update(dt);
+      // uzaktaki canavarların iskelet animasyonu 3 karede bir güncellenir (kalabalık alanlarda performans)
+      const far = this._dp > 55;
+      if (!far || ((this._fc = (this._fc || 0) + 1) % 3) === 0) { this.mixer.update(dt + (this._acc || 0)); this._acc = 0; } else this._acc = (this._acc || 0) + dt;
       if (this.headBone) this.headBone.scale.setScalar(0.74);
       if (this.fly) this.body.position.y = this.fly + Math.sin(performance.now() * 0.002 + this.walkPhase) * 0.15;
       if (this.tailPart) this.tailPart.rotation.x = Math.sin(performance.now() * 0.004 + this.walkPhase) * 0.08 - (this.attackAnim > 0 ? 0.5 * Math.sin((1 - this.attackAnim / 0.3) * Math.PI) : 0);
@@ -618,7 +656,7 @@ class MonsterManager {
     };
     const ring = (type, count, d0, d1, l0, l1) => {
       let made = 0, tries = 0;
-      while (made < count && tries++ < 500) {
+      while (made < count && tries++ < 900) {
         const a = rng() * 6.283, d = rand(d0, d1), x = Math.cos(a) * d, z = Math.sin(a) * d;
         if (!freeSpot(x, z)) continue;
         // yol üstünde doğmasınlar
@@ -628,7 +666,9 @@ class MonsterManager {
         made++;
       }
     };
-    for (const sp of ZONE.spawns) ring(...sp);
+    // yoğunluk: iSRO'daki kalabalık av alanları (telefonda biraz daha az)
+    const dens = Dungeon.on ? (CONFIG.isTouch ? 1.2 : 1.4) : (CONFIG.isTouch ? 1.35 : 1.7);
+    for (const sp of ZONE.spawns) ring(sp[0], Math.round(sp[1] * dens), sp[2], sp[3], sp[4], sp[5]);
     // Harabelerde haydut kampları
     if (!ZONE.ruinMob) return;
     const [rt, r0, r1] = ZONE.ruinMob;
