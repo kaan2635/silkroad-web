@@ -111,7 +111,8 @@ class PetSystem {
       const mane = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.4, 0.8), new THREE.MeshLambertMaterial({ color: 0x1a0a04 }));
       mane.position.set(0, 2.0, 1.0); q.group.add(mane);
       this.horse = q; this.p.group.add(q.group);
-      if (typeof MobModels !== 'undefined') MobModels.simple('horse', { h: 2.35, rot: -Math.PI / 2, colors: this.horseSpeed >= 2 ? { Main: 0xe8e4dc, Main_Light: 0xf4f0e8, Main_Dark: 0xb8b0a0, Hair: 0x3a3a3a } : null }, r => {
+      const mFile = this.horseSpeed >= 2 ? 'horse_white' : 'horse';
+      if (typeof MobModels !== 'undefined') MobModels.simple(mFile, { h: 2.35, rot: -Math.PI / 2 }, r => {
         if (this.horse !== q) return;
         for (const c of [...q.group.children]) if (c !== saddle && c !== mane) q.group.remove(c);
         q.group.remove(mane); saddle.position.set(0, 1.62, -0.05); saddle.scale.set(0.75, 1, 0.9);
@@ -140,10 +141,19 @@ class PetSystem {
     if (sq) { const t = new THREE.Mesh(new THREE.SphereGeometry(0.32, 10, 8), new THREE.MeshLambertMaterial({ color: 0xffd23a, emissive: 0x3a2a00 })); t.scale.set(0.8, 1.4, 0.8); t.position.set(0, 0.85, -0.55); q.group.add(t); }
     const g = new THREE.Group(); g.add(q.group);
     const P = this.p.pos; g.position.set(P.x - 1.5, P.y, P.z - 1.5);
-    const label = makeLabel(sq ? 'Altın Sincap' : fox ? 'Toplayıcı Tilki' : A.name, fox ? 'Toplayıcı' : 'Sv. ' + this.pstat().lv, sq ? '#ffd23a' : fox ? '#9fe3ff' : A.color, '#ffe9a8');
+    const label = makeLabel(sq ? 'Altın Şiba' : fox ? 'Toplayıcı Tilki' : A.name, fox ? 'Toplayıcı' : 'Sv. ' + this.pstat().lv, sq ? '#ffd23a' : fox ? '#9fe3ff' : A.color, '#ffe9a8');
     label.scale.set(3, 0.95, 1); label.position.y = fox ? 1.6 : 2.2; g.add(label);
     this.world.scene.add(g);
-    return { group: g, legs: q.legs, wings: q.wings || null, fly: !fox && !!A.wings, heading: 0, phase: 0, get x() { return g.position.x; }, get z() { return g.position.z; }, label };
+    const pet = { group: g, legs: q.legs, wings: q.wings || null, fly: !fox && !!A.wings, heading: 0, phase: 0, get x() { return g.position.x; }, get z() { return g.position.z; }, label };
+    if (typeof MobModels !== 'undefined') {
+      const pFile = sq ? 'shibainu' : fox ? 'fox' : this.akind === 'dragon' ? 'dragon_evolved' : 'wolf';
+      const pDef = sq ? { h: 0.95, rot: -Math.PI / 2 } : fox ? { h: 0.9, rot: -Math.PI / 2 } : this.akind === 'dragon' ? { h: 1.5, rot: 0 } : this.akind === 'tiger' ? { h: 1.25, rot: -Math.PI / 2, colors: { Main: 0xe0862a, Main_Light: 0xf8e4c8 } } : { h: 1.2, rot: -Math.PI / 2 };
+      MobModels.simple(pFile, pDef, r => {
+        if ((fox && this.grab !== pet) || (!fox && this.atk !== pet)) return;
+        g.remove(q.group); g.add(r.holder); pet.legs = []; pet.wings = null; pet.mixer = r.mixer; pet.actions = r.actions; pet.cur = null;
+      });
+    }
+    return pet;
   }
   _remove(pet) { if (pet) this.world.scene.remove(pet.group); }
   _move(pet, tx, tz, speed, dt) {
@@ -158,12 +168,18 @@ class PetSystem {
     else pet.stuck = 0;
     return d - st;
   }
-  _anim(pet, moving) {
-    const s = moving ? Math.sin(pet.phase) * 0.8 : 0;
-    pet.legs.forEach((l, i) => { l.rotation.x = (i === 0 || i === 3 ? s : -s); });
+  _anim(pet, moving, dt = 0.016) {
+    if (pet.mixer) {
+      const want = (pet.attackAnim > 0 && pet.actions.attack) ? pet.actions.attack : (pet.actions[moving ? 'run' : 'idle'] || pet.actions[moving ? 'walk' : 'idle'] || pet.actions.idle);
+      if (want && pet.cur !== want) { if (pet.cur) pet.cur.fadeOut(0.18); want.reset().fadeIn(0.18).play(); pet.cur = want; }
+      pet.mixer.update(dt);
+    } else {
+      const s = moving ? Math.sin(pet.phase) * 0.8 : 0;
+      pet.legs.forEach((l, i) => { l.rotation.x = (i === 0 || i === 3 ? s : -s); });
+      if (pet.wings) pet.wings.forEach((w, i) => { w.rotation.z = (i ? 1 : -1) * (0.3 + Math.sin(performance.now() * 0.012) * 0.4); });
+    }
     pet.group.rotation.y = pet.heading;
     pet.group.position.y = terrainHeight(pet.group.position.x, pet.group.position.z) + (pet.fly ? 0.9 + Math.sin(performance.now() * 0.004) * 0.15 : 0);
-    if (pet.wings) pet.wings.forEach((w, i) => { w.rotation.z = (i ? 1 : -1) * (0.3 + Math.sin(performance.now() * 0.012) * 0.4); });
   }
   _follow(pet, dt, side) {
     const P = this.p.pos, a = this.p.heading + side;
@@ -232,7 +248,7 @@ class PetSystem {
         moving = this._move(g, g.target.x, g.target.z, this.grabKind === 2 ? 16 : 12, dt) > 0;
         if (Math.hypot(g.target.x - g.x, g.target.z - g.z) < 1.2) { this._petCollect(g.target); g.target = null; }
       } else moving = this._follow(g, dt, 0.9);
-      this._anim(g, moving);
+      this._anim(g, moving, dt);
     }
     // saldırı evcili: oyuncunun hedefine saldırır; çağrılıyken acıkır
     const a = this.atk;
@@ -257,9 +273,9 @@ class PetSystem {
           }
         }
       } else moving = this._follow(a, dt, -0.9);
-      if (a.attackAnim > 0) { a.attackAnim -= dt; a.group.children[0].position.z = Math.sin((1 - a.attackAnim / 0.3) * Math.PI) * 0.5; }
+      if (a.attackAnim > 0) { a.attackAnim -= dt; if (!a.mixer && a.group.children[0]) a.group.children[0].position.z = Math.sin((1 - a.attackAnim / 0.3) * Math.PI) * 0.5; }
       if (!this.combat.inSafe && a.hp < a.maxHp && !this.p.combatT) a.hp = Math.min(a.maxHp, a.hp + a.maxHp * 0.01 * dt);
-      if (this.atk) this._anim(a, moving);
+      if (this.atk) this._anim(a, moving, dt);
     }
   }
 

@@ -10,7 +10,7 @@ const ASSET_COLORS = {   // dokusuz (Doğa kiti) materyal adı → renk
 };
 
 const Assets = {
-  ready: false, failed: 0, entries: {}, texByKit: {}, matTex: {}, matVC: null, scenes: {},
+  ready: false, failed: 0, entries: {}, rawScenes: {}, tintedCache: {}, texByKit: {}, matTex: {}, matVC: null, scenes: {},
 
   has(key) { return !!this.entries[key]; },
   parts(key) { return this.entries[key] || null; },
@@ -37,7 +37,10 @@ const Assets = {
         loader.parse(buf.buffer, kit + '/', gltf => {
           try {
             if (key.includes('/character-')) this.scenes[key] = this._prepChar(gltf.scene, kit);
-            else this.entries[key] = this._bake(gltf.scene, kit);
+            else {
+              this.rawScenes[key] = gltf.scene;
+              this.entries[key] = this._bake(gltf.scene, kit);
+            }
           } catch (e) { this.failed++; }
           tick(); resolve();
         }, () => { this.failed++; tick(); resolve(); });
@@ -47,7 +50,7 @@ const Assets = {
   },
 
   // Sahneyi (dünya matrisleriyle) iki geometriye indirger: dokulu ve köşe renkli
-  _bake(root, kit) {
+  _bake(root, kit, palette) {
     root.updateMatrixWorld(true);
     const tex = { pos: [], nor: [], uv: [], idx: [], base: 0 };
     const col = { pos: [], nor: [], col: [], idx: [], base: 0 };
@@ -65,7 +68,10 @@ const Assets = {
         const dst = isTex ? tex : col;
         if (isTex && !texMap) texMap = m.map;
         if (!isTex) {
-          c.set(ASSET_COLORS[m.name] !== undefined ? ASSET_COLORS[m.name] : 0x9a8f80);
+          if (palette && m && palette[m.name] !== undefined) c.set(palette[m.name]);
+          else if (ASSET_COLORS[m.name] !== undefined) c.set(ASSET_COLORS[m.name]);
+          else if (m && m.color) c.copy(m.color).convertLinearToSRGB();
+          else c.set(0x9a8f80);
         }
         const remap = new Map();
         for (let k = gr.start; k < gr.start + gr.count; k++) {
@@ -99,6 +105,28 @@ const Assets = {
     for (const p of parts) { p.geo.computeBoundingBox(); box.union(p.geo.boundingBox); }
     parts.size = box.getSize(new THREE.Vector3());
     return parts;
+  },
+
+  // Modelden tek bir Mesh/Group örneği üretir (isteğe bağlı materyal paletiyle)
+  mesh(key, palette, cacheKey) {
+    let parts = this.entries[key];
+    if (!parts) return null;
+    if (palette && this.rawScenes[key]) {
+      const ck = cacheKey ? key + ':' + cacheKey : null;
+      if (ck && this.tintedCache[ck]) parts = this.tintedCache[ck];
+      else {
+        parts = this._bake(this.rawScenes[key], key.split('/')[0], palette);
+        if (ck) this.tintedCache[ck] = parts;
+      }
+    }
+    if (parts.length === 1) {
+      const m = new THREE.Mesh(parts[0].geo, parts[0].mat);
+      m.castShadow = true; m.receiveShadow = true;
+      return m;
+    }
+    const g = new THREE.Group();
+    for (const p of parts) { const m = new THREE.Mesh(p.geo, p.mat); m.castShadow = true; m.receiveShadow = true; g.add(m); }
+    return g;
   },
 
   // Hareketli karakter (parçalı düğümler: bacak / kol / gövde / kafa): sahne korunur, materyaller Lambert'e çevrilir

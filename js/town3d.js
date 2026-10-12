@@ -52,6 +52,21 @@ World.prototype._buildTown = function () {
   if (!this.arch) this.arch = new ArchKit(this);
   for (const sx of [-1, 1]) this.arch.paifang(sx * H, 0, Math.PI / 2, 11.2, '', 6.2);
   this.arch.finish();
+
+  // Köy / pazar / demirci / kuyu 3B dekorları (Quaternius CC0)
+  const vp = (k, x, z, sc, ry = 0, r = 0) => {
+    if (!Assets.has(k)) return null;
+    const g = this._place(k, x, z, sc, ry);
+    if (r) this.obstacles.push({ x, z, r, type: 'prop' });
+    return g;
+  };
+  vp('village/Well', -9.5, 9.5, 2.2, 0.4, 1.2);
+  vp('village/Gazebo', 10.5, 10.5, 2.5, -0.5, 1.6);
+  vp('village/MarketStand_1', -18, 13, 2.4, 0.2, 1.3);
+  vp('village/MarketStand_2', -22, 13, 2.4, -0.1, 1.2);
+  vp('village/Cauldron', -14, -7.5, 3.2, 0, 0.7);
+  vp('village/Bonfire_Lit', 14, -8, 3.2, 0, 0.8);
+  for (const [bx, bz, bry] of [[-6.5, 4.5, 0], [6.5, 4.5, Math.PI], [-6.5, -4.5, 0], [6.5, -4.5, Math.PI]]) vp('village/Bench_1', bx, bz, 2.4, bry, 0.6);
 };
 
 // Kervan yolu: vagonlar, yük yığınları, tabelalar
@@ -142,18 +157,49 @@ World.prototype._scatterModels = function (palms, cacti, rocks, pillars, rng) {
   for (const key in bucket) this._inst(key, bucket[key], !/plant|grass|log|stump|flower|mushroom/.test(key));
 
   // Haydut kampları: obelisk, çadırlar, kamp ateşi, fıçı ve sandıklar
-  const camp = (cx, cz) => {
+  this.chests = this.chests || [];
+  this.shrines = this.shrines || [];
+  const spawnChest = (x, z, title = 'Kervan Sandığı') => {
+    if (!Assets.has('rpg/Chest_Closed')) return;
+    const g = this._place('rpg/Chest_Closed', x, z, 1.55, rng() * 6.28);
+    if (!g) return;
+    const lbl = makeLabel(title, 'Açmak için yaklaş', '#ffd86a', '#ffe9a8');
+    lbl.position.y = 1.45; lbl.scale.set(2.4, 0.75, 1); g.add(lbl);
+    this.chests.push({ x, z, group: g, label: lbl, opened: false, respawnT: 0 });
+  };
+  const spawnShrine = (x, z, kind = 0) => {
+    if (!Assets.has('dungeon/Pedestal')) return;
+    const names = [['Savaş Sunağı', '+%18 Hasar (3 dk)', '#ff7a5a', 'rpg/Crystal2', 0xff4a3a], ['Koruma Sunağı', '+%22 Savunma & Can (3 dk)', '#6ad8ff', 'rpg/Crystal1', 0x4ac8ff], ['Bilgelik Sunağı', '+%25 EXP & SP (3 dk)', '#a8ff7a', 'rpg/Crystal3', 0x6ae87a]][kind % 3];
+    const g = this._place('dungeon/Pedestal', x, z, 1.05, 0);
+    if (!g) return;
+    if (Assets.has(names[3])) {
+      const cr = Assets.mesh(names[3]);
+      if (cr) { cr.position.y = 2.65; cr.scale.setScalar(1.35); g.add(cr); g.userData.crystal = cr; }
+    }
+    const lbl = makeLabel(names[0], names[1], names[2], '#ffe9a8');
+    lbl.position.y = 3.55; lbl.scale.set(3.2, 0.95, 1); g.add(lbl);
+    this.obstacles.push({ x, z, r: 1.1, type: 'pillar' });
+    this.shrines.push({ x, z, kind: kind % 3, name: names[0], desc: names[1], col: names[4], group: g, label: lbl, cd: 0 });
+  };
+  const camp = (cx, cz, idx) => {
     const place = (key, x, z, sc, ry, r) => { if (!Assets.has(key)) return; this._place(key, x, z, sc, ry); if (r) this.obstacles.push({ x, z, r, type: 'prop' }); };
     place('nature/statue_obelisk', cx, cz, 6, rng() * 6, 0.9);
-    place('survival/campfire-pit', cx + 3.2, cz + 2.4, 5, 0, 0);
+    place(Assets.has('village/Bonfire_Lit') ? 'village/Bonfire_Lit' : 'survival/campfire-pit', cx + 3.2, cz + 2.4, Assets.has('village/Bonfire_Lit') ? 3.5 : 5, 0, 0);
     for (let i = 0; i < 3; i++) {
       const a = rand(0, 6.28) + i * 2.1, d = rand(10.5, 12.5), x = cx + Math.cos(a) * d, z = cz + Math.sin(a) * d;
       place(i === 1 ? 'survival/tent-canvas' : 'survival/tent', x, z, 7, Math.atan2(cx - x, cz - z), 2.2);
     }
     const props = ['survival/barrel', 'survival/box', 'survival/chest', 'survival/barrel', 'survival/box-large'];
     props.forEach((k, i) => { const a = 0.8 + i * 1.3, d = rand(5.2, 7), x = cx + Math.cos(a) * d, z = cz + Math.sin(a) * d; place(k, x, z, 3.6, rng() * 6, 0.7); });
+    spawnChest(cx - 2.6, cz - 2.2, 'Haydut Hazinesi');
+    spawnShrine(cx + 6.5, cz - 5.5, idx);
   };
-  for (const c of RUINS) camp(c.x, c.z);
+  RUINS.forEach((c, idx) => camp(c.x, c.z, idx));
+  // Vaha tekneleri ve saha hazine sandıkları
+  PONDS.forEach((p, idx) => {
+    if (idx % 2 === 0 && Assets.has('village/Viking_boat')) this._place('village/Viking_boat', p.x + 3.5, p.z - 2, 1.15, idx * 1.1, terrainHeight(p.x, p.z) - 0.15, true);
+    spawnChest(p.x + (POND_RADIUS + 2.5) * Math.cos(idx * 2.1), p.z + (POND_RADIUS + 2.5) * Math.sin(idx * 2.1), 'Vaha Sandığı');
+  });
 };
 
 // Bölge geçiş kapıları: yolun kuzey ucu → sonraki şehir, güney ucu → önceki şehir

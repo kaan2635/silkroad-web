@@ -220,6 +220,7 @@ const HumanRig = {
     const U = rig.U, TT = rig.T;
     const R = (b, x, y, z, rx = 0, ry = 0, rz = 0, sx = 1, sy = 1, sz = 1) => { const hd0 = b === 'Head'; return new THREE.Matrix4().compose(hd0 ? new THREE.Vector3(x, y, z) : TT.map(b, x, y, z), new THREE.Quaternion().setFromEuler(new THREE.Euler(rx, ry, rz)), hd0 ? new THREE.Vector3(sx, sy, sz) : new THREE.Vector3(sx * TT.kx, sy * TT.ky, sz * TT.kz)); };
     const add = (bone, geo, mat, M, shadow = true) => { const m = new THREE.Mesh(geo, mat); m.castShadow = shadow && (!CONFIG.isTouch || h.isPlayer); this.attach(rig, bone, m, M); rig.outfit.push(m); return m; };
+    const addObj = (bone, obj, M) => { if (!obj) return null; this.attach(rig, bone, obj, M); rig.outfit.push(obj); return obj; };
     const cyl = (rt, rb, hh, seg = 16, open = false) => new THREE.CylinderGeometry(rt, rb, hh, seg, 1, open);
     const sph = (r, a = 14, b = 10, t0 = 0, tl = Math.PI) => new THREE.SphereGeometry(r, a, b, 0, 6.283, t0, tl);
     const lm = (col, em) => { const m = new THREE.MeshLambertMaterial({ color: col }); if (em) m.emissive = em; return m; };
@@ -312,13 +313,19 @@ const HumanRig = {
     const top = hc.y + hs.y * 0.5;
     if (avH) {
       const k = avH.b.look.kind;
-      if (k === 'crown') { add('Head', cyl(0.12, 0.1, 0.08, 10, true), lm(0xffd23a, new THREE.Color(0x3a2a00)), R('Head', hc.x, top + 0.01, hc.z)).material.side = THREE.DoubleSide; for (let i = 0; i < 6; i++) { const a = i / 6 * 6.283; add('Head', new THREE.ConeGeometry(0.02, 0.06, 4), lm(0xffd23a), R('Head', hc.x + Math.sin(a) * 0.11, top + 0.07, hc.z + Math.cos(a) * 0.11)); } }
+      if (k === 'crown' && typeof Assets !== 'undefined' && Assets.has('rpg/Crown2')) {
+        addObj('Head', Assets.mesh('rpg/Crown2'), R('Head', hc.x, top + 0.01, hc.z, 0, 0, 0, 0.27, 0.27, 0.27));
+      } else if (k === 'crown') { add('Head', cyl(0.12, 0.1, 0.08, 10, true), lm(0xffd23a, new THREE.Color(0x3a2a00)), R('Head', hc.x, top + 0.01, hc.z)).material.side = THREE.DoubleSide; for (let i = 0; i < 6; i++) { const a = i / 6 * 6.283; add('Head', new THREE.ConeGeometry(0.02, 0.06, 4), lm(0xffd23a), R('Head', hc.x + Math.sin(a) * 0.11, top + 0.07, hc.z + Math.cos(a) * 0.11)); } }
       else if (k === 'ears') for (const sx of [-1, 1]) add('Head', new THREE.ConeGeometry(0.04, 0.14, 4), lm(avH.b.look.c1), R('Head', hc.x + sx * 0.07, top + 0.04, hc.z, 0, 0, -sx * 0.25));
       else { add('Head', new THREE.ConeGeometry(0.32, 0.2, 18), lm(avH.b.look.c1), R('Head', hc.x, top + 0.07, hc.z)); add('Head', cyl(0.12, 0.12, 0.04, 14), lm(avH.b.look.c2 || 0xc0302a), R('Head', hc.x, top - 0.02, hc.z)); }
     } else if (hd) {
       const at = hd.b.atype, d = hd.b.d, M = armorMat(at, d, hd.b.tier, sealE(hd));
       const hr = Math.max(hs.x, hs.z) * 0.62;
-      if (at === 'armor') {
+      if (at === 'armor' && hd.b.eu && typeof Assets !== 'undefined' && Assets.has('weapons/Helmet3') && d >= 5) {
+        const hk = d >= 9 ? 'weapons/Helmet3' : 'weapons/Helmet2';
+        const hex = M.color.getHex(), gc = d >= 6 ? 0xffc83a : 0xd49b35;
+        addObj('Head', Assets.mesh(hk, { Grey: hex, DarkGrey: hex, Golden: gc }, `rig_hm_${d}`), R('Head', hc.x, hc.y + hs.y * 0.02, hc.z, 0, 0, 0, 0.16, 0.16, 0.16));
+      } else if (at === 'armor') {
         add('Head', sph(hr, 16, 10, 0, 1.3), M, R('Head', hc.x, hc.y + hs.y * 0.04, hc.z - 0.005, 0, 0, 0, 1, 1.05, 1.08));
         add('Head', new THREE.TorusGeometry(hr * 0.98, 0.009, 5, 22), d >= 4 ? gold : M, R('Head', hc.x, hc.y + hs.y * 0.12, hc.z, Math.PI / 2, 0, 0, 1, 1.08, 1));
         add('Head', new THREE.CylinderGeometry(hr, hr * 1.12, hs.y * 0.45, 16, 1, true, Math.PI * 0.55, Math.PI * 0.9), M, R('Head', hc.x, hc.y - hs.y * 0.12, hc.z - 0.01)).material.side = THREE.DoubleSide;

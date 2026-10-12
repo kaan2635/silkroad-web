@@ -243,17 +243,92 @@ Object.assign(ITEM_BASES, {
   rename:   { cat: 'use', use: 'rename', icon: '🪪', name: 'Ad Değiştirme Parşömeni', stack: 5, value: 0, sub: 'Karakterinin adını değiştirir', cd: 'reset' },
   silkbag:  { cat: 'use', use: 'silkbag', icon: '🧧', name: 'Silk Kesesi', stack: 50, value: 0, sub: 'Açınca 5–15 Silk verir', cd: 'silkbag' }
 });
-// --- Simya genişlemesi: Özellik Taşları, Gelişmiş İksir, Kanıt Taşı, söküm özleri, sentez tabletleri ---
+// --- Simya genişlemesi: Özellik Taşları, Gelişmiş İksir, Kanıt Taşı, 4 Element (Ateş/Su/Rüzgâr/Toprak), Yeşim/Yakut/Safir Tabletler ---
 for (const k in WHITES) ITEM_BASES['as_' + k] = { cat: 'mat', icon: '💎', name: 'Özellik Taşı (' + WHITES[k].name + ')', stack: 50, value: 900, sub: 'Simya: eşyanın ' + WHITES[k].name + ' beyaz statını yükseltir (%65 şans)', astone: k };
 Object.assign(ITEM_BASES, {
-  adv_elx: { cat: 'mat', icon: '🧪', name: 'Gelişmiş Güçlendirme İksiri', stack: 20, value: 0, sub: 'Simya: eşyaya kalıcı +2 verir (başarısız simyada kaybolmaz). Eşya başına bir kez' },
-  proof:   { cat: 'mat', icon: '📜', name: 'Kanıt Taşı', stack: 20, value: 2000, sub: 'Simya: bir sonraki Büyü / Özellik Taşı kesin tutar' },
-  ess_atk: { cat: 'mat', icon: '🔥', name: 'Saldırı Özü', stack: 999, value: 40, sub: 'Söküm ürünü. Sentezde taş yapımında kullanılır' },
-  ess_def: { cat: 'mat', icon: '🛡️', name: 'Savunma Özü', stack: 999, value: 40, sub: 'Söküm ürünü. Sentezde taş yapımında kullanılır' },
-  ess_mag: { cat: 'mat', icon: '✨', name: 'Büyü Özü', stack: 999, value: 60, sub: 'Söküm ürünü. Sentezde taş yapımında kullanılır' },
-  tab_ms:  { cat: 'mat', icon: '📘', name: 'Büyü Taşı Tableti', stack: 50, value: 1500, sub: 'Sentez: istediğin Büyü Taşını (mavi stat) yaptırır' },
-  tab_as:  { cat: 'mat', icon: '📗', name: 'Özellik Taşı Tableti', stack: 50, value: 1800, sub: 'Sentez: istediğin Özellik Taşını (beyaz stat) yaptırır' }
+  adv_elx:      { cat: 'mat', icon: '🧪', name: 'Gelişmiş Güçlendirme İksiri', stack: 20, value: 0, sub: 'Simya: eşyaya kalıcı +2 verir (başarısız simyada kaybolmaz). Eşya başına bir kez' },
+  proof:        { cat: 'mat', icon: '📜', name: 'Kanıt Taşı (Magic Proof)', stack: 20, value: 2000, sub: 'Simya: bir sonraki Büyü / Özellik Taşı %100 kesin tutar' },
+  void_rondo:   { cat: 'mat', icon: '🌀', name: 'Yokluk Rondosu (Void Rondo)', stack: 999, value: 80, sub: 'iSRO Simya: Ekipmanı Ateş, Su, Rüzgâr ve Toprak elementlerine ayrıştırır' },
+  el_fire:      { cat: 'mat', icon: '🔥', name: 'Ateş Elementi (Fire)', stack: 999, value: 30, sub: 'iSRO 4 Element Simyası: Yeşim ve Yakut Tablet sentezinde kullanılır' },
+  el_water:     { cat: 'mat', icon: '💧', name: 'Su Elementi (Water)', stack: 999, value: 30, sub: 'iSRO 4 Element Simyası: Yeşim, Yakut ve Safir Tablet sentezinde kullanılır' },
+  el_wind:      { cat: 'mat', icon: '🌪️', name: 'Rüzgâr Elementi (Wind)', stack: 999, value: 30, sub: 'iSRO 4 Element Simyası: Yeşim, Yakut ve Safir Tablet sentezinde kullanılır' },
+  el_earth:     { cat: 'mat', icon: '🪨', name: 'Toprak Elementi (Earth)', stack: 999, value: 30, sub: 'iSRO 4 Element Simyası: Yeşim ve Yakut Tablet sentezinde kullanılır' },
+  ess_atk:      { cat: 'mat', icon: '🔥', name: 'Saldırı Özü', stack: 999, value: 40, sub: 'Söküm ürünü. Sentezde taş yapımında kullanılır' },
+  ess_def:      { cat: 'mat', icon: '🛡️', name: 'Savunma Özü', stack: 999, value: 40, sub: 'Söküm ürünü. Sentezde taş yapımında kullanılır' },
+  ess_mag:      { cat: 'mat', icon: '✨', name: 'Büyü Özü', stack: 999, value: 60, sub: 'Söküm ürünü. Sentezde taş yapımında kullanılır' },
+  tab_ms:       { cat: 'mat', icon: '📗', name: 'Yeşim Tableti (Jade Tablet)', stack: 50, value: 1500, sub: 'iSRO Sentez: 4 Element ile işlenerek Büyü Taşı (mavi stat) üretir' },
+  tab_as:       { cat: 'mat', icon: '📕', name: 'Yakut Tableti (Ruby Tablet)', stack: 50, value: 1800, sub: 'iSRO Sentez: 4 Element ile işlenerek Özellik Taşı (beyaz stat %) üretir' },
+  tab_sapphire: { cat: 'mat', icon: '📘', name: 'Safir Tableti (Sapphire Tablet)', stack: 50, value: 2200, sub: 'iSRO Sentez: Rüzgâr ve Su elementleriyle Rüzgâr / Tayfun İlacı üretir' },
+  drug_wind:    { cat: 'use', use: 'speed', spdMult: 1.5, spdDur: 900, icon: '🍃', name: 'Rüzgâr İlacı (Drug of Wind)', stack: 50, value: 450, sub: 'iSRO Simya İlacı: 15 dakika boyunca hareket hızı +%50', cd: 'spd' },
+  drug_typhoon: { cat: 'use', use: 'speed', spdMult: 2.0, spdDur: 900, icon: '🌪️', name: 'Tayfun İlacı (Drug of Typhoon)', stack: 50, value: 1200, sub: 'iSRO Simya İlacı: 15 dakika boyunca hareket hızı +%100 (En üst hız iksiri)', cd: 'spd' }
 });
+
+// --- Unutulmuş Dünya (Forgotten World - FGW) 8 Tılsım Koleksiyon Kitapları ---
+const FGW_BOOKS = [
+  {
+    id: 'togui',
+    name: 'Togui Köyü Koleksiyonu',
+    sub: 'Unutulmuş Dünya ★ (Sv. 35–70)',
+    rewardDeg: 8,
+    rewardRarity: 3, // Seal of Sun
+    rewardLabel: '8. Derece Seal of Sun (Güneş Mühürlü) Silah',
+    talismans: [
+      ['fgw_t1', 'Kızıl Gözyaşı (Red Tears)', '🩸'],
+      ['fgw_t2', 'Batı Yazıtları (Western Scriptures)', '📜'],
+      ['fgw_t3', 'Togui Maskesi (Togui Mask)', '👺'],
+      ['fgw_t4', 'Kızıl Tılsım (Red Talisman)', '🧧'],
+      ['fgw_t5', 'Kukla (Puppet)', '🪆'],
+      ['fgw_t6', 'Kör Satır (Dull Kitchen Knife)', '🔪'],
+      ['fgw_t7', 'Büyü Kağıdı (Spell Paper)', '📄'],
+      ['fgw_t8', 'Yaşlı Asası (Elder Staff)', '🦯']
+    ]
+  },
+  {
+    id: 'flame',
+    name: 'Alev Dağı Koleksiyonu',
+    sub: 'Unutulmuş Dünya ★★ (Sv. 71–90)',
+    rewardDeg: 9,
+    rewardRarity: 3, // Seal of Sun
+    rewardLabel: '9. Derece Seal of Sun (Güneş Mühürlü) Silah',
+    talismans: [
+      ['fgw_f1', 'Ateş Çiçeği (Fire Flower)', '🌺'],
+      ['fgw_f2', 'Boynuzlu Boğa (Horned Cattle)', '🐂'],
+      ['fgw_f3', 'Unutuş Alevi (Flame of Oblivion)', '🔥'],
+      ['fgw_f4', 'Alev Kağıdı (Flame Paper)', '📜'],
+      ['fgw_f5', 'Ocak Alevi (Hearthstone Flame)', '🕯️'],
+      ['fgw_f6', 'Büyücü Kolyesi (Enchantress Necklace)', '📿'],
+      ['fgw_f7', 'Honghaeah Zırhı (Honghaeah Armor)', '🥋'],
+      ['fgw_f8', 'Ateş Ejderi Kılıcı (Fire Dragon Sword)', '🗡️']
+    ]
+  },
+  {
+    id: 'ship',
+    name: 'Batık Gemi: Hınç Denizi',
+    sub: 'Unutulmuş Dünya ★★★ (Sv. 91–110)',
+    rewardDeg: 11,
+    rewardRarity: 4, // Seal of Nova
+    rewardLabel: '11. Derece Seal of Nova (Yıldız Mühürlü) Silah',
+    talismans: [
+      ['fgw_s1', 'Kırık Anahtar (Broken Key)', '🗝️'],
+      ['fgw_s2', 'Büyük Maşa (Large Tong)', '钳'],
+      ['fgw_s3', 'Hayalet Arp (Phantom Harp)', '🪕'],
+      ['fgw_s4', 'Kötülüğün Kalbi (Evil\'s Heart)', '💜'],
+      ['fgw_s5', 'Kin Ruhu Boncuğu (Spirit\'s Bead)', '🔮'],
+      ['fgw_s6', 'Kanca El (Hook Hand)', '🪝'],
+      ['fgw_s7', 'Komutan Korsan Bandı (Commander\'s Patch)', '🏴‍☠️'],
+      ['fgw_s8', 'Sereness\'in Gözyaşı (Sereness\'s Tears)', '💧']
+    ]
+  }
+];
+for (const bk of FGW_BOOKS) {
+  bk.talismans.forEach(([id, nm, ic], idx) => {
+    ITEM_BASES[id] = {
+      cat: 'mat', icon: ic, name: nm, stack: 20, value: 1500 + idx * 400,
+      fgwBook: bk.id, fgwIdx: idx,
+      sub: 'FGW Tılsımı (' + bk.name + ' #' + (idx + 1) + '/8): Külliyat (B) penceresinde koleksiyona eklenir'
+    };
+  });
+}
 // Şeytan Ruhu (iSRO Devil's Spirit): ayrı yuvada, seviyeye göre dört kademe
 const DEVILS = [[8, 'Çırak'], [40, 'Savaşçı'], [80, 'Lord'], [110, 'Kadim']];
 DEVILS.forEach(([req, nm], i) => {

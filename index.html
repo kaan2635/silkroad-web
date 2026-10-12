@@ -43,7 +43,7 @@
     <div id="tracker" class="panel hidden"></div>
 
     <div id="help">
-      <b>Sol tık</b> yürü/saldır · <b>Sağ tık</b> kamera · <b>1–8</b> hotbar · <b>I</b> envanter · <b>C</b> karakter · <b>K</b> yetenek · <b>B</b> Item Mall · <b>Z</b> berserk · <b>X</b> otur · <b>H</b> oto av · <b>O</b> topluluk · <b>J</b> etkinlik · <b>Enter</b> sohbet
+      <b>Sol tık</b> yürü/saldır · <b>Sağ tık</b> kamera · <b>1–8</b> hotbar · <b>I</b> envanter · <b>C</b> karakter · <b>K</b> yetenek · <b>B</b> Item Mall · <b>Z</b> berserk · <b>X</b> otur · <b>H</b> oto av · <b>O</b> topluluk · <b>J</b> etkinlik · <b>Y</b> külliyat · <b>Enter</b> sohbet
     </div>
 
     <div id="cast" class="hidden"><div id="cast-fill"></div><span id="cast-text"></span></div>
@@ -51,7 +51,7 @@
     <div id="bottom">
       <div id="place-hint">Bir hotbar yuvasına dokun <button id="place-cancel">İptal</button></div>
       <button id="ctx-btn" class="hidden"></button>
-      <div class="hbwrap frame"><button id="hb-page" title="Hotbar sayfası (F1–F4)">1<small>F1</small></button><div id="hotbar"></div><button id="hb-auto" title="Oto av (H): eğitim alanında otomatik avlar">OTO<small>H</small></button><button id="hb-bot" title="Oto av ayarları (U)">⚙<small>U</small></button></div>
+      <div class="hbwrap frame"><button id="hb-page" title="Hotbar sayfası (F1–F4)">1<small>F1</small></button><div id="hotbar"></div><button id="hb-auto" title="Oto av (H): eğitim alanında otomatik avlar">OTO<small>H</small></button><button id="hb-bot" title="Oto av ayarları (U)">⚙<small>U</small></button><button id="hb-codex" title="Canavar Külliyatı, Sözleşmeler, Başarımlar ve Unvanlar (Y)">📖<small>Y</small></button></div>
       <div class="bar exp"><div id="exp-fill" class="fill"></div><span id="exp-text"></span></div>
     </div>
 
@@ -70,6 +70,7 @@
       <button id="btn-soc" data-ico="menu_soc" title="Topluluk: parti, lonca, arkadaşlar, PvP (O)"></button>
       <button id="btn-chat" data-ico="menu_chat" title="Sohbet (Enter)"><i id="badge-chat" class="badge hidden">!</i></button>
       <button id="btn-ev" data-ico="menu_ev" title="Etkinlikler: arenalar, Kale Savaşı, giriş ödülü, Magic POP (J)"><i id="badge-ev" class="badge hidden">!</i></button>
+      <button id="btn-codex" data-ico="menu_quest" title="Külliyat, Sözleşmeler, Başarımlar & Unvanlar (Y)"></button>
       <button id="btn-mall" data-ico="menu_mall" title="Item Mall (B)"></button>
       <button id="btn-settings" data-ico="menu_set" title="Ayarlar (Esc)"></button>
     </div>
@@ -140,6 +141,12 @@
       <div id="bot-body"></div>
     </div>
 
+    <div id="codexw" class="win hidden">
+      <div class="win-head"><span>Külliyat, Sözleşmeler & Unvanlar</span><button class="x">✕</button></div>
+      <div id="codex-tabs" class="tabs mtabs"></div>
+      <div id="codex-body"></div>
+    </div>
+
     <div id="botmenu" class="hidden"></div>
 
     <div id="npc-win" class="win hidden">
@@ -156,8 +163,10 @@
     </div>
 
     <div id="wmap" class="win hidden">
-      <div class="win-head"><span>Dünya Haritası</span><button class="x">✕</button></div>
-      <canvas id="wmap-canvas" width="420" height="420"></canvas>
+      <div class="win-head"><span>İpek Yolu Dünya Haritası (M)</span><button class="x">✕</button></div>
+      <div id="wmap-tabs" class="tabs mtabs"></div>
+      <canvas id="wmap-canvas" width="460" height="420"></canvas>
+      <div id="wmap-info" class="wmap-info">Haritaya tıklayarak karakterini o noktaya yürütebilirsin.</div>
     </div>
 
     <div id="settings" class="win hidden">
@@ -273,6 +282,7 @@
   <script src="js/events.js"></script>
   <script src="js/eventsui.js"></script>
   <script src="js/botui.js"></script>
+  <script src="js/codex.js"></script>
   <script src="js/main.js"></script>
 </body>
 </html>

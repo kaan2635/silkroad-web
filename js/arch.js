@@ -644,16 +644,39 @@ class ArchKit {
     }
   }
 
-  // Işınlayıcı platformu: taş kaide + parlayan halka
+  // Boyut Kapısı (iSRO Dimensional Gate): basamaklı taş kaide, 4 dikilitaş sütun, dönen iç içe usturlap halkaları ve enerji çekirdeği
   teleportPad(x, z) {
-    const T = AM(x, terrainHeight(x, z), z, 0);
-    this.put(this.m.stone, new THREE.CylinderGeometry(2.6, 2.8, 0.4, 12), T, AM(0, 0.2, 0));
-    for (let i = 0; i < 4; i++) { const a = i * Math.PI / 2 + Math.PI / 4; this.put(this.m.stone, new THREE.BoxGeometry(0.45, 2.4, 0.45), T, AM(Math.cos(a) * 2.3, 1.4, Math.sin(a) * 2.3)); this.put(this.m.vc, new THREE.OctahedronGeometry(0.22), T, AM(Math.cos(a) * 2.3, 2.85, Math.sin(a) * 2.3), 0x8ad8ff); }
-    const ring = new THREE.Mesh(new THREE.PlaneGeometry(4.4, 4.4), new THREE.MeshBasicMaterial({ map: typeof vfxRuneTex === 'function' ? vfxRuneTex() : null, color: 0x7ab8ff, transparent: true, opacity: 0.75, depthWrite: false, blending: THREE.AdditiveBlending }));
-    ring.rotation.x = -Math.PI / 2; ring.position.set(x, terrainHeight(x, z) + 0.43, z);
+    const y0 = terrainHeight(x, z), T = AM(x, y0, z, 0);
+    this.put(this.m.stone, new THREE.CylinderGeometry(3.2, 3.5, 0.28, 16), T, AM(0, 0.14, 0));
+    this.put(this.m.stone, new THREE.CylinderGeometry(2.55, 2.8, 0.32, 16), T, AM(0, 0.44, 0));
+    this.put(this.m.vc, new THREE.CylinderGeometry(2.3, 2.35, 0.08, 16), T, AM(0, 0.62, 0), ARCH.trim);
+    for (let i = 0; i < 4; i++) {
+      const a = i * Math.PI / 2 + Math.PI / 4, px = Math.cos(a) * 2.55, pz = Math.sin(a) * 2.55;
+      this.put(this.m.stone, new THREE.BoxGeometry(0.52, 3.1, 0.52), T, AM(px, 1.75, pz));
+      this.put(this.m.vc, new THREE.BoxGeometry(0.64, 0.22, 0.64), T, AM(px, 3.35, pz), ARCH.trim);
+      this.put(this.m.vc, new THREE.OctahedronGeometry(0.26), T, AM(px, 3.72, pz), 0x7ae8ff);
+    }
+    const ring = new THREE.Mesh(new THREE.PlaneGeometry(4.5, 4.5), new THREE.MeshBasicMaterial({ map: typeof vfxRuneTex === 'function' ? vfxRuneTex() : null, color: 0x6ad8ff, transparent: true, opacity: 0.82, depthWrite: false, blending: THREE.AdditiveBlending }));
+    ring.rotation.x = -Math.PI / 2; ring.position.set(x, y0 + 0.68, z);
     this.scene.add(ring);
+    // Dönen dış ve iç Boyut Kapısı halkaları (iSRO Dimensional Gate astrolabe)
+    const matGold = new THREE.MeshLambertMaterial({ color: 0xffd26a, emissive: 0x5a3a08 });
+    const matCyan = new THREE.MeshBasicMaterial({ color: 0x6ae8ff, transparent: true, opacity: 0.88, blending: THREE.AdditiveBlending });
+    const outerRing = new THREE.Mesh(new THREE.TorusGeometry(2.05, 0.1, 10, 32), matGold);
+    outerRing.position.set(x, y0 + 2.85, z);
+    outerRing.userData = { spinY: 0.55, spinZ: 0.25 };
+    this.scene.add(outerRing);
+    const innerRing = new THREE.Mesh(new THREE.TorusGeometry(1.55, 0.075, 10, 28), matCyan);
+    innerRing.position.set(x, y0 + 2.85, z);
+    innerRing.rotation.x = 0.65;
+    innerRing.userData = { spinX: 0.9, spinY: -0.75 };
+    this.scene.add(innerRing);
+    const core = new THREE.Mesh(new THREE.OctahedronGeometry(0.42, 0), new THREE.MeshBasicMaterial({ color: 0x9ef4ff, transparent: true, opacity: 0.9, blending: THREE.AdditiveBlending }));
+    core.position.set(x, y0 + 2.85, z);
+    core.userData = { spinY: -1.6, spinX: 0.8 };
+    this.scene.add(core);
     this.world.spinners = this.world.spinners || [];
-    this.world.spinners.push(ring);
+    this.world.spinners.push(ring, outerRing, innerRing, core);
   }
 
   // Kubbeli yapı: medrese (Semerkant, 4 minare), kilise / katedral (Avrupa), tapınak + dikilitaş (Mısır)
