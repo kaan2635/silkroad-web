@@ -139,9 +139,23 @@ class Player {
     this.aura = new THREE.Mesh(new THREE.RingGeometry(0.9, 1.25, 28), new THREE.MeshBasicMaterial({ color: 0xff7a1a, transparent: true, opacity: 0.55, depthWrite: false, side: THREE.DoubleSide }));
     this.aura.rotation.x = -Math.PI / 2; this.aura.position.y = 0.12; this.aura.visible = false;
     this.group.add(this.aura);
-    this.zerkAura = new THREE.PointLight(0xff3a1a, 0, 7);
-    this.zerkAura.position.y = 1.5;
+    this.zerkAura = new THREE.PointLight(0xff3a1a, 0, 8);
+    this.zerkAura.position.y = 1.6;
     this.group.add(this.zerkAura);
+    // iSRO Berserk (Hwan) 3D Dönen Rün Halkası ve Enerji Sütunu
+    this.zerkVisual = new THREE.Group();
+    const zRingGeo = new THREE.TorusGeometry(1.15, 0.055, 8, 28);
+    this.zerkRing1 = new THREE.Mesh(zRingGeo, new THREE.MeshBasicMaterial({ color: 0xff4a1a, transparent: true, opacity: 0.85, blending: THREE.AdditiveBlending }));
+    this.zerkRing1.rotation.x = Math.PI / 2;
+    this.zerkRing1.position.y = 0.25;
+    this.zerkRing2 = new THREE.Mesh(new THREE.TorusGeometry(0.95, 0.04, 8, 24), new THREE.MeshBasicMaterial({ color: 0xffd24a, transparent: true, opacity: 0.75, blending: THREE.AdditiveBlending }));
+    this.zerkRing2.rotation.x = Math.PI / 2.6;
+    this.zerkRing2.position.y = 1.15;
+    this.zerkPillar = new THREE.Mesh(new THREE.CylinderGeometry(0.95, 1.15, 2.6, 16, 1, true), new THREE.MeshBasicMaterial({ color: 0xff3a1a, transparent: true, opacity: 0.22, side: THREE.DoubleSide, depthWrite: false, blending: THREE.AdditiveBlending }));
+    this.zerkPillar.position.y = 1.3;
+    this.zerkVisual.add(this.zerkRing1, this.zerkRing2, this.zerkPillar);
+    this.zerkVisual.visible = false;
+    this.group.add(this.zerkVisual);
 
     this.setName(name);
     this.recalc();
@@ -150,6 +164,13 @@ class Player {
   }
 
   get pos() { return this.group.position; }
+  get dest() { return this.target; }
+  setDestination(x, z) {
+    if (this.dead) return;
+    this.sitting = false;
+    this.emote = null;
+    this.target = { x, z };
+  }
 
   // Otur / kalk (X)
   toggleSit() {
@@ -257,24 +278,28 @@ class Player {
     s.STR = STR; s.INT = INT;
     const wt = this.inv.weaponType(), wm = wt ? Object.keys(MASTERIES).find(m => (MASTERIES[m].weapons || []).includes(wt)) : null;
     const weapM = wm ? this.book.mastery[wm] : 0;
+    const cx = typeof Codex !== 'undefined' ? Codex.bonuses() : { dmg: 1, def: 1, hpPct: 0, mpPct: 0, hpFlat: 0, mpFlat: 0, crit: 0, speed: 1 };
+    hpF += cx.hpFlat || 0; mpF += cx.mpFlat || 0;
+    hpPct += Math.round((cx.hpPct || 0) * 100); mpPct += Math.round((cx.mpPct || 0) * 100);
+    crit += cx.crit || 0;
     const oldMax = s.maxHp, oldMp = s.maxMp;
     s.maxHp = Math.round((40 + STR * 6 + L * 10 + hpF) * (1 + (hpPct + (pas.hpPct || 0) + (bf.hpPct || 0)) / 100));
     s.maxMp = Math.round((30 + INT * 6 + L * 7 + mpF) * (1 + (mpPct + (pas.mpPct || 0) + (bf.mpPct || 0)) / 100));
     if (oldMax) s.hp = Math.min(s.maxHp, s.hp * (s.maxHp > oldMax ? 1 : 1)); else s.hp = s.maxHp;
     s.hp = Math.min(s.hp, s.maxHp); s.mp = Math.min(s.mp, s.maxMp);
     void oldMp;
-    const zerk = (this.zerkT > 0 ? 1.5 : 1) * (1 + 0.01 * (this.hwan || 0));      // onur (Hwan) seviyesi: saldırı +%1/sv.
+    const zerk = (this.zerkT > 0 ? 1.5 : 1) * (1 + 0.01 * (this.hwan || 0)) * (cx.dmg || 1);      // onur (Hwan) + Külliyat/Unvan/Sunak
     const pM = (1 + ((pas.patkPct || 0) + (bf.patkPct || 0) + sb.atk) / 100 + weapM * 0.01) * zerk;
     const mM = (1 + ((pas.matkPct || 0) + (bf.matkPct || 0) + sb.atk) / 100) * zerk;
     const phy = wPhy + STR * 0.55 + L * 1.2, mag = wMag + INT * 0.55 + L * 1.2;
     const d = this.d;
     d.phyMin = Math.round(phy * 0.9 * pM); d.phyMax = Math.round(phy * 1.1 * pM);
     d.magMin = Math.round(mag * 0.9 * mM); d.magMax = Math.round(mag * 1.1 * mM);
-    d.pdef = Math.round((pdef + STR * 0.25 + L * 0.8) * (1 + ((pas.pdefPct || 0) + (bf.pdefPct || 0) + sb.def) / 100));
-    d.mdef = Math.round((mdef + INT * 0.25 + L * 0.8) * (1 + ((pas.mdefPct || 0) + (bf.mdefPct || 0) + sb.def) / 100));
+    d.pdef = Math.round((pdef + STR * 0.25 + L * 0.8) * (1 + ((pas.pdefPct || 0) + (bf.pdefPct || 0) + sb.def) / 100) * (cx.def || 1));
+    d.mdef = Math.round((mdef + INT * 0.25 + L * 0.8) * (1 + ((pas.mdefPct || 0) + (bf.mdefPct || 0) + sb.def) / 100) * (cx.def || 1));
     d.crit = Math.min(60, 5 + crit + (pas.crit || 0) + (bf.crit || 0));
     d.block = eq.shield ? Math.min(50, block + (pas.block || 0) + (bf.block || 0)) : 0;
-    d.speed = (1 + (bf.speedPct || 0) / 100) * (this.zerkT > 0 ? 1.6 : 1) * (this.speedScrollT > 0 ? 1.3 : 1) * (this.status.slow ? 0.5 : 1);
+    d.speed = (1 + (bf.speedPct || 0) / 100) * (this.zerkT > 0 ? 1.6 : 1) * (this.speedScrollT > 0 ? (this.speedMult || 1.3) : 1) * (this.status.slow ? 0.5 : 1) * (cx.speed || 1);
     const W = wt ? WEAPON_TYPES[wt] : null;
     d.range = W ? W.range + (W.ranged ? (bf.range || 0) : 0) : 2.4;
     d.atkInt = W ? W.spd : 1;
@@ -296,6 +321,7 @@ class Player {
         this.model.position.y += (0.45 - this.model.position.y) * k;
       }
       this.shieldMesh.visible = false; this.aura.visible = false; this.zerkAura.intensity = 0;
+      if (this.zerkVisual) this.zerkVisual.visible = false;
       if (this.mounted && this.onDeathMount) this.onDeathMount();
       pos.y = terrainHeight(pos.x, pos.z);
       return;
@@ -322,7 +348,21 @@ class Player {
     if (this.imbue) { this.aura.material.color.setHex(ELEM_COLOR[this.imbue.elem]); this.aura.rotation.z += dt * 2; }
     const gl = this.h.weapon && this.h.weapon.userData.glow;
     if (gl) gl.opacity = 0.22 + Math.sin(performance.now() * 0.005) * 0.12;
-    this.zerkAura.intensity = this.zerkT > 0 ? 1.4 + Math.sin(performance.now() * 0.01) * 0.4 : 0;
+    this.zerkAura.intensity = this.zerkT > 0 ? 1.8 + Math.sin(performance.now() * 0.012) * 0.5 : 0;
+    if (this.zerkVisual) {
+      this.zerkVisual.visible = this.zerkT > 0;
+      if (this.zerkT > 0) {
+        const L = this.stats.level, zCol = L >= 110 ? 0x58b8ff : L >= 95 ? 0xffd23a : 0xff3a1a;
+        this.zerkAura.color.setHex(zCol);
+        this.zerkRing1.material.color.setHex(zCol);
+        this.zerkPillar.material.color.setHex(zCol);
+        this.zerkRing1.rotation.z += dt * 3.2;
+        this.zerkRing2.rotation.y -= dt * 4.5;
+        this.zerkRing2.rotation.z += dt * 2.1;
+        this.zerkPillar.rotation.y += dt * 1.8;
+        this.zerkPillar.material.opacity = 0.16 + Math.sin(performance.now() * 0.01) * 0.08;
+      }
+    }
     if (this.swingT > 0) this.swingT = Math.max(0, this.swingT - dt);
     if (this.combatT > 0) this.combatT -= dt;
 

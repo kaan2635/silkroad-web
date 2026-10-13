@@ -3,7 +3,10 @@
 paletlerini Silkroad temasına çevirir ve js/assetpack.js (base64) üretir.
 Kullanım: python3 tools/pack_assets.py /yol/kenney/3d"""
 import sys, os, json, struct, base64, colorsys, io, shutil
-from PIL import Image
+try:
+    from PIL import Image
+except ImportError:
+    Image = None
 
 SRC = sys.argv[1] if len(sys.argv) > 1 else '/tmp/assets/kenney/3d'
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -54,27 +57,34 @@ def glb_json(path):
     return json.loads(d[20:20 + l])
 
 def main():
-    if os.path.isdir(OUT): shutil.rmtree(OUT)
+    KITS = ['fantasy-town', 'castle', 'survival', 'nature', 'graveyard', 'weapons', 'rpg', 'dungeon', 'village']
+    if len(sys.argv) > 1 and os.path.isdir(sys.argv[1]):
+        for kit, names in MODELS.items():
+            os.makedirs(os.path.join(OUT, kit), exist_ok=True)
+            tex = os.path.join(SRC, kit, 'Textures', 'colormap.png')
+            if os.path.exists(tex):
+                os.makedirs(os.path.join(OUT, kit, 'Textures'), exist_ok=True)
+                im = recolor(Image.open(tex)) if kit not in KEEP_COLORS else Image.open(tex).convert('RGBA')
+                im.save(os.path.join(OUT, kit, 'Textures', 'colormap.png'), optimize=True)
+            for n in names:
+                p = os.path.join(SRC, kit, n + '.glb')
+                if os.path.exists(p): shutil.copy(p, os.path.join(OUT, kit, n + '.glb'))
     pack = {'models': {}, 'textures': {}}
     mats = set()
-    for kit, names in MODELS.items():
-        os.makedirs(os.path.join(OUT, kit), exist_ok=True)
-        tex = os.path.join(SRC, kit, 'Textures', 'colormap.png')
+    for kit in KITS:
+        kdir = os.path.join(OUT, kit)
+        if not os.path.isdir(kdir): continue
+        tex = os.path.join(kdir, 'Textures', 'colormap.png')
         if os.path.exists(tex):
-            os.makedirs(os.path.join(OUT, kit, 'Textures'), exist_ok=True)
-            im = recolor(Image.open(tex)) if kit not in KEEP_COLORS else Image.open(tex).convert('RGBA')
-            im.save(os.path.join(OUT, kit, 'Textures', 'colormap.png'), optimize=True)
-            buf = io.BytesIO(); im.save(buf, 'PNG', optimize=True)
-            pack['textures'][kit] = 'data:image/png;base64,' + base64.b64encode(buf.getvalue()).decode()
-        for n in names:
-            p = os.path.join(SRC, kit, n + '.glb')
-            if not os.path.exists(p): print('YOK:', kit, n); continue
-            shutil.copy(p, os.path.join(OUT, kit, n + '.glb'))
+            pack['textures'][kit] = 'data:image/png;base64,' + base64.b64encode(open(tex, 'rb').read()).decode()
+        for f in sorted(os.listdir(kdir)):
+            if not f.endswith('.glb'): continue
+            n = f[:-4]
+            p = os.path.join(kdir, f)
             pack['models'][kit + '/' + n] = base64.b64encode(open(p, 'rb').read()).decode()
             for m in glb_json(p).get('materials', []): mats.add(kit + ':' + m.get('name', ''))
-    js = '// Otomatik üretildi: tools/pack_assets.py — Kenney CC0 modelleri (base64). Elle düzenleme.\nconst ASSET_PACK = ' + json.dumps(pack, separators=(',', ':')) + ';\n'
+    js = '// Otomatik üretildi: tools/pack_assets.py — Kenney & Quaternius CC0 modelleri (base64). Elle düzenleme.\nconst ASSET_PACK = ' + json.dumps(pack, separators=(',', ':')) + ';\n'
     open(os.path.join(ROOT, 'js', 'assetpack.js'), 'w').write(js)
     print('modeller:', len(pack['models']), ' js boyutu: %.2f MB' % (len(js) / 1e6))
-    print('materyaller:', sorted(m for m in mats if not m.endswith(':colormap')))
 
 main()

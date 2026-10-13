@@ -55,6 +55,7 @@
   initEventsUI(ui, events);
   auto.npcs = npcs; auto.pets = pets; auto.social = social;
   initBotUI(ui, auto);
+  if (typeof Codex !== 'undefined') { Codex.init(player, world, hud, loot, combat.vfx, combat); initCodexUI(ui); }
   pets.onChange = () => ui.refresh();
   jobs.onChange = () => ui.refresh();
   monsters.announce = (title, sub, kind) => {
@@ -316,6 +317,7 @@
       if (player.manualMove) auto.manual();
       auto.update(dt);
       social.update(dt); social.uiUpdate(dt); events.update(dt);
+      if (typeof Codex !== 'undefined') Codex.updateWorld(dt);
       monsters.update(dt, player, combat);
       loot.update(dt);
       pets.update(dt);
@@ -328,7 +330,14 @@
         hud.setTimer && hud.setTimer('Unutulmuş Dünya', left);
         if (left <= 0 && !travelTo) { hud.log('Süre doldu. Rüya sona eriyor...', 'lvl'); travel(ZONE.parent, 'T'); }
       }
-      if (world.spinners) for (const sp of world.spinners) sp.rotation.z += dt * 0.6;
+      if (world.spinners) for (const sp of world.spinners) {
+        const u = sp.userData;
+        if (u && (u.spinX || u.spinY || u.spinZ)) {
+          if (u.spinX) sp.rotation.x += dt * u.spinX;
+          if (u.spinY) sp.rotation.y += dt * u.spinY;
+          if (u.spinZ) sp.rotation.z += dt * u.spinZ;
+        } else sp.rotation.z += dt * 0.6;
+      }
       quests.update();
       ui.update();
       if (wmap.open) wmap.draw();

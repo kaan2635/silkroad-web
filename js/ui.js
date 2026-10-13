@@ -9,7 +9,7 @@ function shopStock(kind) {
   const out = [];
   if (kind === 'herb') {
     POT_GRADES.forEach((g, i) => { out.push('hp' + (i + 1)); out.push('mp' + (i + 1)); });
-    out.push('pill', 'ret', 'rev', 'spd');
+    out.push('pill', 'ret', 'rev', 'spd', 'drug_wind', 'void_rondo');
   } else if (kind === 'weapon') {
     for (const d of SHOP_DEGREES) for (const T of TIERS) { for (const t of raceWeapons()) out.push(t + '_' + d + T.suf); out.push('shield_' + d + T.suf); }
     out.push('arrow');
@@ -19,7 +19,7 @@ function shopStock(kind) {
     out.push('horse', 'camel', 'ox', 'pet_grab', 'pet_atk', 'pet_pot', 'pet_food');
   } else if (kind === 'acc') {
     for (const d of SHOP_DEGREES) for (const T of TIERS) for (const a of ['earring', 'necklace', 'ring']) out.push(a + '_' + d + T.suf);
-    out.push('luck', 'tab_ms', 'tab_as');
+    out.push('void_rondo', 'luck', 'tab_ms', 'tab_as', 'tab_sapphire');
   }
   return out;
 }
@@ -581,40 +581,58 @@ class UI {
     }
     this.$('alch-body').innerHTML = tabs + h;
   }
-  // Söküm: eşyayı özlere ve tabletlere ayır
+  // Söküm (iSRO Void Rondo): eşyayı 4 Elemente (Ateş/Su/Rüzgâr/Toprak), özlere ve Yeşim/Yakut/Safir tabletlere ayırır
   _disYield(it) {
     const b = ITEM_BASES[it.base], r = it.rarity || 0, p = it.plus || 0;
-    const main = b.cat === 'weapon' ? 'ess_atk' : b.cat === 'acc' ? 'ess_mag' : 'ess_def';
-    return { main, n: 2 + b.d + r * 3 + Math.floor(p / 2), extra: 1 + Math.floor(b.d / 4), tms: Math.min(0.9, 0.12 + r * 0.15 + p * 0.02), tas: Math.min(0.8, 0.08 + r * 0.12 + p * 0.02) };
+    const bonus = this.inv.count('void_rondo') > 0 ? 1.5 : 1;
+    const main = b.cat === 'weapon' ? 'el_fire' : b.cat === 'acc' ? 'el_water' : b.cat === 'shield' ? 'el_earth' : 'el_wind';
+    const sec  = b.cat === 'weapon' ? 'el_wind' : b.cat === 'acc' ? 'el_fire'  : 'el_earth';
+    return {
+      main,
+      sec,
+      n: Math.round((3 + b.d * 1.4 + r * 4 + Math.floor(p / 2)) * bonus),
+      extra: Math.round((1 + Math.floor(b.d / 3) + r * 2) * bonus),
+      tms: Math.min(0.9, 0.14 + r * 0.15 + p * 0.02),
+      tas: Math.min(0.85, 0.1 + r * 0.12 + p * 0.02),
+      tsap: Math.min(0.65, 0.06 + r * 0.1 + p * 0.015)
+    };
   }
   _alcDisHTML() {
     const inv = this.inv, a = this.alc;
     a.dsel = a.dsel.filter(i => inv.slots[i] && isGear(inv.slots[i].base) && ITEM_BASES[inv.slots[i].base].cat !== 'avatar');
-    let h = '<div class="hint">Söküm: çantandaki ekipmanı özlerine ayırır (eşya yok olur). Özler ve tabletler Sentez\'de Büyü / Özellik Taşına dönüşür. Mühürlü ve + eşyalar daha çok verir.</div>';
+    const rondoCnt = inv.count('void_rondo');
+    let h = '<div class="hint">iSRO Simya Sökümü (Yokluk Rondosu): Çantandaki ekipmanı <b>4 Elemente (Ateş 🔥, Su 💧, Rüzgâr 🌪️, Toprak 🪨)</b> ve <b>Yeşim/Yakut/Safir Tabletlere</b> ayrıştırır. Çantanda Yokluk Rondosu (' + rondoCnt + ' adet) varsa +%50 daha fazla Element verir.</div>';
     const list = inv.slots.map((it, i) => it && isGear(it.base) && ITEM_BASES[it.base].cat !== 'avatar' ? i : -1).filter(i => i >= 0);
     h += list.length ? '<div class="alc-list wrap">' + list.map(i => '<div class="alc-it' + (a.dsel.includes(i) ? ' on' : '') + '" data-dsel="' + i + '" data-tip="sl:' + i + '">' + this._slot(inv.slots[i], '', false) + '</div>').join('') + '</div>' : '<div class="hint">Çantanda sökülecek ekipman yok (kuşanılı eşyalar sökülmez).</div>';
     if (a.dsel.length) {
-      const tot = { ess_atk: 0, ess_def: 0, ess_mag: 0 }; let tms = 0, tas = 0;
-      for (const i of a.dsel) { const y = this._disYield(inv.slots[i]); tot[y.main] += y.n; tot.ess_mag += y.extra; tms += y.tms; tas += y.tas; }
-      h += '<div class="alc-yield">' + Object.keys(tot).filter(k => tot[k]).map(k => icon(k === 'ess_atk' ? 'ess_atk' : k === 'ess_def' ? 'ess_def' : 'ess_mag', 'gold') + ' ' + ITEM_BASES[k].name + ' ×' + tot[k]).join(' · ') + ' · tablet beklentisi ~' + (tms + tas).toFixed(1) + '</div>';
-      h += '<button data-act="dis" class="big">' + a.dsel.length + ' eşyayı sök</button>';
+      const tot = { el_fire: 0, el_water: 0, el_wind: 0, el_earth: 0 }; let tms = 0, tas = 0, tsap = 0;
+      for (const i of a.dsel) { const y = this._disYield(inv.slots[i]); tot[y.main] += y.n; tot[y.sec] += y.extra; tms += y.tms; tas += y.tas; tsap += y.tsap; }
+      h += '<div class="alc-yield">' + Object.keys(tot).filter(k => tot[k]).map(k => itemIcon(k) + ' ' + ITEM_BASES[k].name + ' ×' + tot[k]).join(' · ') + ' · Tablet beklentisi ~' + (tms + tas + tsap).toFixed(1) + '</div>';
+      h += '<button data-act="dis" class="big">' + a.dsel.length + ' eşyayı Yokluk Rondosu ile Sök</button>';
     }
     return h + (a.msg ? '<div class="alc-msg" style="color:' + a.msg.color + '">' + a.msg.text + '</div>' : '');
   }
   _fusRecipes() {
-    const ess = k => ['str', 'crit', 'lucky', 'patk', 'block'].includes(k) ? 'ess_atk' : ['int', 'mp', 'astral', 'matk', 'mdef'].includes(k) ? 'ess_mag' : 'ess_def';
+    const elem = k => ['str', 'crit', 'patk', 'rburn'].includes(k) ? 'el_fire' : ['int', 'mp', 'matk', 'rfreeze', 'mdef'].includes(k) ? 'el_water' : ['lucky', 'astral', 'rshock'].includes(k) ? 'el_wind' : 'el_earth';
+    const elem2 = k => ['str', 'crit', 'patk'].includes(k) ? 'el_earth' : ['int', 'mp', 'matk'].includes(k) ? 'el_wind' : 'el_water';
     const R = [];
-    for (const k in BLUES) R.push({ id: 'ms_' + k, out: 'ms_' + k, need: [['tab_ms', 1], [ess(k), BLUES[k].rare ? 15 : 5]], gold: BLUES[k].rare ? 20000 : 3000 });
-    for (const k in WHITES) R.push({ id: 'as_' + k, out: 'as_' + k, need: [['tab_as', 1], [ess(k), 5]], gold: 4000 });
-    R.push({ id: 'proof', out: 'proof', need: [['tab_ms', 1], ['ess_mag', 8]], gold: 5000 });
-    R.push({ id: 'adv_elx', out: 'adv_elx', need: [['tab_ms', 2], ['tab_as', 2], ['ess_mag', 20]], gold: 50000 });
+    // Yeşim Tableti (Jade Tablet) -> Büyü Taşları (Mavi Stat)
+    for (const k in BLUES) R.push({ id: 'ms_' + k, out: 'ms_' + k, need: [['tab_ms', 1], [elem(k), BLUES[k].rare ? 12 : 4], [elem2(k), BLUES[k].rare ? 6 : 2]], gold: BLUES[k].rare ? 20000 : 3000 });
+    // Yakut Tableti (Ruby Tablet) -> Özellik Taşları (Beyaz Stat %)
+    for (const k in WHITES) R.push({ id: 'as_' + k, out: 'as_' + k, need: [['tab_as', 1], [elem(k), 4], [elem2(k), 2]], gold: 4000 });
+    // Safir Tableti (Sapphire Tablet) -> Rüzgâr İlacı & Tayfun İlacı
+    R.push({ id: 'drug_wind', out: 'drug_wind', need: [['tab_sapphire', 1], ['el_wind', 4], ['el_water', 2]], gold: 2500 });
+    R.push({ id: 'drug_typhoon', out: 'drug_typhoon', need: [['tab_sapphire', 2], ['el_wind', 8], ['el_water', 4]], gold: 7500 });
+    // Özel Simya Taşları
+    R.push({ id: 'proof', out: 'proof', need: [['tab_ms', 1], ['el_water', 6], ['el_fire', 4]], gold: 5000 });
+    R.push({ id: 'adv_elx', out: 'adv_elx', need: [['tab_ms', 2], ['tab_as', 2], ['el_fire', 10], ['el_water', 10]], gold: 50000 });
     return R;
   }
   _alcFusHTML() {
     const inv = this.inv, a = this.alc, R = this._fusRecipes();
-    let h = '<div class="hint">Sentez: tablet + öz + altın → seçtiğin taş. Özler Söküm\'den, tabletler sökümden, demirci/takıcıdan ve Item Mall\'dan gelir.</div>';
-    h += '<div class="alc-have">' + ['tab_ms', 'tab_as', 'ess_atk', 'ess_def', 'ess_mag'].map(k => itemIcon(k) + '<b>' + inv.count(k) + '</b>').join('') + '</div>';
-    h += '<div class="seg fus-list">' + R.map(r => '<button data-fus="' + r.id + '" class="tg' + (a.fus === r.id ? ' on' : '') + '">' + ITEM_BASES[r.out].name.replace('Büyü Taşı ', 'BT ').replace('Özellik Taşı ', 'ÖT ') + '</button>').join('') + '</div>';
+    let h = '<div class="hint">iSRO Tablet Sentezi: <b>Yeşim Tableti</b> (Büyü Taşı), <b>Yakut Tableti</b> (Özellik Taşı) veya <b>Safir Tableti</b> (Rüzgâr/Tayfun İlacı) + 4 Element → Simya Taşı.</div>';
+    h += '<div class="alc-have">' + ['tab_ms', 'tab_as', 'tab_sapphire', 'el_fire', 'el_water', 'el_wind', 'el_earth'].map(k => itemIcon(k) + '<span title="' + ITEM_BASES[k].name + '"><b>' + inv.count(k) + '</b></span>').join(' ') + '</div>';
+    h += '<div class="seg fus-list">' + R.map(r => '<button data-fus="' + r.id + '" class="tg' + (a.fus === r.id ? ' on' : '') + '">' + ITEM_BASES[r.out].name.replace('Büyü Taşı ', '📗 ').replace('Özellik Taşı ', '📕 ') + '</button>').join('') + '</div>';
     const r = R.find(x => x.id === a.fus);
     if (r) {
       const ok = r.need.every(([k, n]) => inv.count(k) >= n) && this.p.stats.gold >= r.gold;
@@ -628,10 +646,19 @@ class UI {
     const a = this.alc, inv = this.inv, x = this._alcItem(a.sel);
     if (act === 'tproof') { a.proof = !a.proof; SFX.play('tab'); return this.refreshAlc(); }
     if (act === 'dis') {
-      let got = { ess_atk: 0, ess_def: 0, ess_mag: 0, tab_ms: 0, tab_as: 0 };
-      for (const i of a.dsel) { const it = inv.slots[i]; if (!it) continue; const y = this._disYield(it); got[y.main] += y.n; got.ess_mag += y.extra; if (Math.random() < y.tms) got.tab_ms++; if (Math.random() < y.tas) got.tab_as++; inv.slots[i] = null; }
+      let got = { el_fire: 0, el_water: 0, el_wind: 0, el_earth: 0, tab_ms: 0, tab_as: 0, tab_sapphire: 0 };
+      for (const i of a.dsel) {
+        const it = inv.slots[i]; if (!it) continue;
+        const y = this._disYield(it);
+        if (inv.count('void_rondo') > 0) inv.take('void_rondo', 1);
+        got[y.main] += y.n; got[y.sec] += y.extra;
+        if (Math.random() < y.tms) got.tab_ms++;
+        if (Math.random() < y.tas) got.tab_as++;
+        if (Math.random() < y.tsap) got.tab_sapphire++;
+        inv.slots[i] = null;
+      }
       for (const k in got) if (got[k]) inv.addStack(k, got[k]);
-      a.dsel = []; a.msg = { text: 'Söküldü: ' + Object.keys(got).filter(k => got[k]).map(k => ITEM_BASES[k].name + ' ×' + got[k]).join(', '), color: '#9fe3ff' };
+      a.dsel = []; a.msg = { text: 'Ayrıştırıldı: ' + Object.keys(got).filter(k => got[k]).map(k => ITEM_BASES[k].name + ' ×' + got[k]).join(', '), color: '#9fe3ff' };
       SFX.play('upgrade'); inv.changed(); return this.refreshAlc();
     }
     if (act === 'fus') {
@@ -670,6 +697,7 @@ class UI {
       inv.take(elx, 1); if (lucky) inv.take('luck', 1);
       if (Math.random() < ch) {
         x.plus++;
+        if (typeof Codex !== 'undefined') Codex.onAlchemy(x.plus);
         a.msg = { text: 'Başarılı! ' + itemInfo(x).name, color: '#ffd23a' };
         SFX.play('upgrade'); this.hud.log(itemInfo(x).name + ' güçlendirildi!', 'lvl');
         if (x.plus >= 7) this.hud.banner('+' + x.plus + '!', itemInfo(x).baseName, 'quest');
@@ -909,15 +937,29 @@ class UI {
   }
   _tradeHTML() {
     const J = this.jobs, g = J.localGood();
-    let h = '<div class="hint">' + ZONE.town + ' malı: <b>' + g.name + '</b>. Uzak şehirlerde daha pahalı satılır. Fiyatlar saatlik değişir.</div>';
+    const specOn = J.isSpecialTrade ? J.isSpecialTrade() : false;
+    let h = '<div class="hint">' + ZONE.town + ' özel ticaret malı: <b>' + g.name + '</b>. Uzak şehirlerde daha pahalı satılır.' +
+      (specOn ? ' <b style="color:#ff9a4a">🔥 ÖZEL TİCARET SEFERİ AKTİF (+%35 Ek Gelir!)</b>' : '') + '</div>';
     h += '<div class="seg">' + ZONE_ORDER.map(z => { const pz = J.price(g.base, z); return '<span class="tag">' + ZONES[z].name + ': <b>' + pz + '</b></span>'; }).join('') + '</div>';
     if (J.job !== 'trader') return h + '<div class="hint">Mal almak için Meslek Loncası\'nda <b>Tüccar</b> olmalısın.</div>';
-    h += this._row(icon('tg', 'gold'), g.name + ' <small>' + J.price(g.base) + ' <i class="coin"></i> / adet</small>', 'Kervan: ' + J.cargoCount() + ' / ' + J.capacity() + (J.transport ? '' : ' — önce deveyi çağır'),
-      [5, 10, 'max'].map(n => '<button data-act="tbuy" data-n="' + n + '">' + (n === 'max' ? 'Doldur' : 'x' + n) + '</button>').join(''));
-    const lines = Object.keys(J.cargo).map(b => { const o = TRADE_GOODS[goodOrigin(b)]; return this._row(icon('tg', 'gold'), o.name + ' x' + J.cargo[b], 'Buradaki fiyat: ' + J.price(b) + ' altın', ''); }).join('');
+    const stars = J.starRating ? J.starRating() : 0;
+    const sMult = J.starProfitMult ? Math.round((J.starProfitMult(stars) - 1) * 100) : 0;
+    const starDesc = stars === 0 ? 'Yük yok (0★)' : stars === 1 ? '★☆☆☆☆ (1★ Güvenli Ticaret — Hırsız baskını olmaz)' :
+      '★'.repeat(stars) + '☆'.repeat(5 - stars) + ' (' + stars + '★ Kervan — Net Kâr Bonusu +%' + sMult + (stars >= 3 ? ' + Arena Jetonu' : '') + (stars === 5 ? ' + 10 Silk' : '') + ')';
+    h += '<div class="ev-card on" style="margin:6px 0;padding:6px 10px"><div style="display:flex;justify-content:space-between;align-items:center">' +
+      '<b>🐫 iSRO Kervan Derecesi: <span style="color:#ffd23a">' + starDesc + '</span></b>' +
+      '<span>Yük: <b>' + J.cargoCount() + ' / ' + J.capacity() + '</b></span></div></div>';
+    h += this._row(icon('tg', 'gold'), g.name + ' <small>' + J.price(g.base) + ' <i class="coin"></i> / adet</small>',
+      (J.transport ? '1★ Güvenli (%25) · 3★ Orta (%60) · 5★ Efsanevi (%100 Doldur)' : '⚠️ Önce Ahır\'dan aldığın Kervan Devesi / Öküz Arabası düdüğünü kullan!'),
+      [['s1', '1★ Güvenli'], [5, 'x5'], ['s3', '3★'], ['max', '5★ Doldur']].map(([n, lbl]) => '<button data-act="tbuy" data-n="' + n + '">' + lbl + '</button>').join(''));
+    const lines = Object.keys(J.cargo).map(b => { const o = TRADE_GOODS[goodOrigin(b)]; return this._row(icon('tg', 'gold'), o.name + ' x' + J.cargo[b], 'Buradaki birim fiyat: ' + J.price(b) + ' altın', ''); }).join('');
     if (lines) {
-      let rev = 0; for (const b in J.cargo) rev += J.price(b) * J.cargo[b];
-      h += '<h4>Kervandaki mallar</h4>' + lines + '<div class="srow"><span class="ic">' + icon('gold', 'gold') + '</span><div class="nm">Hepsini sat<small>Maliyet ' + J.cargoCost.toLocaleString('tr-TR') + ' → Gelir ' + rev.toLocaleString('tr-TR') + '</small></div><button data-act="tsell">Sat</button></div>';
+      let baseRev = 0, cross = false;
+      for (const b in J.cargo) { baseRev += J.price(b) * J.cargo[b]; if (goodOrigin(b) !== CUR_ZONE_ID) cross = true; }
+      const baseProf = baseRev - J.cargoCost;
+      const bonus = cross && baseProf > 0 && J.starProfitMult ? Math.round(baseProf * (J.starProfitMult(stars) - 1)) : 0;
+      const rev = baseRev + bonus;
+      h += '<h4>Kervandaki mallar (' + '★'.repeat(stars) + ')</h4>' + lines + '<div class="srow"><span class="ic">' + icon('gold', 'gold') + '</span><div class="nm">Hepsini sat<small>Maliyet ' + J.cargoCost.toLocaleString('tr-TR') + ' → Toplam Gelir <b>' + rev.toLocaleString('tr-TR') + '</b>' + (bonus > 0 ? ' (+' + bonus.toLocaleString('tr-TR') + ' ★ Yıldız Bonusu)' : '') + '</small></div><button data-act="tsell">Sat</button></div>';
     }
     if (J.transport && !J.cargoCount()) h += '<div class="btns"><button data-act="tdismiss">Deveyi Gönder</button></div>';
     return h;
@@ -1072,7 +1114,11 @@ class UI {
       else if (act === 'leave') r = J.leave();
       else if (act === 'escort') r = J.startEscort();
       else if (act === 'raid') r = J.startRaid();
-      else if (act === 'tbuy') r = J.buy(btn.dataset.n === 'max' ? 999 : +btn.dataset.n);
+      else if (act === 'tbuy') {
+        const cap = J.capacity(), cur = J.cargoCount(), v = btn.dataset.n;
+        const amt = v === 'max' ? 999 : v === 's1' ? Math.max(1, Math.floor(cap * 0.25) - cur) : v === 's3' ? Math.max(1, Math.floor(cap * 0.62) - cur) : +v;
+        r = J.buy(amt);
+      }
       else if (act === 'tsell') r = J.sellAll();
       else if (act === 'sgsell') r = J.sellStolen();
       else { J.dismissTransport(); r = { ok: true, msg: 'Deve ahıra döndü.' }; }

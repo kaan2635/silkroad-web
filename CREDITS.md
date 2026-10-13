@@ -1,8 +1,10 @@
 # Krediler / Credits
 
-- **3D modeller:** [Kenney](https://kenney.nl) — Fantasy Town Kit, Castle Kit, Survival Kit, Nature Kit, Graveyard Kit (iskelet, hayalet, zombi, vampir karakterleri ve mezarlık dekoru). Lisans: **CC0 1.0** (kamu malı). Dosyalar GitHub'daki `shorepine/kenney` yansısından alındı; renk paleti oyunun temasına göre `tools/pack_assets.py` ile yeniden boyandı ve `js/assetpack.js` içine paketlendi.
+- **3D modeller:**
+  - [Kenney](https://kenney.nl) — Fantasy Town Kit, Castle Kit, Survival Kit, Nature Kit, Graveyard Kit (iskelet, hayalet, zombi, vampir karakterleri ve mezarlık dekoru). Lisans: **CC0 1.0** (kamu malı).
+  - [Quaternius](https://quaternius.com) ([itch.io](https://quaternius.itch.io)) — **Medieval Weapons Pack**, **Single Knight Pack**, **RPG Items Pack** (3B silahlar, kalkanlar, miğferler, omuzluklar, zırhlar, iksir şişeleri, parşömenler, kristaller, yüzük/kolyeler, hazine sandıkları, altın sikkeler/külçeler), **Medieval Village MegaKit**, **Ships Pack** ve **Modular Dungeon Pack** (kuyu, çardak, pazar tezgahları, demirci ocağı, şamdanlar, kadim sunaklar, diken tuzakları, kemerler, sancaklar, yelkenli/viking gemileri). Lisans: **CC0 1.0** (`tools/pack_assets.py` ile `js/assetpack.js` içine paketlendi).
 - **Animasyonlu canavar ve binek modelleri** (`assets/models/*.glb`, kullanılmayan animasyonlar ayıklandı, renkler oyunda değiştirilir) — hepsi **CC0 1.0**:
-  - [Quaternius](https://quaternius.com): Ultimate Animated Animals (kurt, tilki, husky, boğa, at), Easy Enemy (yılan), Ultimate Monsters (hayalet, şeytanlar, ejder, yeti, ork, yengeç), Zombie, Giant.
+  - [Quaternius](https://quaternius.com): Ultimate Animated Animals (kurt, tilki, husky, boğa, at, beyaz at, şiba köpeği, karaca, geyik), Animated Dinosaurs (velociraptor, T-rex, triceratops, stegosaurus), Easy Enemy (yılan, fare, kurbağa), Ultimate Monsters & Cute Animated Monsters (hayalet, şeytanlar, ejder, yeti, ork, vahşi ork, yengeç, büyücü, derinlik ahtapotu, kristal balçık, evrimleşmiş mantar, toprak cini, kabile savaşçısı), Zombie, Giant.
   - [KayKit — Kay Lousberg](https://kaylousberg.com): Character Pack Skeletons (iskelet savaşçı, büyücü, er, haydut) ve Character Pack Adventurers (haydutlar, muhafızlar, büyücü).
   - Quaternius: geyik, örümcek, eşekarısı, velociraptor, T-rex, goblin, yarasa, balçık, mantar, kurukafa hayalet.
 - **Three.js r128**, GLTFLoader ve SkeletonUtils — MIT lisansı (`js/lib/`).
