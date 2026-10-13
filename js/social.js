@@ -16,6 +16,23 @@ const HWAN_TITLES = {
   eu: ['', 'Şövalye', 'Baron', 'Vikont', 'Kont', 'Marki', 'Dük', 'Prens']
 };
 const hwanLevel = h => { let l = 0; HWAN_REQ.forEach((r, i) => { if (h >= r) l = i; }); return l; };
+// iSRO Akademi & Onur Madalyası Büfeleri (Bronz / Gümüş / Altın / Kral Tacı)
+const HONOR_BUFFS = [
+  { id: 'bronze', req: 50,  icon: '🥉', name: 'Bronz Onur Büfesi',     desc: 'Koşma Hızı +%10', speed: 1.10, dmg: 1.00, def: 1.00, zerkGain: 1.0 },
+  { id: 'silver', req: 150, icon: '🥈', name: 'Gümüş Onur Büfesi',     desc: 'Koşma Hızı +%15 · Saldırı +%3', speed: 1.15, dmg: 1.03, def: 1.00, zerkGain: 1.15 },
+  { id: 'gold',   req: 350, icon: '🥇', name: 'Altın Onur Büfesi',     desc: 'Koşma Hızı +%20 · Saldırı +%5 · Savunma +%5', speed: 1.20, dmg: 1.05, def: 1.05, zerkGain: 1.35 },
+  { id: 'king',   req: 750, icon: '👑', name: 'Kral Tacı Onur Büfesi', desc: 'Koşma Hızı +%20 · Saldırı +%8 · Savunma +%8 · Berserk Dolumu +%100', speed: 1.20, dmg: 1.08, def: 1.08, zerkGain: 2.0 }
+];
+const honorBuff = h => { let b = null; for (const x of HONOR_BUFFS) if (h >= x.req) b = x; return b; };
+// iSRO Onur Mağazası (Honor Shop)
+const HONOR_SHOP = [
+  { id: '@sun_weap',   n: 1, cost: 120, name: 'Güneş Mühürlü Onur Silahı (+3)', sub: 'Seviyene ve silah sınıfına uygun +3 Seal of Sun Silah' },
+  { id: '@sun_shield', n: 1, cost: 90,  name: 'Güneş Mühürlü Onur Kalkanı (+3)', sub: 'Seviyene uygun +3 Seal of Sun Kalkan' },
+  { id: 'immortal',    n: 1, cost: 45,  name: 'Ölümsüz Taş (Immortal)', sub: 'Simya başarısızlığında eşyanın +seviyesi düşmez' },
+  { id: 'socket_drill',n: 1, cost: 35,  name: 'Yuva Matkabı (Socket Stone)', sub: 'Silah veya göğüs zırhına Ruh Yuvası açar' },
+  { id: 'zerk',        n: 5, cost: 20,  name: 'Berserk İksiri x5', sub: 'Hwan (Berserk) kürelerini anında doldurur' },
+  { id: 'drug_typhoon',n: 3, cost: 25,  name: 'Tayfun İlacı x3', sub: '15 dakika boyunca +%100 hareket hızı' }
+];
 // Lonca seviyeleri: üye sınırı, depo yuvası, yükselme bedeli (GP + altın)
 const GUILD_LV = [null,
   { cap: 15, slots: 0 },
@@ -472,8 +489,53 @@ class Social {
   }
   applyHonor() {
     const l = hwanLevel(this.honor);
-    this.player.hwan = l; this.player.title = HWAN_TITLES[this.player.race || 'ch'][l] || '';
+    this.player.hwan = l;
+    this.player.honorBuff = honorBuff(this.honor);
+    this.player.title = HWAN_TITLES[this.player.race || 'ch'][l] || '';
     this.player.recalc();
+  }
+  honorBuy(idx) {
+    const x = HONOR_SHOP[idx], pl = this.player;
+    if (!x) return { ok: false, msg: '' };
+    if (this.honor < x.cost) return { ok: false, msg: 'Yeterli Onur Puanı yok (' + x.cost + ' Onur gerekli).' };
+    let it;
+    if (x.id === '@sun_weap') {
+      const d = degreeOf(pl.stats.level), sf = tierFor(d, pl.stats.level);
+      const wt = pl.inv.weaponType() || (pl.race === 'eu' ? 'staff' : 'glaive');
+      it = makeSeal(wt + '_' + d + sf, 3);
+      it.plus = 3;
+    } else if (x.id === '@sun_shield') {
+      const d = degreeOf(pl.stats.level), sf = tierFor(d, pl.stats.level);
+      it = makeSeal('shield_' + d + sf, 3);
+      it.plus = 3;
+    } else {
+      it = makeStack(x.id, x.n);
+    }
+    if (!pl.inv.add(it)) return { ok: false, msg: 'Envanter dolu!' };
+    this.honor -= x.cost;
+    this.applyHonor();
+    this.changed();
+    return { ok: true, msg: 'Onur Mağazası: ' + x.name + ' alındı!' };
+  }
+  trainJunior(id) {
+    const a = this.academy, b = Roster[id], pl = this.player;
+    if (!a || a.role !== 'senior' || !b) return { ok: false, msg: 'Akademi eğitmeni değilsin.' };
+    const cost = 1500;
+    if (pl.stats.gold < cost) return { ok: false, msg: 'Çırak eğitimi için ' + cost.toLocaleString('tr-TR') + ' altın gerekli.' };
+    pl.stats.gold -= cost;
+    b.lvBonus = (b.lvBonus || 0) + 4;
+    a.pts = (a.pts || 0) + 12;
+    this.addHonor(12, b.name + ' çırak eğitimi');
+    if (botLevel(b) >= 40) {
+      this.addHonor(25, b.name + ' akademi mezuniyeti!');
+      a.grads = (a.grads || 0) + 1;
+      this.hud.banner('Akademi Mezuniyeti!', b.name + ' 40. seviyeye ulaşıp mezun oldu (+25 Onur)', 'quest');
+      const cand = Roster.find(x => botLevel(x) < 35 && !a.juniors.includes(x.id));
+      const idx = a.juniors.indexOf(id);
+      if (cand && idx >= 0) a.juniors[idx] = cand.id;
+    }
+    this.changed();
+    return { ok: true, msg: b.name + ' eğitildi (+4 Seviye, +12 Onur Puanı)!' };
   }
   addHonor(n, why) {
     const before = hwanLevel(this.honor);

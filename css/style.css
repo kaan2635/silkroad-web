@@ -354,8 +354,9 @@ button { font-family: var(--f-body); }
 .qrow.ready .qt { color: #9ef08a; }
 .qrow.locked { opacity: .55; }
 .qfoot { padding: 8px 4px 2px; font-size: 12.5px; color: var(--muted); }
-#wmap { width: auto; }
-#wmap-canvas { display: block; width: min(440px, calc((100vw - var(--sl) - var(--sr)) / var(--ui) - 40px), calc((var(--vh, 1vh) * 100 - var(--st) - var(--sb)) / var(--ui) - 80px)); height: auto; aspect-ratio: 1; margin: 0 auto; border: 2px solid var(--bronze); box-shadow: 0 0 0 1px #000; border-radius: 2px; }
+#wmap { width: min(490px, calc((100vw - var(--sl) - var(--sr)) / var(--ui) - 16px)); }
+#wmap-canvas { display: block; width: min(460px, calc((100vw - var(--sl) - var(--sr)) / var(--ui) - 36px), calc((var(--vh, 1vh) * 100 - var(--st) - var(--sb)) / var(--ui) - 130px)); height: auto; aspect-ratio: 460 / 420; margin: 0 auto; border: 2px solid var(--bronze); box-shadow: 0 0 0 1px #000, 0 4px 12px #000a; border-radius: 3px; cursor: crosshair; }
+.wmap-info { margin-top: 7px; padding: 6px 10px; font-size: 12px; line-height: 1.38; color: var(--text); background: rgba(12, 8, 5, 0.85); border: 1px solid var(--bronze-d); border-radius: 3px; min-height: 36px; }
 
 /* ayarlar */
 #settings { width: min(480px, calc((100vw - var(--sl) - var(--sr)) / var(--ui) - 16px)); }
@@ -550,9 +551,9 @@ body.touch .win { margin-top: calc((var(--st) - var(--sb)) / 2); }
 }
 /* Oto av düğmesi */
 #hb-auto { width: 34px; flex: 0 0 34px; cursor: pointer; pointer-events: auto; font: 700 11px var(--f-title); color: var(--muted); background: linear-gradient(#1e140b, #0c0805); border: 1px solid var(--bronze-d); border-radius: 3px; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 0 !important; line-height: 1.1; }
-#hb-bot { width: 26px; flex: 0 0 26px; cursor: pointer; pointer-events: auto; font: 700 14px var(--f-title); color: var(--muted); background: linear-gradient(#1e140b, #0c0805); border: 1px solid var(--bronze-d); border-radius: 3px; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 0 !important; line-height: 1.05; margin-left: 2px; }
-#hb-bot small { font: 500 9px var(--f-body); color: var(--dim); }
-body.touch #hb-bot small { display: none; }
+#hb-bot, #hb-codex { width: 26px; flex: 0 0 26px; cursor: pointer; pointer-events: auto; font: 700 14px var(--f-title); color: var(--muted); background: linear-gradient(#1e140b, #0c0805); border: 1px solid var(--bronze-d); border-radius: 3px; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 0 !important; line-height: 1.05; margin-left: 2px; }
+#hb-bot small, #hb-codex small { font: 500 9px var(--f-body); color: var(--dim); }
+body.touch #hb-bot small, body.touch #hb-codex small { display: none; }
 #hb-auto small { font: 500 9px var(--f-body); color: var(--dim); }
 #hb-auto.on { color: #0e2a10; background: linear-gradient(#b8f07a, #4a9a2a); border-color: #d8ffb0; box-shadow: 0 0 10px #8ef07a88; animation: autoPulse 1.6s ease-in-out infinite; }
 #hb-auto.on small { color: #1a3a10; }
@@ -668,10 +669,10 @@ body.touch #party-frames .pf { width: 118px; padding: 2px 5px 3px; }
 #emotes { display: flex; flex-wrap: wrap; gap: 4px; padding: 6px 0 2px; }
 #emotes button { padding: 4px 8px !important; font-size: 12px !important; }
 
-/* Oto av penceresi */
-#botw { width: min(620px, calc((100vw - var(--sl) - var(--sr)) / var(--ui) - 16px)); }
-#bot-body { overflow-y: auto; -webkit-overflow-scrolling: touch; min-height: 0; flex: 1 1 auto; padding: 4px 2px 6px; }
-#bot-body h4 { margin: 12px 0 4px; font: 700 13px var(--f-title); color: var(--gold); }
+/* Oto av & Külliyat penceresi */
+#botw, #codexw { width: min(650px, calc((100vw - var(--sl) - var(--sr)) / var(--ui) - 16px)); }
+#bot-body, #codex-body { overflow-y: auto; -webkit-overflow-scrolling: touch; min-height: 0; flex: 1 1 auto; padding: 4px 2px 6px; }
+#bot-body h4, #codex-body h4 { margin: 12px 0 4px; font: 700 13px var(--f-title); color: var(--gold); }
 #bot-body i { color: var(--dim); font-size: 13px; }
 #bot-body kbd { font: 600 11px var(--f-body); padding: 1px 5px; border: 1px solid var(--bronze-d); border-radius: 3px; background: #0a0604; }
 .bot-head { display: flex; align-items: center; gap: 10px; padding: 8px 6px; border: 1px solid var(--bronze-d); border-radius: 4px; background: #0a060488; }

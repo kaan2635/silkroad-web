@@ -122,6 +122,7 @@ class Combat {
   }
   damageMonster(m, dmg, crit, elem, dot) {
     if (m.dead) return;
+    if (!dot && typeof Codex !== 'undefined' && m.typeKey) dmg = Math.max(1, Math.round(dmg * Codex.mobDmgMult(m.typeKey)));
     m.hp -= dmg;
     m.provoke();
     if (m.onHit && m.hp > 0) m.onHit();
@@ -135,7 +136,8 @@ class Combat {
     if (this.target === m) { this.target = null; this.attacking = false; this.queued = null; }
     if (m.pvp) { SFX.play('kill'); if (m.onKilled) m.onKilled(this); else if (this.social && m.sim) this.social.onPvpKill(m); return; }     // yapay oyuncu yenildi: EXP / ganimet yok, onur var
     const pl = this.player, s = pl.stats;
-    const bonus = 1 + (pl.premT > 0 ? 0.5 : 0) + (pl.blessT > 0 ? 1 : 0);
+    const cxBon = typeof Codex !== 'undefined' ? Codex.bonuses() : { exp: 1, drop: 1 };
+    const bonus = (1 + (pl.premT > 0 ? 0.5 : 0) + (pl.blessT > 0 ? 1 : 0)) * (cxBon.exp || 1);
     const exp = Math.max(1, Math.round(m.exp * clamp(1 + 0.15 * (m.level - s.level), 0.05, 1.5) * bonus * (this.social ? this.social.expMult() : 1) * (this.events ? this.events.expMult() : 1)));
     if (m.rank === 'unique') { s.silk = (s.silk || 0) + 50; this.hud.log('+50 Silk (Unique)', 'lvl', '#ff9ae8'); }
     this.hud.log(m.displayName + ' öldürüldü. +' + exp + ' EXP', 'exp');
@@ -146,16 +148,18 @@ class Combat {
     if (sp) this.fx(pl, '+' + sp + ' SP', 'sp');
     if (pl.zerkT <= 0 && s.zerk < ZERK_MAX) {
       const before = Math.floor(s.zerk);
-      s.zerk = Math.min(ZERK_MAX, s.zerk + m.zerkPts);
+      s.zerk = Math.min(ZERK_MAX, s.zerk + m.zerkPts * (pl.d.zerkGain || 1));
       if (s.zerk >= ZERK_MAX && before < ZERK_MAX) { this.hud.log('Berserk hazır! (Z ya da Berserk düğmesi)', 'lvl'); SFX.play('gem'); }
     }
     if (this.events) m.dropMult *= this.events.dropMult();
+    if (typeof Codex !== 'undefined' && m.typeKey) m.dropMult *= Codex.mobDropMult(m.typeKey) * (cxBon.drop || 1);
     if (this.loot) this.loot.dropFrom(m);
     if (this.quests) this.quests.onKill(m.typeKey);
     if (this.auto) this.auto.onKill(m);
     if (this.pets) this.pets.onKill(exp);
     if (this.social) this.social.onKill(m);
     if (this.events) this.events.onKill(m);
+    if (typeof Codex !== 'undefined') Codex.onMonsterKilled(m);
     if (m.onKilled) m.onKilled(this);
   }
 
@@ -225,15 +229,21 @@ class Combat {
     return true;
   }
 
-  // ---------- Berserk ----------
+  // ---------- Berserk (iSRO Hwan Modu) ----------
   activateZerk() {
     const pl = this.player, s = pl.stats;
     if (pl.dead || pl.zerkT > 0) return;
     if (s.zerk < ZERK_MAX) { this.hud.log('Berserk küreleri dolu değil (' + Math.floor(s.zerk) + '/5).'); return; }
     s.zerk = 0; pl.zerkT = 30; pl.recalc();
-    this.hud.banner('BERSERK!', 'Saldırı ve hız arttı', 'zerk');
-    this.fx(pl, 'BERSERK!', 'lvl');
-    this.vfx.burst(pl.pos.x, pl.pos.z, 0xff3a1a, 6, 0.7);
+    const L = s.level;
+    const hwanCh = L >= 120 ? 'Ejder Lordu (Dragon Lord)' : L >= 110 ? 'Başgeneral (Chief General)' : L >= 100 ? 'Kıdemli General' : L >= 95 ? 'General' : 'Yüzbaşı (Captain)';
+    const hwanEu = L >= 120 ? 'Baş Dük (Archduke)' : L >= 110 ? 'Kont (Count)' : L >= 100 ? 'Baron' : L >= 95 ? 'Baronet' : 'Şövalye (Knight)';
+    const hwanTitle = pl.race === 'eu' ? hwanEu : hwanCh;
+    const zCol = L >= 110 ? 0x58b8ff : L >= 95 ? 0xffd23a : 0xff3a1a;
+    this.hud.banner('BERSERK · ' + hwanTitle.toUpperCase() + '!', 'Tüm Hasar +%50 · Saldırı Hızı +%40 · Hareket Hızı +%60', 'zerk');
+    this.fx(pl, 'BERSERK: ' + hwanTitle + '!', 'lvl');
+    this.vfx.burst(pl.pos.x, pl.pos.z, zCol, 8, 0.9);
+    if (this.vfx.column) this.vfx.column(pl.pos.x, pl.pos.z, zCol, 5, 1.0);
     SFX.play('buff');
   }
 
@@ -367,10 +377,49 @@ class Combat {
       this.casting = { t: 3, total: 3, name: b.use === 'return' ? 'Şehre dönüş' : 'Ters dönüş', kind: b.use };
       this.hud.log(b.name + '... 3 saniye kıpırdama.'); SFX.play('cast'); cd = 5;
     } else if (b.use === 'speed') {
-      pl.speedScrollT = 600; pl.recalc(); this.fx(pl, 'Hız!', 'buff'); SFX.play('buff'); cd = 2;
+      pl.speedMult = b.spdMult || 1.3;
+      pl.speedScrollT = b.spdDur || 600;
+      pl.recalc();
+      this.fx(pl, b.spdMult >= 1.9 ? 'Tayfun Hızı! (+%100)' : b.spdMult >= 1.45 ? 'Rüzgâr Hızı! (+%50)' : 'Hız! (+%30)', 'buff');
+      SFX.play('buff'); cd = 2;
     } else if (b.use === 'zerk') {
       if (s.zerk >= ZERK_MAX || pl.zerkT > 0) { this.hud.log('Berserk zaten dolu.'); return false; }
       s.zerk = ZERK_MAX; this.fx(pl, 'Berserk dolu!', 'buff'); SFX.play('gem'); cd = 2;
+    } else if (b.use === 'magicpop') {
+      if (this.events) {
+        const r = this.events.magicPop(true);
+        if (!r.ok) { this.hud.log(r.msg, 'dmg'); return false; }
+        this.hud.banner('🃏 Magic POP!', r.name, r.prize.jackpot || r.prize.kind === 'seal' ? 'seal' : 'quest');
+        this.hud.log(r.msg, 'lvl', '#ff9ae8');
+        SFX.play(r.prize.jackpot || r.prize.kind === 'seal' ? 'levelup' : 'gem');
+        cd = 1;
+      }
+    } else if (b.use === 'pandora' || b.use === 'mobscroll') {
+      if (inSafeZone(pl.pos.x, pl.pos.z) && !IS_DUNGEON) {
+        this.hud.log(b.name + ' yalnızca şehir dışında (güvenli alan dışında) açılabilir!', 'dmg');
+        return false;
+      }
+      const pool = (ZONE.spawns || []).map(sp => sp.type).filter(Boolean);
+      const types = pool.length ? pool : ['tiger', 'bandit', 'golem'];
+      const cnt = b.use === 'pandora' ? 2 : 3;
+      for (let i = 0; i < cnt; i++) {
+        const tk = types[Math.floor(Math.random() * types.length)];
+        const ang = (i / cnt) * Math.PI * 2 + Math.random() * 0.6;
+        const mx = pl.pos.x + Math.cos(ang) * 4.5, mz = pl.pos.z + Math.sin(ang) * 4.5;
+        const rk = b.use === 'pandora' ? (Math.random() < 0.35 ? 'giant' : 'elite') : (Math.random() < 0.4 ? 'champion' : 'strong');
+        const m = new Monster(this.world, tk, s.level, { x: mx, z: mz }, { rank: rk });
+        m.noRespawn = true; m.respawnTime = 3; m.provoke();
+        this.monsters.list.push(m);
+      }
+      if (b.use === 'pandora') {
+        const g = 1500 + s.level * 120;
+        s.gold += g;
+        this.hud.banner('🎁 Pandora\'nın Kutusu Açıldı!', 'Elit/Dev canavarlar uyandı + ' + g.toLocaleString('tr-TR') + ' Altın!', 'unique');
+      } else {
+        this.hud.log('📜 Canavar Çağırma Parşömeni okundu: 3 güçlü canavar belirdi!', 'lvl');
+      }
+      this.vfx.column(pl.pos.x, pl.pos.z, 0xff5a2a, 5, 1.0);
+      SFX.play('unique'); cd = 4;
     }
     if (ok) { inv.take(base, 1); this._setCd(key, cd); }
     return ok;

@@ -243,17 +243,115 @@ Object.assign(ITEM_BASES, {
   rename:   { cat: 'use', use: 'rename', icon: '🪪', name: 'Ad Değiştirme Parşömeni', stack: 5, value: 0, sub: 'Karakterinin adını değiştirir', cd: 'reset' },
   silkbag:  { cat: 'use', use: 'silkbag', icon: '🧧', name: 'Silk Kesesi', stack: 50, value: 0, sub: 'Açınca 5–15 Silk verir', cd: 'silkbag' }
 });
-// --- Simya genişlemesi: Özellik Taşları, Gelişmiş İksir, Kanıt Taşı, söküm özleri, sentez tabletleri ---
+// --- Simya genişlemesi: Özellik Taşları, Gelişmiş İksir, Kanıt Taşı, 4 Element (Ateş/Su/Rüzgâr/Toprak), Yeşim/Yakut/Safir Tabletler ---
 for (const k in WHITES) ITEM_BASES['as_' + k] = { cat: 'mat', icon: '💎', name: 'Özellik Taşı (' + WHITES[k].name + ')', stack: 50, value: 900, sub: 'Simya: eşyanın ' + WHITES[k].name + ' beyaz statını yükseltir (%65 şans)', astone: k };
 Object.assign(ITEM_BASES, {
-  adv_elx: { cat: 'mat', icon: '🧪', name: 'Gelişmiş Güçlendirme İksiri', stack: 20, value: 0, sub: 'Simya: eşyaya kalıcı +2 verir (başarısız simyada kaybolmaz). Eşya başına bir kez' },
-  proof:   { cat: 'mat', icon: '📜', name: 'Kanıt Taşı', stack: 20, value: 2000, sub: 'Simya: bir sonraki Büyü / Özellik Taşı kesin tutar' },
-  ess_atk: { cat: 'mat', icon: '🔥', name: 'Saldırı Özü', stack: 999, value: 40, sub: 'Söküm ürünü. Sentezde taş yapımında kullanılır' },
-  ess_def: { cat: 'mat', icon: '🛡️', name: 'Savunma Özü', stack: 999, value: 40, sub: 'Söküm ürünü. Sentezde taş yapımında kullanılır' },
-  ess_mag: { cat: 'mat', icon: '✨', name: 'Büyü Özü', stack: 999, value: 60, sub: 'Söküm ürünü. Sentezde taş yapımında kullanılır' },
-  tab_ms:  { cat: 'mat', icon: '📘', name: 'Büyü Taşı Tableti', stack: 50, value: 1500, sub: 'Sentez: istediğin Büyü Taşını (mavi stat) yaptırır' },
-  tab_as:  { cat: 'mat', icon: '📗', name: 'Özellik Taşı Tableti', stack: 50, value: 1800, sub: 'Sentez: istediğin Özellik Taşını (beyaz stat) yaptırır' }
+  adv_elx:      { cat: 'mat', icon: '🧪', name: 'Gelişmiş Güçlendirme İksiri', stack: 20, value: 0, sub: 'Simya: eşyaya kalıcı +2 verir (başarısız simyada kaybolmaz). Eşya başına bir kez' },
+  proof:        { cat: 'mat', icon: '📜', name: 'Kanıt Taşı (Magic Proof)', stack: 20, value: 2000, sub: 'Simya: bir sonraki Büyü / Özellik Taşı %100 kesin tutar' },
+  void_rondo:   { cat: 'mat', icon: '🌀', name: 'Yokluk Rondosu (Void Rondo)', stack: 999, value: 80, sub: 'iSRO Simya: Ekipmanı Ateş, Su, Rüzgâr ve Toprak elementlerine ayrıştırır' },
+  el_fire:      { cat: 'mat', icon: '🔥', name: 'Ateş Elementi (Fire)', stack: 999, value: 30, sub: 'iSRO 4 Element Simyası: Yeşim ve Yakut Tablet sentezinde kullanılır' },
+  el_water:     { cat: 'mat', icon: '💧', name: 'Su Elementi (Water)', stack: 999, value: 30, sub: 'iSRO 4 Element Simyası: Yeşim, Yakut ve Safir Tablet sentezinde kullanılır' },
+  el_wind:      { cat: 'mat', icon: '🌪️', name: 'Rüzgâr Elementi (Wind)', stack: 999, value: 30, sub: 'iSRO 4 Element Simyası: Yeşim, Yakut ve Safir Tablet sentezinde kullanılır' },
+  el_earth:     { cat: 'mat', icon: '🪨', name: 'Toprak Elementi (Earth)', stack: 999, value: 30, sub: 'iSRO 4 Element Simyası: Yeşim ve Yakut Tablet sentezinde kullanılır' },
+  ess_atk:      { cat: 'mat', icon: '🔥', name: 'Saldırı Özü', stack: 999, value: 40, sub: 'Söküm ürünü. Sentezde taş yapımında kullanılır' },
+  ess_def:      { cat: 'mat', icon: '🛡️', name: 'Savunma Özü', stack: 999, value: 40, sub: 'Söküm ürünü. Sentezde taş yapımında kullanılır' },
+  ess_mag:      { cat: 'mat', icon: '✨', name: 'Büyü Özü', stack: 999, value: 60, sub: 'Söküm ürünü. Sentezde taş yapımında kullanılır' },
+  tab_ms:       { cat: 'mat', icon: '📗', name: 'Yeşim Tableti (Jade Tablet)', stack: 50, value: 1500, sub: 'iSRO Sentez: 4 Element ile işlenerek Büyü Taşı (mavi stat) üretir' },
+  tab_as:       { cat: 'mat', icon: '📕', name: 'Yakut Tableti (Ruby Tablet)', stack: 50, value: 1800, sub: 'iSRO Sentez: 4 Element ile işlenerek Özellik Taşı (beyaz stat %) üretir' },
+  tab_sapphire: { cat: 'mat', icon: '📘', name: 'Safir Tableti (Sapphire Tablet)', stack: 50, value: 2200, sub: 'iSRO Sentez: Rüzgâr ve Su elementleriyle Rüzgâr / Tayfun İlacı üretir' },
+  drug_wind:    { cat: 'use', use: 'speed', spdMult: 1.5, spdDur: 900, icon: '🍃', name: 'Rüzgâr İlacı (Drug of Wind)', stack: 50, value: 450, sub: 'iSRO Simya İlacı: 15 dakika boyunca hareket hızı +%50', cd: 'spd' },
+  drug_typhoon: { cat: 'use', use: 'speed', spdMult: 2.0, spdDur: 900, icon: '🌪️', name: 'Tayfun İlacı (Drug of Typhoon)', stack: 50, value: 1200, sub: 'iSRO Simya İlacı: 15 dakika boyunca hareket hızı +%100 (En üst hız iksiri)', cd: 'spd' },
+  // --- iSRO Ruh Yuvası (Socket) & Ruh Taşları (Spirit Stones) + Magic POP / Pandora ---
+  socket_drill: { cat: 'mat', icon: '🔩', name: 'Yuva Matkabı (Socket Stone)', stack: 20, value: 3500, sub: 'iSRO Simya: Silah veya göğüs zırhına 1 Ruh Yuvası açar (en çok 3 yuva)' },
+  magic_pop:    { cat: 'use', use: 'magicpop', icon: '🃏', name: 'Magic POP Kartı', stack: 50, value: 1500, sub: 'iSRO Magic POP: Etkinlik penceresinde (J) hedef büyük ödül için kart çekilişi yapar' },
+  pop_voucher:  { cat: 'mat', icon: '🎫', name: 'Teselli Kuponu (Redemption Voucher)', stack: 999, value: 200, sub: 'iSRO Magic POP: Kazanamadığın kartlardan birikir; Magic POP sekmesinde garanti ödüllerle takas edilir' },
+  pandora_box:  { cat: 'use', use: 'pandora', icon: '🎁', name: 'Pandora\'nın Kutusu', stack: 20, value: 4500, sub: 'iSRO: Açınca seviyene uygun Şampiyon/Elit canavarlar çağırır veya nadir hazine verir!', cd: 'scroll' },
+  mob_scroll:   { cat: 'use', use: 'mobscroll', icon: '📜', name: 'Canavar Çağırma Parşömeni', stack: 50, value: 1800, sub: 'iSRO: Yanına seviyene uygun 3 güçlü canavar çağırır', cd: 'scroll' }
 });
+
+// iSRO Ruh Taşları (Spirit Stones): Silah ve göğüs zırhı yuvalarına takılır
+const SPIRIT_STONES = {
+  atk:  { name: 'Saldırı Ruhu (Attack)',  icon: '🔴', desc: 'Fiz. & Büyü Saldırısı +%4', patkPct: 0.04, matkPct: 0.04 },
+  crit: { name: 'Keskinlik Ruhu (Crit)',  icon: '🟠', desc: 'Kritik Vuruş +3', crit: 3 },
+  hp:   { name: 'Yaşam Ruhu (Life)',      icon: '🟢', desc: 'Azami Can +250', hp: 250 },
+  mp:   { name: 'Zihin Ruhu (Mind)',      icon: '🔵', desc: 'Azami Mana +250', mp: 250 },
+  def:  { name: 'Koruma Ruhu (Guard)',    icon: '🟣', desc: 'Fiz. & Büyü Savunması +%5', pdefPct: 0.05, mdefPct: 0.05 },
+  zerk: { name: 'Öfke Ruhu (Hwan)',       icon: '🟡', desc: 'Berserk Dolumu +%20', zerkPct: 0.20 }
+};
+for (const k in SPIRIT_STONES) {
+  const sp = SPIRIT_STONES[k];
+  ITEM_BASES['sp_' + k] = {
+    cat: 'mat', icon: sp.icon, name: 'Ruh Taşı: ' + sp.name, stack: 20, value: 2400,
+    spStone: k, sub: 'iSRO Ruh Taşı: Yuvalı silah/göğüs zırhına takılır (' + sp.desc + ')'
+  };
+}
+
+// --- Unutulmuş Dünya (Forgotten World - FGW) 8 Tılsım Koleksiyon Kitapları ---
+const FGW_BOOKS = [
+  {
+    id: 'togui',
+    name: 'Togui Köyü Koleksiyonu',
+    sub: 'Unutulmuş Dünya ★ (Sv. 35–70)',
+    rewardDeg: 8,
+    rewardRarity: 3, // Seal of Sun
+    rewardLabel: '8. Derece Seal of Sun (Güneş Mühürlü) Silah',
+    talismans: [
+      ['fgw_t1', 'Kızıl Gözyaşı (Red Tears)', '🩸'],
+      ['fgw_t2', 'Batı Yazıtları (Western Scriptures)', '📜'],
+      ['fgw_t3', 'Togui Maskesi (Togui Mask)', '👺'],
+      ['fgw_t4', 'Kızıl Tılsım (Red Talisman)', '🧧'],
+      ['fgw_t5', 'Kukla (Puppet)', '🪆'],
+      ['fgw_t6', 'Kör Satır (Dull Kitchen Knife)', '🔪'],
+      ['fgw_t7', 'Büyü Kağıdı (Spell Paper)', '📄'],
+      ['fgw_t8', 'Yaşlı Asası (Elder Staff)', '🦯']
+    ]
+  },
+  {
+    id: 'flame',
+    name: 'Alev Dağı Koleksiyonu',
+    sub: 'Unutulmuş Dünya ★★ (Sv. 71–90)',
+    rewardDeg: 9,
+    rewardRarity: 3, // Seal of Sun
+    rewardLabel: '9. Derece Seal of Sun (Güneş Mühürlü) Silah',
+    talismans: [
+      ['fgw_f1', 'Ateş Çiçeği (Fire Flower)', '🌺'],
+      ['fgw_f2', 'Boynuzlu Boğa (Horned Cattle)', '🐂'],
+      ['fgw_f3', 'Unutuş Alevi (Flame of Oblivion)', '🔥'],
+      ['fgw_f4', 'Alev Kağıdı (Flame Paper)', '📜'],
+      ['fgw_f5', 'Ocak Alevi (Hearthstone Flame)', '🕯️'],
+      ['fgw_f6', 'Büyücü Kolyesi (Enchantress Necklace)', '📿'],
+      ['fgw_f7', 'Honghaeah Zırhı (Honghaeah Armor)', '🥋'],
+      ['fgw_f8', 'Ateş Ejderi Kılıcı (Fire Dragon Sword)', '🗡️']
+    ]
+  },
+  {
+    id: 'ship',
+    name: 'Batık Gemi: Hınç Denizi',
+    sub: 'Unutulmuş Dünya ★★★ (Sv. 91–110)',
+    rewardDeg: 11,
+    rewardRarity: 4, // Seal of Nova
+    rewardLabel: '11. Derece Seal of Nova (Yıldız Mühürlü) Silah',
+    talismans: [
+      ['fgw_s1', 'Kırık Anahtar (Broken Key)', '🗝️'],
+      ['fgw_s2', 'Büyük Maşa (Large Tong)', '钳'],
+      ['fgw_s3', 'Hayalet Arp (Phantom Harp)', '🪕'],
+      ['fgw_s4', 'Kötülüğün Kalbi (Evil\'s Heart)', '💜'],
+      ['fgw_s5', 'Kin Ruhu Boncuğu (Spirit\'s Bead)', '🔮'],
+      ['fgw_s6', 'Kanca El (Hook Hand)', '🪝'],
+      ['fgw_s7', 'Komutan Korsan Bandı (Commander\'s Patch)', '🏴‍☠️'],
+      ['fgw_s8', 'Sereness\'in Gözyaşı (Sereness\'s Tears)', '💧']
+    ]
+  }
+];
+for (const bk of FGW_BOOKS) {
+  bk.talismans.forEach(([id, nm, ic], idx) => {
+    ITEM_BASES[id] = {
+      cat: 'mat', icon: ic, name: nm, stack: 20, value: 1500 + idx * 400,
+      fgwBook: bk.id, fgwIdx: idx,
+      sub: 'FGW Tılsımı (' + bk.name + ' #' + (idx + 1) + '/8): Külliyat (B) penceresinde koleksiyona eklenir'
+    };
+  });
+}
 // Şeytan Ruhu (iSRO Devil's Spirit): ayrı yuvada, seviyeye göre dört kademe
 const DEVILS = [[8, 'Çırak'], [40, 'Savaşçı'], [80, 'Lord'], [110, 'Kadim']];
 DEVILS.forEach(([req, nm], i) => {
@@ -268,10 +366,10 @@ for (const [job, nm] of [['trader', 'Tüccar'], ['hunter', 'Avcı'], ['thief', '
   ITEM_BASES[id] = { cat: 'avatar', slot: 'job', d: 1, tier: 0, req: 10, icon: '🧥', name: adj + ' ' + nm + ' Kıyafeti', look: { kind: 'jobsuit' }, fb: [], value: [8000, 40000, 150000][i], jobsuit: job, jl, sub: nm + ' görevinde: meslek EXP +%' + (10 * (i + 1)) + ', alınan hasar -%' + (8 * (i + 1)) };
 });
 const MALL = [
-  { id: 'prem', name: '🎟️ Premium', items: [['prem', 1, 50], ['bless', 1, 30], ['rez', 3, 20], ['hammer', 3, 15]] },
-  { id: 'alc', name: '⚗️ Simya', items: [['adv_elx', 1, 40], ['proof', 1, 15], ['tab_ms', 1, 12], ['tab_as', 1, 15], ['as_patk', 1, 15], ['as_matk', 1, 15], ['as_pdef', 1, 12], ['immortal', 1, 25], ['astral', 3, 30], ['luck', 5, 15], ['elx_w', 5, 25], ['elx_a', 5, 20], ['elx_s', 5, 20], ['elx_c', 5, 20], ['ms_str', 1, 15], ['ms_int', 1, 15], ['ms_hp', 1, 15], ['ms_crit', 1, 20]] },
+  { id: 'prem', name: '🎟️ Premium', items: [['prem', 1, 50], ['bless', 1, 30], ['magic_pop', 1, 15], ['pandora_box', 1, 25], ['rez', 3, 20], ['hammer', 3, 15]] },
+  { id: 'alc', name: '⚗️ Simya & Yuva', items: [['adv_elx', 1, 40], ['socket_drill', 1, 25], ['sp_atk', 1, 18], ['sp_crit', 1, 18], ['sp_hp', 1, 15], ['sp_def', 1, 15], ['proof', 1, 15], ['tab_ms', 1, 12], ['tab_as', 1, 15], ['as_patk', 1, 15], ['as_matk', 1, 15], ['as_pdef', 1, 12], ['immortal', 1, 25], ['astral', 3, 30], ['luck', 5, 15], ['elx_w', 5, 25], ['elx_a', 5, 20], ['elx_s', 5, 20], ['elx_c', 5, 20], ['ms_str', 1, 15], ['ms_int', 1, 15], ['ms_hp', 1, 15], ['ms_crit', 1, 20]] },
   { id: 'pet', name: '🐾 Evcil & Binek', items: [['pet_atk2', 1, 150], ['pet_atk3', 1, 250], ['pet_food', 20, 8], ['wagon', 1, 90], ['pet_grab2', 1, 150], ['pet_grab', 1, 60], ['pet_atk', 1, 100], ['pet_pot', 20, 10], ['horse2', 1, 120], ['horse', 1, 40]] },
-  { id: 'scroll', name: '📜 Parşömen', items: [['gchat', 5, 10], ['rename', 1, 60], ['fw_inv3', 1, 30], ['rev', 5, 10], ['spd', 5, 10], ['zerk', 3, 20], ['ret', 10, 5], ['reset_stat', 1, 80], ['reset_skill', 1, 120]] },
+  { id: 'scroll', name: '📜 Parşömen', items: [['gchat', 5, 10], ['rename', 1, 60], ['mob_scroll', 3, 12], ['fw_inv3', 1, 30], ['rev', 5, 10], ['spd', 5, 10], ['zerk', 3, 20], ['ret', 10, 5], ['reset_stat', 1, 80], ['reset_skill', 1, 120]] },
   { id: 'devil', name: '😈 Şeytan Ruhu', items: DEVILS.map((x, i) => ['devil_' + (i + 1), 1, ITEM_BASES['devil_' + (i + 1)].silk]) },
   { id: 'avatar', name: '👘 Avatar', items: Object.keys(AVATARS).filter(id => !AVATARS[id].event).map(id => [id, 1, AVATARS[id].silk]) },
   { id: 'exp', name: '🎒 Genişletme', items: [['inv_exp', 1, 100], ['st_exp', 1, 60]] }
@@ -320,13 +418,29 @@ function itemInfo(it) {
   for (const [kk, v] of it.blues || []) bl[kk] = (bl[kk] || 0) + v;
   const color = it.rarity > 0 ? r.color : (it.blues && it.blues.length ? BLUE_COLOR : r.color);
   const typeName = b.cat === 'avatar' ? EQUIP_SLOTS[b.slot].name : b.cat === 'weapon' ? WEAPON_TYPES[b.wtype].name : b.cat === 'armor' ? ARMOR_TYPES[b.atype].name + ' ' + EQUIP_SLOTS[b.slot].name : (EQUIP_SLOTS[b.slot] || EQUIP_SLOTS.ring1).name;
+  const socks = it.sockets || [];
+  let sockPatkM = 1, sockMatkM = 1, sockPdefM = 1, sockMdefM = 1, sockHp = 0, sockMp = 0, sockCrit = 0;
+  for (const sk of socks) {
+    const sp = sk && SPIRIT_STONES[sk];
+    if (!sp) continue;
+    if (sp.patkPct) sockPatkM += sp.patkPct;
+    if (sp.matkPct) sockMatkM += sp.matkPct;
+    if (sp.pdefPct) sockPdefM += sp.pdefPct;
+    if (sp.mdefPct) sockMdefM += sp.mdefPct;
+    if (sp.hp) sockHp += sp.hp;
+    if (sp.mp) sockMp += sp.mp;
+    if (sp.crit) sockCrit += sp.crit;
+  }
   return {
     name: r.sym + b.name + (it.plus || it.adv ? ' (+' + (it.plus || 0) + (it.adv ? '+' + it.adv : '') + ')' : ''), baseName: b.name, ws, adv: it.adv || 0, tier: b.tier || 0, cat: b.cat, slot: b.slot, req: b.req, d: b.d,
     wtype: b.wtype, atype: b.atype, typeName, icon: itemIcon(it.base),
-    phy: st(b.phy, 'patk'), mag: st(b.mag, 'matk'), pdef: st(b.pdef, 'pdef'), mdef: st(b.mdef, 'mdef'), hp: st(b.hp), mp: st(b.mp),
-    block: b.block ? Math.max(0, b.block + Math.round((wsOf(it, 'block') - 50) / 12)) : 0, wcrit: b.cat === 'weapon' ? Math.round(wsOf(it, 'crit') / 25) : 0,
-    blues: bl, dur: it.dur, maxDur: maxDur(it), broken,
-    value: Math.round(b.value * r.val * (1 + 0.35 * (it.plus || 0))),
+    phy: Math.round(st(b.phy, 'patk') * sockPatkM), mag: Math.round(st(b.mag, 'matk') * sockMatkM),
+    pdef: Math.round(st(b.pdef, 'pdef') * sockPdefM), mdef: Math.round(st(b.mdef, 'mdef') * sockMdefM),
+    hp: st(b.hp) + sockHp, mp: st(b.mp) + sockMp,
+    block: b.block ? Math.max(0, b.block + Math.round((wsOf(it, 'block') - 50) / 12)) : 0,
+    wcrit: (b.cat === 'weapon' ? Math.round(wsOf(it, 'crit') / 25) : 0) + sockCrit,
+    blues: bl, sockets: socks, dur: it.dur, maxDur: maxDur(it), broken,
+    value: Math.round(b.value * r.val * (1 + 0.35 * (it.plus || 0) + 0.18 * socks.length)),
     color, hex: parseInt(color.slice(1), 16), rarityName: it.rarity ? r.name + ' (' + r.tr + ')' : r.name, seal: it.rarity || 0
   };
 }
@@ -353,6 +467,13 @@ function whiteText(n) {
 function blueText(n) {
   if (!n.blues) return '';
   return Object.keys(n.blues).map(k => BLUES[k].fmt(n.blues[k])).join('<br>');
+}
+function socketText(n) {
+  if (!n.sockets || !n.sockets.length) return '';
+  return n.sockets.map((sk, idx) => {
+    const sp = sk && SPIRIT_STONES[sk];
+    return sp ? '<span style="color:#ffd23a">◈ Yuva ' + (idx + 1) + ': ' + sp.name + ' (' + sp.desc + ')</span>' : '<span style="color:#9fe3ff">◇ Yuva ' + (idx + 1) + ': Boş Ruh Yuvası</span>';
+  }).join('<br>');
 }
 
 // --- Simya ---

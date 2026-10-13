@@ -164,7 +164,8 @@ class HUD {
     e.mp.style.width = (s.mp / s.maxMp * 100) + '%';
     e.mpt.textContent = Math.floor(s.mp) + ' / ' + s.maxMp;
     e.exp.style.width = (s.exp / s.maxExp * 100) + '%';
-    e.expt.textContent = 'EXP %' + (s.exp / s.maxExp * 100).toFixed(2) + ' · SP ' + pl.book.sp;
+    const spPct = Math.min(99, Math.floor(((pl.book.spExp || 0) / (typeof SP_EXP_NEED !== 'undefined' ? SP_EXP_NEED : 40)) * 100));
+    e.expt.textContent = 'EXP %' + (s.exp / s.maxExp * 100).toFixed(2) + ' · SP ' + pl.book.sp.toLocaleString('tr-TR') + ' (%' + spPct + ')' + (pl.honorBuff ? ' · ' + pl.honorBuff.icon + ' ' + pl.honorBuff.name : '');
     const gt = s.gold.toLocaleString('tr-TR');
     if (gt !== this._lastGold) { e.pgold.innerHTML = gt + ' <small style="color:#b3a27c">altın</small>'; this._lastGold = gt; }
     e.coords.textContent = Math.round(pl.pos.x) + ', ' + Math.round(pl.pos.z);
@@ -240,6 +241,7 @@ class HUD {
     if (pl.speedScrollT > 0) push('spd', itemIcon('spd'), pl.speedScrollT, 600, 'Hız Parşömeni');
     if (pl.premT > 0) push('prem', itemIcon('prem'), pl.premT, 3600, 'Premium');
     if (pl.blessT > 0) push('bless', itemIcon('bless'), pl.blessT, 1800, 'Bereket');
+    if (pl.honorBuff) out.push({ key: 'honor_' + pl.honorBuff.id, ico: '<span class="i">' + pl.honorBuff.icon + '</span>', t: 99999, max: 99999, perm: true, name: pl.honorBuff.name + ': ' + pl.honorBuff.desc });
     for (const k in pl.status) push('st_' + k, statusIcon(k), pl.status[k].t, 0, STATUS_NAMES[k] || k, true);
     return out;
   }
@@ -253,10 +255,10 @@ class HUD {
         el = document.createElement('div'); el.className = 'buff' + (b.bad ? ' bad' : ''); el.dataset.tip = 'bf:' + b.key;
         el.innerHTML = b.ico + '<b></b>'; this.el.buffs.appendChild(el); el._b = el.lastChild; this.buffEls[b.key] = el;
       }
-      el.style.setProperty('--p', (b.t / b.max).toFixed(3));
-      const txt = b.t >= 3600 ? Math.ceil(b.t / 3600) + 's' : b.t >= 60 ? Math.ceil(b.t / 60) + 'dk' : String(Math.ceil(b.t));
+      el.style.setProperty('--p', b.perm ? 1 : (b.t / b.max).toFixed(3));
+      const txt = b.perm ? '★' : b.t >= 3600 ? Math.ceil(b.t / 3600) + 's' : b.t >= 60 ? Math.ceil(b.t / 60) + 'dk' : String(Math.ceil(b.t));
       if (el._t !== txt) { el._b.textContent = txt; el._t = txt; }
-      el.classList.toggle('low', b.t < 5 && !b.bad);
+      el.classList.toggle('low', !b.perm && b.t < 5 && !b.bad);
     }
     for (const k in this.buffEls) if (!seen[k]) { this.buffEls[k].remove(); delete this.buffEls[k]; delete this._maxSeen[k]; }
   }

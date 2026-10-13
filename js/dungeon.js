@@ -130,14 +130,24 @@ World.prototype._buildDungeon = function () {
   }
   // birkaç ışık (performans için az): giriş + boss odası
   for (const r of [D.entry, D.boss]) { const l = new THREE.PointLight(ZONE.light || 0xffa050, 1.1, 40, 1.6); l.position.set(r.x, 5, r.z); this.scene.add(l); }
-  // oda süsleri: sütunlar ve heykeller
+  // oda süsleri: sütunlar, heykeller, zindan sandıkları, sunaklar ve diken tuzakları
+  this.chests = this.chests || [];
+  this.shrines = this.shrines || [];
+  this.traps = this.traps || [];
+  const hasA = typeof Assets !== 'undefined' && Assets.ready;
   const colMat = new THREE.MeshLambertMaterial({ color: new THREE.Color(ZONE.wallCol || '#8a7a62').multiplyScalar(1.1) });
   const rng = mulberry32(77);
+  let roomIdx = 0;
   for (const r of D.rooms) {
     if (r.entry) continue;
+    roomIdx++;
     if (r.w > 28 && r.d > 28) for (const [sx, sz] of [[-1, -1], [1, -1], [-1, 1], [1, 1]]) {
       const x = r.x + sx * (r.w / 2 - 6), z = r.z + sz * (r.d / 2 - 6);
-      const c = new THREE.Mesh(new THREE.CylinderGeometry(0.7, 0.85, 6, 10), colMat); c.position.set(x, 3, z); c.castShadow = true; this.scene.add(c);
+      if (hasA && rng() < 0.35 && Assets.has('dungeon/Column_Broken')) {
+        this._place('dungeon/Column_Broken', x, z, 1.2, rng() * 6.28, 0);
+      } else {
+        const c = new THREE.Mesh(new THREE.CylinderGeometry(0.7, 0.85, 6, 10), colMat); c.position.set(x, 3, z); c.castShadow = true; this.scene.add(c);
+      }
       this.obstacles.push({ x, z, r: 0.9, type: 'pillar' });
     }
     if (ZONE.layout === 'arena') {   // etkinlik alanı: orta çember, takım üsleri (mavi / kırmızı)
@@ -150,9 +160,62 @@ World.prototype._buildDungeon = function () {
       }
       continue;
     }
-    if (r === D.boss) {   // boss odası: kırmızı halı ve iki mangal
+    if (r === D.boss) {   // boss odası: kırmızı halı, heykeller, şamdanlar ve Kraliyet Sandığı
       const rug = new THREE.Mesh(new THREE.PlaneGeometry(6, r.d - 6), new THREE.MeshLambertMaterial({ color: 0x6a1010 }));
       rug.rotation.x = -Math.PI / 2; rug.position.set(r.x, 0.04, r.z); this.scene.add(rug);
+      if (hasA) {
+        for (const sx of [-1, 1]) {
+          if (Assets.has('dungeon/Statue_Horse')) { this._place('dungeon/Statue_Horse', r.x + sx * 5.2, r.z - r.d / 2 + 5, 0.72, sx > 0 ? -Math.PI / 2 : Math.PI / 2, 0); this.obstacles.push({ x: r.x + sx * 5.2, z: r.z - r.d / 2 + 5, r: 1.2, type: 'pillar' }); }
+          if (Assets.has('dungeon/Banner')) this._place('dungeon/Banner', r.x + sx * 4.2, r.z + r.d / 2 - 3.5, 0.9, Math.PI, 0);
+          if (Assets.has('dungeon/Candelabrum_tall')) this._place('dungeon/Candelabrum_tall', r.x + sx * 3.8, r.z, 1.35, 0, 0);
+        }
+        if (Assets.has('rpg/Chest_Closed')) {
+          const cx = r.x, cz = r.z - r.d / 2 + 3.6;
+          const cg = this._place('rpg/Chest_Closed', cx, cz, 1.85, 0, 0);
+          if (cg) {
+            const lbl = makeLabel('Zindan Hazine Sandığı', 'Açmak için yaklaş', '#ffd86a', '#ffe9a8');
+            lbl.position.y = 1.4; lbl.scale.set(2.3, 0.72, 1); cg.add(lbl);
+            this.chests.push({ x: cx, z: cz, group: cg, label: lbl, opened: false, boss: true, respawnT: 0 });
+          }
+        }
+      }
+    } else if (hasA) {
+      // Normal zindan odaları: sandıklar, kadim sunaklar, diken tuzakları ve kemik/amfora dekorları
+      if (roomIdx % 2 === 1 && Assets.has('rpg/Chest_Closed')) {
+        const cx = r.x + (rng() - 0.5) * (r.w - 10), cz = r.z + (rng() - 0.5) * (r.d - 10);
+        if (D.walk(cx, cz)) {
+          const cg = this._place('rpg/Chest_Closed', cx, cz, 1.5, rng() * 6.28, 0);
+          if (cg) {
+            const lbl = makeLabel('Antik Sandık', 'Açmak için yaklaş', '#ffd86a', '#ffe9a8');
+            lbl.position.y = 1.4; lbl.scale.set(2.2, 0.7, 1); cg.add(lbl);
+            this.chests.push({ x: cx, z: cz, group: cg, label: lbl, opened: false, respawnT: 0 });
+          }
+        }
+      }
+      if (roomIdx % 3 === 0 && Assets.has('dungeon/Pedestal')) {
+        const sx = r.x, sz = r.z;
+        const names = [['Savaş Sunağı', '+%18 Hasar (3 dk)', '#ff7a5a', 'rpg/Crystal2', 0xff4a3a], ['Koruma Sunağı', '+%22 Savunma & Can (3 dk)', '#6ad8ff', 'rpg/Crystal1', 0x4ac8ff], ['Bilgelik Sunağı', '+%25 EXP & SP (3 dk)', '#a8ff7a', 'rpg/Crystal3', 0x6ae87a]][roomIdx % 3];
+        const sg = this._place('dungeon/Pedestal', sx, sz, 1.0, 0, 0);
+        if (sg) {
+          if (Assets.has(names[3])) { const cr = Assets.mesh(names[3]); if (cr) { cr.position.y = 2.65; cr.scale.setScalar(1.3); sg.add(cr); sg.userData.crystal = cr; } }
+          const lbl = makeLabel(names[0], names[1], names[2], '#ffe9a8');
+          lbl.position.y = 3.5; lbl.scale.set(3.1, 0.92, 1); sg.add(lbl);
+          this.obstacles.push({ x: sx, z: sz, r: 1.0, type: 'pillar' });
+          this.shrines.push({ x: sx, z: sz, kind: roomIdx % 3, name: names[0], desc: names[1], col: names[4], group: sg, label: lbl, cd: 0 });
+        }
+      }
+      if (roomIdx % 2 === 0 && Assets.has('dungeon/Trap_spikes')) {
+        const tx = r.x + (rng() - 0.5) * 6, tz = r.z + (rng() - 0.5) * 6;
+        if (D.walk(tx, tz)) {
+          const tg = this._place('dungeon/Trap_spikes', tx, tz, 1.15, 0, 0);
+          if (tg) this.traps.push({ x: tx, z: tz, group: tg, phase: rng() * 6, hitCd: 0 });
+        }
+      }
+      for (let p = 0; p < 2; p++) {
+        const px = r.x + (rng() - 0.5) * (r.w - 6), pz = r.z + (rng() - 0.5) * (r.d - 6);
+        const pk = ['dungeon/Bones', 'dungeon/Vase', 'dungeon/Candelabrum_tall'][Math.floor(rng() * 3)];
+        if (D.walk(px, pz) && Assets.has(pk)) this._place(pk, px, pz, pk.includes('Vase') ? 2.6 : 1.0, rng() * 6.28, 0, false);
+      }
     }
     if (rng() < 0.5) {   // kemik / moloz yığını
       const x = r.x + (rng() - 0.5) * (r.w - 8), z = r.z + (rng() - 0.5) * (r.d - 8);

@@ -72,14 +72,20 @@ function initSocialUI(ui, soc) {
           (on ? btn('whisper', 'Fısılda', 'small', ' data-id="' + id + '"') + btn('invite', 'Parti', 'small', ' data-id="' + id + '"') : '') + btn('unfriend', 'Sil', 'small warn', ' data-id="' + id + '"'));
       }
     } else if (st.tab === 'acad') {
-      const a = soc.academy;
-      h += '<p class="soc-hint">Akademi: 40. seviyenin altındaki oyuncular öğrenci olarak katılır (+%15 EXP) ve 40\'ta mezun olup ödül alır. 60. seviyeden itibaren kendi akademini kurup öğrencilerinden onur kazanırsın.</p>';
-      if (!a) h += '<div class="soc-act">' + btn('ajoin', 'Öğrenci olarak katıl', L < 40 ? '' : 'dis') + btn('acreate', 'Akademi kur', L >= 60 ? '' : 'dis') + '</div>';
+      const a = soc.academy, hb = honorBuff(soc.honor);
+      h += '<div class="soc-gh"><b>🎖️ iSRO Akademi & Onur Büfesi</b> <span>Onur Puanı: <b>' + fmt(soc.honor) + '</b></span> <span>Aktif Büfe: <b>' + (hb ? hb.icon + ' ' + hb.name : 'Yok (50+ Onur gerekli)') + '</b></span></div>';
+      h += '<p class="soc-hint">Akademi: 40. seviyenin altındaki oyuncular öğrenci olarak katılır (+%15 EXP) ve 40\'ta mezun olup ödül alır. 60. seviyeden itibaren kendi akademini kurup çıraklarını eğiterek Onur Puanı ve Bronz/Gümüş/Altın/Kral Tacı Büfeleri kazanırsın.</p>';
+      if (!a) h += '<div class="soc-act">' + btn('ajoin', 'Öğrenci olarak katıl', L < 40 ? '' : 'dis') + btn('acreate', 'Akademi kur (Sv. 60+)', L >= 60 ? '' : 'dis') + '</div>';
       else {
-        h += '<div class="soc-gh"><b>' + esc(a.name) + '</b> <span>' + (a.role === 'junior' ? 'Öğrencisin · +%15 EXP · mezuniyet 40. seviyede (' + Math.max(0, 40 - L) + ' seviye kaldı)' : 'Akademi ustasısın · her 10 dakikada +2 onur') + '</span></div>';
-        if (a.juniors) for (const id of a.juniors) h += row(botIcon(Roster[id]), esc(Roster[id].name), 'Öğrenci · Sv. ' + botLevel(Roster[id]), '');
+        h += '<div class="soc-gh"><b>' + esc(a.name) + '</b> <span>' + (a.role === 'junior' ? 'Öğrencisin · +%15 EXP · mezuniyet 40. seviyede (' + Math.max(0, 40 - L) + ' seviye kaldı)' : 'Akademi ustasısın · Mezun: ' + (a.grads || 0) + ' · Kazanılan Onur: ' + (a.pts || 0)) + '</span></div>';
+        if (a.juniors) for (const id of a.juniors) h += row(botIcon(Roster[id]), esc(Roster[id].name), 'Çırak · Sv. ' + botLevel(Roster[id]) + ' / 40 · ' + botClassName(Roster[id]), btn('atrain', 'Eğit (+4 Sv · +12 Onur · 1.500 A)', 'small', ' data-id="' + id + '"'));
         h += '<div class="soc-act">' + btn('aleave', 'Akademiden ayrıl', 'warn small') + '</div>';
       }
+      h += '<h4>🏅 iSRO Akademi Onur Büfeleri (Honor Buffs)</h4>';
+      HONOR_BUFFS.forEach(b => {
+        const active = hb && hb.id === b.id, unlocked = soc.honor >= b.req;
+        h += row(b.icon, b.name + ' <small class="lvt">' + b.req + '+ Onur</small>', b.desc, active ? '<span class="on">AKTİF BÜFE</span>' : unlocked ? '<span style="color:#a8f07a">Açıldı</span>' : '<span style="color:#888">' + (b.req - soc.honor) + ' Onur kaldı</span>', active ? '#ffd23a' : '');
+      });
     } else if (st.tab === 'stall') {
       const S = soc.stall;
       h += '<p class="soc-hint">Şehirde tezgâh aç: koyduğun eşyalar sen dururken yoldan geçen oyunculara satılır. Fiyat makul değere (piyasa) ne kadar yakınsa o kadar hızlı satılır. Yürürsen tezgâh kapanır.</p>';
@@ -93,12 +99,18 @@ function initSocialUI(ui, soc) {
       });
       if (!S.open) h += '<p class="soc-note">Eklemek için çantandan seç:</p><div class="soc-grid">' + pl.inv.slots.map((it, i) => it ? '<div class="slot" data-sadd="' + i + '">' + itemIcon(it.base) + (it.n > 1 ? '<b class="n">' + it.n + '</b>' : '') + '</div>' : '').join('') + '</div>';
     } else if (st.tab === 'honor') {
-      const lv = hwanLevel(soc.honor), nx = HWAN_REQ[lv + 1], T = HWAN_TITLES[pl.race];
+      const lv = hwanLevel(soc.honor), nx = HWAN_REQ[lv + 1], T = HWAN_TITLES[pl.race], hb = honorBuff(soc.honor);
       h += '<div class="soc-gh"><b>' + (T[lv] || 'Unvansız') + '</b> <span>Onur ' + fmt(soc.honor) + (nx ? ' / ' + fmt(nx) + ' → ' + T[lv + 1] : ' · en üst unvan') + ' · saldırı +%' + lv + '</span></div>';
+      if (hb) h += '<div class="soc-gh" style="border-color:#ffd23a"><b>' + hb.icon + ' Aktif Onur Büfesi: ' + hb.name + '</b> <span>' + hb.desc + '</span></div>';
       h += '<div class="soc-prog"><i style="width:' + (nx ? Math.min(100, (soc.honor - HWAN_REQ[lv]) / (nx - HWAN_REQ[lv]) * 100) : 100) + '%"></i></div>';
-      h += '<p class="soc-hint">Onur puanı: pelerinli oyuncuları yenmek, düello kazanmak, Unique öldürmek, arenalar ve Kale Savaşı. Unvan (Hwan) seviyesi her kademede saldırıya +%1 verir.</p>';
+      h += '<p class="soc-hint">Onur puanı: pelerinli oyuncuları yenmek, düello kazanmak, Unique öldürmek, arenalar, Kale Savaşı ve Akademi çırak eğitimi. Unvan (Hwan) seviyesi her kademede saldırıya +%1 verir.</p>';
       h += row(icon('soc_pvp', 'bad'), 'PvP pelerini', soc.cape ? '<span class="bad">Giyili</span> — şehir dışında pelerinli oyuncular saldırabilir; PvP ölümünde EXP kaybetmezsin.' : 'Çıkarılmış. 20. seviyeden itibaren giyilebilir.', btn('cape', soc.cape ? 'Çıkar' : 'Giy', soc.cape ? 'warn' : ''));
       h += row(icon('soc_kill', 'bad'), 'Katil durumu', soc.murderT > 0 ? '<span class="bad">KATİLSİN · ' + Math.ceil(soc.murderT / 60) + ' dk</span> — ölürsen 3 kat EXP ve altının %10\'u gider' : 'Temiz. Pelerinsiz birine saldırmak seni katil yapar.', '');
+      h += '<h4>🏆 iSRO Onur Mağazası (Honor Shop) — Onur Puanın: <b>' + fmt(soc.honor) + '</b></h4>';
+      HONOR_SHOP.forEach((x, idx) => {
+        const ic = x.id.startsWith('@sun') ? icon('treasure', 'gold') : itemIcon(x.id);
+        h += row(ic, x.name, x.sub, '<span class="price">' + x.cost + ' Onur</span> ' + btn('hbuy', 'Al', soc.honor >= x.cost ? 'small' : 'small dis', ' data-i="' + idx + '"'), x.id.startsWith('@sun') ? '#ffd23a' : '');
+      });
       h += '<h4>İstatistik</h4><div class="soc-stats"><span>PvP zafer <b>' + soc.pk + '</b></span><span>Düello <b>' + soc.duelW + '–' + soc.duelL + '</b></span><span>Cinayet <b>' + soc.murders + '</b></span><span>Unique <b>' + (soc.uqKills || 0) + '</b></span></div>';
       h += '<h4>Unvanlar</h4><div class="soc-stats">' + T.slice(1).map((t, i) => '<span' + (lv >= i + 1 ? ' class="on"' : '') + '>' + t + ' <small>' + fmt(HWAN_REQ[i + 1]) + '</small></span>').join('') + '</div>';
     } else if (st.tab === 'rank') {
@@ -135,6 +147,8 @@ function initSocialUI(ui, soc) {
     else if (a === 'ajoin') say(soc.joinAcademy());
     else if (a === 'acreate') say(soc.createAcademy());
     else if (a === 'aleave') soc.leaveAcademy();
+    else if (a === 'atrain') say(soc.trainJunior(id));
+    else if (a === 'hbuy') say(soc.honorBuy(+b.dataset.i));
     else if (a === 'sopen') { soc.stall.title = ($('soc-stitle').value || 'Tezgâhım').slice(0, 20); say(soc.openStall()); }
     else if (a === 'sclose') soc.closeStall('Tezgâh kapandı.');
     else if (a === 'srem') soc.stallRemove(+b.dataset.i);

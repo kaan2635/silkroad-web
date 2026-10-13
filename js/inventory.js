@@ -188,7 +188,7 @@ class Inventory {
   static enc(it) {
     if (!it) return null;
     if (isStack(it.base)) return [it.base, it.n];
-    return [it.base, it.rarity, it.plus, it.blues, it.dur, it.ws || null, it.adv || 0];
+    return [it.base, it.rarity, it.plus, it.blues, it.dur, it.ws || null, it.adv || 0, it.sockets || null];
   }
   static dec(a) {
     if (!Array.isArray(a) || !ITEM_BASES[a[0]]) return null;
@@ -197,6 +197,7 @@ class Inventory {
     const it = makeItem(a[0], clamp(a[1] | 0, 0, RARITY.length - 1), clamp(a[2] | 0, 0, MAX_PLUS), blues);
     if (a[5] && typeof a[5] === 'object') { it.ws = {}; for (const k in a[5]) if (WHITES[k]) it.ws[k] = clamp(a[5][k] | 0, 0, 100); }
     if (a[6]) it.adv = clamp(a[6] | 0, 0, 2);
+    if (Array.isArray(a[7])) it.sockets = a[7].slice(0, 3).map(s => (s && SPIRIT_STONES[s] ? s : null));
     it.dur = maxDur(it);
     if (isFinite(a[4])) it.dur = clamp(a[4] | 0, 0, maxDur(it));
     return it;

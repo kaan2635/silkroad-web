@@ -120,11 +120,28 @@ class LootManager {
     if (chance(0.02)) item(makeStack('luck', 1));
     if (chance(0.012)) { const ks = Object.keys(BLUES).filter(k => !BLUES[k].rare); item(makeStack('ms_' + ks[Math.floor(Math.random() * ks.length)], 1)); }
     if (chance(0.006)) { const ks = Object.keys(WHITES); item(makeStack('as_' + ks[Math.floor(Math.random() * ks.length)], 1)); }
-    if (chance(0.005)) item(makeStack(Math.random() < 0.55 ? 'tab_ms' : 'tab_as', 1));
+    if (chance(0.007)) item(makeStack(['tab_ms', 'tab_as', 'tab_sapphire'][Math.floor(Math.random() * 3)], 1));
+    if (chance(0.055)) item(makeStack(['el_fire', 'el_water', 'el_wind', 'el_earth'][Math.floor(Math.random() * 4)], 1 + Math.floor(Math.random() * 3)));
+    if (chance(0.004)) { const sks = Object.keys(SPIRIT_STONES); item(makeStack('sp_' + sks[Math.floor(Math.random() * sks.length)], 1)); }
+    if (m.rank === 'unique' || (m.rank === 'giant' && Math.random() < 0.08)) item(makeStack('socket_drill', 1));
+    if (m.rank === 'unique' || (m.rank === 'giant' && Math.random() < 0.12) || (m.rank === 'elite' && Math.random() < 0.05)) item(makeStack(Math.random() < 0.5 ? 'pandora_box' : 'mob_scroll', 1));
+    if (m.rank === 'unique' || (m.rank === 'giant' && Math.random() < 0.10)) item(makeStack('magic_pop', 1));
     if (chance(0.003)) item(makeStack('astral', 1));
     if (chance(0.006)) item(makeStack('zerk', 1));
     if (Math.random() < (m.rank === 'unique' ? 1 : m.rank === 'giant' ? 0.25 : m.rank === 'champion' ? 0.04 : 0.002)) item(makeStack('silkbag', m.rank === 'unique' ? 3 : 1));
     if (!ZONE.fw && m.rank !== 'normal' && m.rank !== 'strong' && Math.random() < (m.rank === 'unique' ? 0.6 : 0.03)) item(makeStack(Math.random() < 0.7 ? 'fw_inv1' : Math.random() < 0.75 ? 'fw_inv3' : 'fw_inv5', 1));
+    // Unutulmuş Dünya (FGW) Tılsım Düşüşü (FGW zindanı içinde veya Unique bosslardan)
+    if (typeof FGW_BOOKS !== 'undefined' && (ZONE.fw || m.rank === 'unique' || (m.rank === 'giant' && Math.random() < 0.06))) {
+      const pTalisman = ZONE.fw ? (m.rank === 'unique' ? 1.0 : m.rank === 'giant' ? 0.45 : 0.14) : (m.rank === 'unique' ? 0.65 : 0.35);
+      if (Math.random() < pTalisman) {
+        const bk = L <= 70 ? FGW_BOOKS[0] : L <= 95 ? FGW_BOOKS[1] : FGW_BOOKS[2];
+        // Nadir tılsımlar (#7, #8) biraz daha heyecanlı ama adil ağırlıkla düşer
+        const weights = [18, 17, 15, 14, 12, 10, 8, 6];
+        let r = Math.random() * 100, idx = 0;
+        for (let i = 0; i < 8; i++) { r -= weights[i]; if (r <= 0) { idx = i; break; } }
+        item(makeStack(bk.talismans[idx][0], 1));
+      }
+    }
     // görev eşyası
     const q = QUEST_DROPS[m.typeKey];
     if (q && this.quests && this.quests.wantsItem(q) && Math.random() < 0.45) item(makeStack(q, 1));

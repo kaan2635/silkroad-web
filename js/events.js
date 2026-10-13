@@ -21,9 +21,24 @@ const SEASONS = [
 ];
 const MAGIC_POP_COST = 15;
 const MAGIC_POP = [
-  { w: 28, kind: 'silk', n: 5 }, { w: 14, kind: 'silk', n: 15 }, { w: 14, kind: 'item', id: 'elx_w', n: 3 }, { w: 10, kind: 'item', id: 'elx_a', n: 5 },
-  { w: 10, kind: 'item', id: 'luck', n: 3 }, { w: 6, kind: 'item', id: 'astral', n: 2 }, { w: 4, kind: 'item', id: 'immortal', n: 1 },
-  { w: 5, kind: 'seal', r: 2 }, { w: 2, kind: 'seal', r: 3 }, { w: 2, kind: 'avatar' }, { w: 0.6, kind: 'item', id: 'pet_grab2', n: 1 }, { w: 0.4, kind: 'silk', n: 200, jackpot: true }
+  { w: 26, kind: 'silk', n: 5 }, { w: 14, kind: 'silk', n: 15 }, { w: 13, kind: 'item', id: 'elx_w', n: 3 }, { w: 10, kind: 'item', id: 'elx_a', n: 5 },
+  { w: 9, kind: 'item', id: 'luck', n: 3 }, { w: 6, kind: 'item', id: 'astral', n: 2 }, { w: 4, kind: 'item', id: 'immortal', n: 1 },
+  { w: 4, kind: 'item', id: 'socket_drill', n: 1 },
+  { w: 5, kind: 'seal', r: 2 }, { w: 2.5, kind: 'seal', r: 3 }, { w: 2.5, kind: 'avatar' }, { w: 0.6, kind: 'item', id: 'pet_grab2', n: 1 }, { w: 0.4, kind: 'silk', n: 200, jackpot: true }
+];
+const MAGIC_POP_TARGETS = {
+  sun:     { name: '☀️ Seal of Sun Ekipman', desc: 'Seviyene uygun Güneş/Ay Mühürlü Ekipman şansı x2!' },
+  avatar:  { name: '👘 Nadir Avatar & Sancak', desc: 'Kostüm, Taç, Kanat ve Savaş Sancağı şansı x2.5!' },
+  alchemy: { name: '💠 Ölümsüz Taş & Yuva Matkabı', desc: 'Ölümsüz Taş, Koruma Taşı ve Yuva Matkabı şansı x2.5!' },
+  jackpot: { name: '💎 200 Silk & Altın Sincap', desc: '200 Silk Büyük Ödül ve Altın Sincap şansı x2.5!' }
+};
+const POP_VOUCHER_SHOP = [
+  ['drug_typhoon', 2, 2],
+  ['zerk', 3, 2],
+  ['elx_w', 3, 3],
+  ['pandora_box', 1, 4],
+  ['socket_drill', 1, 5],
+  ['immortal', 1, 6]
 ];
 const ARENA_SHOP = [['elx_w', 1, 5], ['elx_a', 2, 5], ['luck', 2, 4], ['astral', 1, 12], ['immortal', 1, 30], ['spd', 5, 3], ['silkbag', 1, 10], ['av_att_flag', 1, 60], ['@moon', 1, 40], ['@sun', 1, 120]];
 
@@ -134,22 +149,50 @@ class Events {
     return makeSeal(base + tierFor(d, L), r);
   }
 
-  // ---------- Magic POP ----------
-  magicPop() {
-    const pl = this.player;
-    if ((pl.stats.silk || 0) < MAGIC_POP_COST) return { ok: false, msg: 'Magic POP için ' + MAGIC_POP_COST + ' Silk gerekli.' };
-    if (pl.inv.free() < 0) return { ok: false, msg: 'Envanterde yer aç.' };
-    pl.stats.silk -= MAGIC_POP_COST; this.pops++;
-    let r = Math.random() * MAGIC_POP.reduce((a, p) => a + p.w, 0), prize = MAGIC_POP[0];
-    for (const p of MAGIC_POP) { r -= p.w; if (r <= 0) { prize = p; break; } }
+  // ---------- Magic POP (iSRO Kart Çekilişi & Teselli Kuponu) ----------
+  magicPop(fromCard = false, targetKey = null) {
+    const pl = this.player, inv = pl.inv;
+    const tgt = targetKey || this.popTarget || 'sun';
+    const hasCard = !fromCard && inv.count('magic_pop') > 0;
+    if (!fromCard && !hasCard && (pl.stats.silk || 0) < MAGIC_POP_COST) return { ok: false, msg: 'Magic POP için 1 Magic POP Kartı veya ' + MAGIC_POP_COST + ' Silk gerekli.' };
+    if (inv.free() < 0) return { ok: false, msg: 'Envanterde yer aç.' };
+    if (!fromCard) {
+      if (hasCard) inv.take('magic_pop', 1);
+      else pl.stats.silk -= MAGIC_POP_COST;
+    }
+    this.pops++;
+    const weights = MAGIC_POP.map(p => {
+      let mult = 1;
+      if (tgt === 'sun' && p.kind === 'seal') mult = 2.2;
+      else if (tgt === 'avatar' && p.kind === 'avatar') mult = 2.6;
+      else if (tgt === 'alchemy' && (p.id === 'immortal' || p.id === 'socket_drill' || p.id === 'astral')) mult = 2.5;
+      else if (tgt === 'jackpot' && (p.jackpot || p.id === 'pet_grab2')) mult = 2.5;
+      return p.w * mult;
+    });
+    let r = Math.random() * weights.reduce((a, b) => a + b, 0), prize = MAGIC_POP[0];
+    for (let i = 0; i < MAGIC_POP.length; i++) { r -= weights[i]; if (r <= 0) { prize = MAGIC_POP[i]; break; } }
     let name;
     if (prize.kind === 'silk') { pl.stats.silk += prize.n; name = prize.n + ' Silk'; }
     else if (prize.kind === 'item') name = this._give([[prize.id, prize.n]])[0];
     else if (prize.kind === 'seal') { const it = this._sealGear(prize.r); pl.inv.add(it); name = itemInfo(it).name; }
     else { const ids = Object.keys(AVATARS).filter(k => !AVATARS[k].event), id = ids[Math.floor(Math.random() * ids.length)]; pl.inv.add(makeItem(id)); name = AVATARS[id].name; }
-    if (prize.jackpot || prize.kind === 'seal' && prize.r >= 3 || prize.id === 'pet_grab2') this.social.chat.add('global', null, pl.name + ' Magic POP\'tan ' + name + ' kazandı!');
-    pl.inv.changed(); this.changed();
+    const isBig = !!(prize.jackpot || (prize.kind === 'seal' && prize.r >= 3) || prize.id === 'pet_grab2' || prize.kind === 'avatar');
+    if (isBig) this.social.chat.add('global', null, pl.name + ' Magic POP\'tan ' + name + ' kazandı!');
+    else {
+      inv.addStack('pop_voucher', 1);
+      name += ' + 🎫 1 Teselli Kuponu';
+    }
+    inv.changed(); this.changed();
     return { ok: true, msg: 'Magic POP: ' + name, prize, name };
+  }
+  voucherBuy(i) {
+    const x = POP_VOUCHER_SHOP[i], inv = this.player.inv;
+    if (!x) return { ok: false };
+    if (inv.count('pop_voucher') < x[2]) return { ok: false, msg: x[2] + ' Teselli Kuponu gerekli.' };
+    if (inv.free() < 0) return { ok: false, msg: 'Envanterde yer aç.' };
+    inv.take('pop_voucher', x[2]);
+    const n = this._give([[x[0], x[1]]]); this.changed();
+    return { ok: true, msg: 'Gori Takası: ' + n.join(', ') + ' aldın!' };
   }
 
   // ---------- Mevsim takası ----------

@@ -39,11 +39,20 @@ function initEventsUI(ui, ev) {
       }).join('') + '</div>';
       h += '<div class="soc-act">' + btn('att', can ? 'Bugünün ödülünü al' : 'Bugün alındı', can ? 'big' : 'dis') + '</div>';
     } else if (st.tab === 'pop') {
-      h += '<p class="soc-hint">Magic POP: ' + MAGIC_POP_COST + ' Silk ile çarkı çevir. Mühürlü eşya, avatar, simya malzemesi ya da 200 Silk büyük ödül çıkabilir. Silk: <b>' + fmt(pl.stats.silk || 0) + '</b></p>';
+      const cards = pl.inv.count('magic_pop'), vouchers = pl.inv.count('pop_voucher'), tgt = ev.popTarget || 'sun';
+      const canPlay = (cards > 0 || (pl.stats.silk || 0) >= MAGIC_POP_COST) && !st.spin;
+      h += '<p class="soc-hint">🃏 <b>iSRO Magic POP (Gori):</b> Hedef büyük ödülünü seç, ardından <b>Magic POP Kartı</b> veya <b>' + MAGIC_POP_COST + ' Silk</b> ile kartını oyna! Büyük ödül çıkmayan her çekiliş <b>1× 🎫 Teselli Kuponu</b> verir.</p>';
+      h += '<div class="soc-gh"><span>Silk: <b>' + fmt(pl.stats.silk || 0) + '</b></span> <span>🃏 Magic POP Kartı: <b>' + cards + '</b></span> <span>🎫 Teselli Kuponu: <b>' + vouchers + '</b></span></div>';
+      h += '<h4>🎯 Hedef Büyük Ödül Seçimi</h4><div class="filt">' + Object.keys(MAGIC_POP_TARGETS).map(k => '<button data-ptgt="' + k + '" class="' + (tgt === k ? 'on' : '') + '">' + MAGIC_POP_TARGETS[k].name + '</button>').join('') + '</div>';
+      h += '<p class="soc-note" style="margin:4px 0 8px">' + MAGIC_POP_TARGETS[tgt].desc + '</p>';
       h += '<div class="pop-wheel' + (st.spin ? ' spin' : '') + '">' + MAGIC_POP.map(p => '<span>' + (p.kind === 'silk' ? icon('silkbag', 'mall') : p.kind === 'item' ? itemIcon(p.id) : p.kind === 'avatar' ? icon('av_hat', 'mall') : icon('treasure', 'gold')) + '</span>').join('') + '</div>';
       if (st.pop) h += '<div class="soc-gh pop-res"><b>' + st.pop + '</b></div>';
-      h += '<div class="soc-act">' + btn('pop', 'Çarkı çevir (' + MAGIC_POP_COST + ' Silk)', (pl.stats.silk || 0) >= MAGIC_POP_COST && !st.spin ? 'big' : 'dis') + '</div>';
-      h += '<p class="soc-note">Toplam çevirme: ' + ev.pops + '</p>';
+      h += '<div class="soc-act">' + btn('pop', cards > 0 ? '🃏 Magic POP Kartı Oyna (' + cards + ' Kart)' : '🃏 Magic POP Oyna (' + MAGIC_POP_COST + ' Silk)', canPlay ? 'big' : 'dis') + '</div>';
+      h += '<p class="soc-note">Toplam oynanan kart: ' + ev.pops + '</p>';
+      h += '<h4>🎫 NPC Gori — Teselli Kuponu Takası (Elinde: ' + vouchers + ' Kupon)</h4>';
+      POP_VOUCHER_SHOP.forEach((x, i) => {
+        h += ui._row(giveIcon(x), giveName([x[0], x[1]]), ITEM_BASES[x[0]].sub || '', '<span class="price">' + x[2] + ' Kupon</span>' + btn('vbuy', 'Takas Et', vouchers >= x[2] ? 'small' : 'small dis', ' data-i="' + i + '"'));
+      });
     } else if (st.tab === 'shop') {
       h += '<p class="soc-hint">Arena Jetonu: <b>' + pl.inv.count('arena_coin') + '</b> — arenalar, bayrak kapmaca, hayatta kalma ve Kale Savaşı\'ndan kazanılır.</p>';
       ARENA_SHOP.forEach((x, i) => { h += ui._row(giveIcon(x), giveName([x[0], x[1]]), x[0] === '@moon' ? 'Seviyene uygun rastgele Ay Mühürlü eşya' : x[0] === '@sun' ? 'Seviyene uygun rastgele Güneş Mühürlü eşya' : (ITEM_BASES[x[0]].sub || ''), '<span class="price">' + x[2] + ' jeton</span>' + btn('buy', 'Al', pl.inv.count('arena_coin') >= x[2] ? 'small' : 'small dis', ' data-i="' + i + '"')); });
@@ -61,6 +70,7 @@ function initEventsUI(ui, ev) {
   }
   ui.w.ev.addEventListener('click', e => {
     const t = e.target.closest('[data-etab]'); if (t) { st.tab = t.dataset.etab; SFX.play('tab'); refresh(); return; }
+    const pt = e.target.closest('[data-ptgt]'); if (pt) { ev.popTarget = pt.dataset.ptgt; SFX.play('tab'); refresh(); return; }
     const b = e.target.closest('[data-ea]'); if (!b) return;
     if (b.classList.contains('dis')) { if (b.title) hud.log(b.title, 'dmg'); return; }
     const a = b.dataset.ea;
@@ -68,6 +78,7 @@ function initEventsUI(ui, ev) {
     if (a === 'leave') { ev.leave(); return; }
     if (a === 'att') say(ev.claimAtt());
     if (a === 'buy') say(ev.arenaBuy(+b.dataset.i));
+    if (a === 'vbuy') say(ev.voucherBuy(+b.dataset.i));
     if (a === 'tax') say(ev.claimTax());
     if (a === 'strade') say(ev.seasonTrade(+b.dataset.i));
     if (a === 'pop') {

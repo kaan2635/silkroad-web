@@ -132,16 +132,33 @@ class JobSystem {
     return { ok: true, msg: n + ' loncasından ayrıldın.' };
   }
 
-  // ---------- Tüccar ----------
+  // ---------- Tüccar & iSRO 1★–5★ Kervan Yıldız Sistemi ----------
   capacity() { return Math.round((20 + 10 * (this.level() - 1)) * (TRANSPORTS[this.trKind || 'camel'] || TRANSPORTS.camel).cap); }
   cargoCount() { let n = 0; for (const k in this.cargo) n += this.cargo[k]; return n; }
-  // Bugünkü fiyat: uzak şehirde daha pahalı, günlük ±%8 dalgalanma
+  // iSRO Kervan Yıldız Derecesi (1★ – 5★): doluluk oranına göre
+  starRating() {
+    const cnt = this.cargoCount(), cap = Math.max(1, this.capacity());
+    if (cnt <= 0) return 0;
+    const pct = cnt / cap;
+    return pct <= 0.25 ? 1 : pct <= 0.45 ? 2 : pct <= 0.65 ? 3 : pct <= 0.85 ? 4 : 5;
+  }
+  // Yıldız kâr çarpanı: 1★=%0, 2★=+%15, 3★=+%35, 4★=+%60, 5★=+%100
+  starProfitMult(stars = this.starRating()) {
+    return [1, 1.0, 1.15, 1.35, 1.60, 2.0][stars] || 1;
+  }
+  // Özel Ticaret Seferi (Special Trade): her saatin ilk 25 dakikası veya kıtlık şehri aktifken +%40 ek gelir
+  isSpecialTrade(zone = CUR_ZONE_ID) {
+    const mins = new Date().getMinutes();
+    return mins < 25 || (typeof Eco !== 'undefined' && Eco.hot === zone);
+  }
+  // Bugünkü fiyat: uzak şehirde daha pahalı, günlük ±%8 dalgalanma + Özel Ticaret bonusu
   price(base, zone = CUR_ZONE_ID) {
     const o = goodOrigin(base), g = TRADE_GOODS[o];
     const diff = Math.abs(ZONE_ORDER.indexOf(o) - ZONE_ORDER.indexOf(zone));
     const day = Math.floor(Date.now() / 3600e3);
     const wave = 1 + 0.08 * Math.sin(day * 1.7 + ZONE_ORDER.indexOf(zone) * 2.1 + ZONE_ORDER.indexOf(o));
-    return Math.round(g.price * (diff === 0 ? 1 : 1 + 0.6 * diff) * wave);
+    const spec = diff > 0 && this.isSpecialTrade(zone) ? 1.35 : 1;
+    return Math.round(g.price * (diff === 0 ? 1 : 1 + 0.65 * diff) * wave * spec);
   }
   localGood() { return TRADE_GOODS[CUR_ZONE_ID] || TRADE_GOODS[ZONE.parent] || TRADE_GOODS.jangan; }
   buy(n) {
@@ -153,22 +170,43 @@ class JobSystem {
     if (n <= 0) return { ok: false, msg: 'Kervan dolu (' + this.capacity() + ').' };
     const cost = this.price(g.base) * n;
     if (s.gold < cost) return { ok: false, msg: 'Yeterli altının yok.' };
+    const oldStars = this.starRating();
     s.gold -= cost; Eco.exp('trade', cost); this.cargo[g.base] = (this.cargo[g.base] || 0) + n; this.cargoCost += cost;
+    const newStars = this.starRating();
     this._trLabel(); this.changed();
-    return { ok: true, msg: g.name + ' x' + n + ' yüklendi. -' + cost.toLocaleString('tr-TR') + ' altın' };
+    if (newStars > oldStars && newStars >= 2) {
+      this.hud.log('Kervan Derecesi: ' + '★'.repeat(newStars) + ' (' + newStars + ' Yıldız — Kâr Bonusu +%' + Math.round((this.starProfitMult(newStars) - 1) * 100) + ')', 'lvl', '#ffd23a');
+    }
+    return { ok: true, msg: g.name + ' x' + n + ' yüklendi (' + '★'.repeat(newStars) + '). -' + cost.toLocaleString('tr-TR') + ' altın' };
   }
   sellAll() {
     if (!this.cargoCount()) return { ok: false, msg: 'Kervanında mal yok.' };
     if (!this.transport || Math.hypot(this.transport.x - this.p.pos.x, this.transport.z - this.p.pos.z) > 14) return { ok: false, msg: 'Deven yanında olmalı.' };
-    let rev = 0;
-    for (const b in this.cargo) rev += this.price(b) * this.cargo[b];
+    const stars = this.starRating(), sMult = this.starProfitMult(stars);
+    let baseRev = 0, crossCity = false;
+    for (const b in this.cargo) {
+      baseRev += this.price(b) * this.cargo[b];
+      if (goodOrigin(b) !== CUR_ZONE_ID) crossCity = true;
+    }
+    const baseProfit = baseRev - this.cargoCost;
+    const bonusProfit = crossCity && baseProfit > 0 ? Math.round(baseProfit * (sMult - 1)) : 0;
+    const rev = baseRev + bonusProfit;
     const profit = rev - this.cargoCost;
     this.p.stats.gold += rev; Eco.inc('trade', rev);
+    // 3★–5★ şehirlerarası kervan teslimatında Arena Jetonu ve Silk ödülü
+    let extraMsg = '';
+    if (crossCity && stars >= 3) {
+      const coins = stars === 5 ? 5 : stars === 4 ? 3 : 1;
+      this.p.inv.add(makeStack('arena_coin', coins));
+      extraMsg += ' · +' + coins + ' Arena Jetonu';
+      if (stars === 5) { this.p.stats.silk = (this.p.stats.silk || 0) + 10; extraMsg += ' · +10 Silk'; }
+      this.hud.banner('★'.repeat(stars) + ' Kervan Teslimatı!', '+' + rev.toLocaleString('tr-TR') + ' Altın' + extraMsg, 'quest');
+    }
     this.cargo = {}; this.cargoCost = 0;
     this._trLabel();
-    this.gainJobExp(Math.max(20, profit * 0.6));
+    this.gainJobExp(Math.max(20, profit * 0.65 * (1 + stars * 0.12)));
     this.changed();
-    return { ok: true, msg: 'Mallar satıldı: +' + rev.toLocaleString('tr-TR') + ' altın (' + (profit >= 0 ? 'kâr ' : 'zarar ') + Math.abs(profit).toLocaleString('tr-TR') + ')' };
+    return { ok: true, msg: '★'.repeat(stars) + ' Mallar satıldı: +' + rev.toLocaleString('tr-TR') + ' altın (' + (profit >= 0 ? 'net kâr +' : 'zarar ') + Math.abs(profit).toLocaleString('tr-TR') + extraMsg + ')' };
   }
   summonTransport(hp, kind) {
     kind = TRANSPORTS[kind] ? kind : this.trKind || 'camel';
@@ -199,16 +237,28 @@ class JobSystem {
     if (this.cargoCount()) return this.hud.log('Yüklü deveyi gönderemezsin. Önce malları sat.');
     this.transport.remove(); this.transport = null; this.changed();
   }
-  _trLabel() { const t = this.transport; if (t) t.setLabel((TRANSPORTS[this.trKind || 'camel'] || TRANSPORTS.camel).name, 'Yük ' + this.cargoCount() + '/' + this.capacity() + ' · Can ' + Math.ceil(t.hp) + '/' + t.maxHp); }
+  _trLabel() {
+    const t = this.transport;
+    if (!t) return;
+    const stars = this.starRating();
+    const starBadge = stars > 0 ? ' [' + '★'.repeat(stars) + ']' : '';
+    t.setLabel((TRANSPORTS[this.trKind || 'camel'] || TRANSPORTS.camel).name + starBadge, 'Yük ' + this.cargoCount() + '/' + this.capacity() + ' · Can ' + Math.ceil(t.hp) + '/' + t.maxHp);
+  }
 
-  // Hırsız baskını: mallar yanındaysa ve şehir dışındaysan
-  _spawnThieves(target, n, lvl) {
+  // Hırsız baskını: mallar yanındaysa ve şehir dışındaysan (yıldız derecesine göre zorluk ve elit hırsız lideri)
+  _spawnThieves(target, n, lvl, stars = 2) {
     const list = [];
     for (let i = 0; i < n; i++) {
       const a = Math.random() * 6.283, d = 16 + Math.random() * 6, x = clamp(target.x + Math.cos(a) * d, -280, 280), z = clamp(target.z + Math.sin(a) * d, -280, 280);
-      const m = new Monster(this.world, 'kthief', Math.max(1, lvl + Math.floor(Math.random() * 3) - 1), { x, z }, { rank: 'normal' });
+      const rank = (i === 0 && stars >= 5) ? 'giant' : (i === 0 && stars >= 3) ? 'champion' : (stars >= 4 && Math.random() < 0.4) ? 'strong' : 'normal';
+      const m = new Monster(this.world, 'kthief', Math.max(1, lvl + Math.floor(Math.random() * 3) + (stars >= 4 ? 1 : -1)), { x, z }, { rank });
       m.noRespawn = true; m.respawnTime = 4; m.noLeash = true; m.lifeT = 150; m.targetEnt = target; m.state = 'chase'; m.provoked = true;
-      m.onKilled = () => { if (this.job === 'hunter' || this.job === 'trader') this.gainJobExp(25 + m.level * (this.job === 'hunter' ? 4 : 1.5)); };
+      m.onKilled = () => {
+        if (this.job === 'hunter' || this.job === 'trader') {
+          this.gainJobExp((25 + m.level * (this.job === 'hunter' ? 4.5 : 2)) * (1 + stars * 0.15));
+          if (rank === 'giant' || (rank === 'champion' && Math.random() < 0.4)) this.p.inv.add(makeStack('arena_coin', 1));
+        }
+      };
       this.mm.list.push(m); list.push(m);
     }
     return list;
@@ -277,12 +327,17 @@ class JobSystem {
       else if (d > 1) moving = t.moveTo(tx, tz, CONFIG.playerSpeed * (pl.d.speed || 1) * (d > 8 ? 1.25 : 0.98), dt, this.world.obstacles) > 0;
       t.anim(moving);
       if (!pl.dead && this.cargoCount() > 0 && !inSafeZone(P.x, P.z)) {
-        this.ambushT -= dt;
-        if (this.ambushT <= 0) {
-          this.ambushT = 45 + Math.random() * 35;
-          const n = 2 + Math.floor(pl.stats.level / 40) + (this.cargoCount() > 40 ? 1 : 0);
-          this._spawnThieves(t, n, pl.stats.level);
-          this.hud.banner('Hırsız Baskını!', 'Kervanını koru!', 'zerk'); SFX.play('region');
+        const stars = this.starRating();
+        // iSRO kuralı: 1★ Kervan güvenli ticarettir (hırsız baskını olmaz); 2★–5★ kervanlara yıldızına göre baskın gelir
+        if (stars >= 2) {
+          this.ambushT -= dt * (0.85 + stars * 0.15);
+          if (this.ambushT <= 0) {
+            this.ambushT = 48 + Math.random() * 32;
+            const n = 1 + stars + Math.floor(pl.stats.level / 45);
+            this._spawnThieves(t, n, pl.stats.level, stars);
+            this.hud.banner('★'.repeat(stars) + ' Hırsız Baskını!', stars >= 4 ? 'Elit Hırsız Çetesi kervanına saldırıyor!' : 'Kervanını koru!', 'zerk');
+            SFX.play('region');
+          }
         }
       }
       if (!inSafeZone(t.x, t.z) || t.hp >= t.maxHp) { /* */ } else t.hp = Math.min(t.maxHp, t.hp + t.maxHp * 0.02 * dt);
